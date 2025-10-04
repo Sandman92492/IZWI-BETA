@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block title %}Founder Console{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto p-4">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="text-xl font-semibold">Founder Console</h1>
+    <a href="/settings" class="text-blue-600 hover:underline">Back to Settings</a>
+  </div>
+
+  {% if created_code %}
+  <div class="mb-4 p-3 rounded border bg-emerald-50 border-emerald-300 text-emerald-900">
+    <div class="flex items-center justify-between gap-2">
+      <div>
+        <div class="font-medium">New Invite Code (copy now)</div>
+        <code id="created-code" class="block bg-white p-2 rounded border mt-1">{{ created_code }}</code>
+      </div>
+      <button onclick="copyCreatedCode()" class="h-10 px-3 rounded bg-emerald-600 text-white hover:bg-emerald-700">Copy</button>
+    </div>
+  </div>
+  {% endif %}
+
+  <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow p-4 mb-6">
+    <h2 class="font-semibold mb-3">Create Invite Code</h2>
+    <form method="POST" action="/founder/invite-codes" class="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div>
+        <label class="block text-sm font-medium">Max Uses</label>
+        <input name="max_uses" type="number" min="1" value="1" class="w-full border rounded p-2 bg-white dark:bg-gray-700/50">
+      </div>
+      <div>
+        <label class="block text-sm font-medium">Valid For (days)</label>
+        <input name="days_valid" type="number" min="0" value="30" class="w-full border rounded p-2 bg-white dark:bg-gray-700/50">
+      </div>
+      <div>
+        <button class="w-full bg-blue-600 hover:bg-blue-700 text-white rounded p-2">Generate Code</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow p-4">
+    <h2 class="font-semibold mb-3">Invite Codes</h2>
+    <div class="overflow-x-auto">
+      <table class="min-w-full text-sm">
+        <thead>
+          <tr class="text-left border-b">
+            <th class="py-2 pr-4">ID</th>
+            <th class="py-2 pr-4">Purpose</th>
+            <th class="py-2 pr-4">Uses</th>
+            <th class="py-2 pr-4">Expires</th>
+            <th class="py-2 pr-4">Revoked</th>
+            <th class="py-2 pr-4">Created</th>
+            <th class="py-2 pr-4">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in codes %}
+          <tr class="border-b last:border-0">
+            <td class="py-2 pr-4">{{ c.id }}</td>
+            <td class="py-2 pr-4">{{ c.purpose }}</td>
+            <td class="py-2 pr-4">{{ c.used_count }}/{{ c.max_uses }}</td>
+              <td class="py-2 pr-4">{{ c.expires_at or '—' }}</td>
+            <td class="py-2 pr-4">{{ 'Yes' if c.revoked else 'No' }}</td>
+            <td class="py-2 pr-4">{{ c.created_at }}</td>
+            <td class="py-2 pr-4">
+              {% if not c.revoked %}
+              <form method="POST" action="/founder/invite-codes/{{ c.id }}/revoke" onsubmit="return confirm('Revoke this code?')">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="px-3 py-1 rounded bg-red-600 text-white hover:bg-red-700">Revoke</button>
+              </form>
+              {% else %}
+              <span class="text-gray-500">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+          {% if not codes %}
+          <tr><td colspan="7" class="py-3 text-gray-500">No invite codes yet.</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+<script>
+function copyCreatedCode(){
+  try {
+    const el = document.getElementById('created-code');
+    if (!el) return;
+    const text = el.textContent.trim();
+    navigator.clipboard.writeText(text).then(()=>{
+      alert('Invite code copied');
+    }).catch(()=>{
+      alert('Copy failed');
+    });
+  } catch (_) {}
+}
+</script>
+{% endblock %}
+
+

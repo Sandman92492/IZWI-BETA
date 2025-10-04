@@ -1,0 +1,259 @@
+{% extends 'base.html' %}
+
+{% block title %}iZwi - Post Alert{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex flex-col">
+  <header class="flex items-center justify-between p-4 border-b bg-background-light dark:bg-background-dark">
+    <a href="{{ url_for('dashboard') }}" class="p-2 rounded-full hover:bg-gray-100">
+      <span class="material-symbols-outlined">arrow_back</span>
+    </a>
+    <h1 class="text-xl font-bold text-gray-900 dark:text-white">Post Alert</h1>
+    <button id="theme-toggle-btn" class="p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-soft" title="Toggle theme" aria-label="Toggle theme">
+      <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
+    </button>
+  </header>
+  <main class="flex-1 overflow-y-auto">
+    <form method="POST" action="{{ url_for('post_alert') }}" class="p-4 space-y-6 max-w-md mx-auto">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Category</h2>
+        <input type="hidden" name="category" id="selected_category" required>
+        <div class="grid grid-cols-2 gap-3">
+          <button type="button" onclick="selectCategory(event, 'Emergency')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-red-500 focus:outline-none"><span class="text-2xl">🚨</span><span class="font-semibold text-gray-900">Emergency</span></button>
+          <button type="button" onclick="selectCategory(event, 'Fire')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-orange-500 focus:outline-none"><span class="text-2xl">🔥</span><span class="font-semibold text-gray-900">Fire</span></button>
+          <button type="button" onclick="selectCategory(event, 'Traffic')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:outline-none"><span class="text-2xl">🚗</span><span class="font-semibold text-gray-900">Traffic</span></button>
+          <button type="button" onclick="selectCategory(event, 'Weather')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-purple-500 focus:outline-none"><span class="text-2xl">⛈️</span><span class="font-semibold text-gray-900">Weather</span></button>
+          <button type="button" onclick="selectCategory(event, 'Community')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-green-500 focus:outline-none"><span class="text-2xl">🏘️</span><span class="font-semibold text-gray-900">Community</span></button>
+          <button type="button" onclick="selectCategory(event, 'Other')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white border-2 border-gray-200 hover:shadow-md transition-all duration-200 focus:ring-2 focus:ring-gray-500 focus:outline-none"><span class="text-2xl">❗</span><span class="font-semibold text-gray-900">Other</span></button>
+        </div>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Describe what's happening...</h2>
+        <textarea name="description" class="w-full h-28 p-3 rounded-lg bg-white dark:bg-background-dark border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none resize-none" placeholder="Add details here..." required></textarea>
+      </div>
+      <div>
+        <h2 class="text-lg font-semibold text-gray-800 dark:text-gray-200 mb-3">Location</h2>
+        <div class="mb-3 flex gap-2">
+          <button type="button" onclick="requestCurrentLocation()" class="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"><span class="text-sm">📍</span><span class="text-sm font-medium">Use My Location</span></button>
+          <div id="location-status" class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"></div>
+        </div>
+        <div class="relative h-64 w-full rounded-xl overflow-hidden">
+          <div id="location-map" class="w-full h-full"></div>
+          <div class="absolute top-3 left-3 bg-white/90 dark:bg-black/70 p-2 rounded-lg shadow-lg text-xs"><span class="text-gray-800 dark:text-gray-200">Click \"Use My Location\" or click on the map to set location</span></div>
+        </div>
+        <input type="hidden" name="latitude" id="latitude">
+        <input type="hidden" name="longitude" id="longitude">
+      </div>
+      <button type="submit" id="post-alert-btn" class="w-full bg-primary text-white font-bold py-4 rounded-xl hover:bg-opacity-90 transition-colors duration-200"><span class="btn-text">Post Alert</span><span class="btn-loading hidden">Posting...</span></button>
+    </form>
+  </main>
+</div>
+<script>
+// Initialize location map
+var locationMap = L.map('location-map').setView([-26.2041, 28.0473], 13);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+}).addTo(locationMap);
+
+var selectedMarker = null;
+var selectedCategory = null;
+
+// Handle map clicks for location selection
+locationMap.on('click', function(e) {
+    var lat = e.latlng.lat;
+    var lng = e.latlng.lng;
+    
+    // Remove existing marker
+    if (selectedMarker) {
+        locationMap.removeLayer(selectedMarker);
+    }
+    
+    // Add new marker
+    selectedMarker = L.marker([lat, lng]).addTo(locationMap);
+    
+    // Update form fields
+    document.getElementById('latitude').value = lat;
+    document.getElementById('longitude').value = lng;
+});
+
+// Location detection functions
+function requestCurrentLocation() {
+    if (!navigator.geolocation) {
+        showLocationStatus('Location services not supported by your browser', 'error');
+        return;
+    }
+
+    showLocationStatus('Getting your location...', 'loading');
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            
+            // Update map view
+            locationMap.setView([lat, lng], 15);
+            
+            // Remove existing marker
+            if (selectedMarker) {
+                locationMap.removeLayer(selectedMarker);
+            }
+            
+            // Add marker at current location
+            selectedMarker = L.marker([lat, lng]).addTo(locationMap);
+            selectedMarker.bindPopup('<div class="text-center p-2"><strong>Your Current Location</strong></div>');
+            
+            // Update form fields
+            document.getElementById('latitude').value = lat;
+            document.getElementById('longitude').value = lng;
+            
+            showLocationStatus('Location set successfully', 'success');
+        },
+        function(error) {
+            var message = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    message = 'Location access denied. Please manually click on the map to set location.';
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    message = 'Location unavailable. Please manually click on the map to set location.';
+                    break;
+                case error.TIMEOUT:
+                    message = 'Location request timed out. Please try again or manually click on the map.';
+                    break;
+                default:
+                    message = 'Error getting location. Please manually click on the map to set location.';
+                    break;
+            }
+            showLocationStatus(message, 'error');
+            console.log('Geolocation error:', error);
+        },
+        {
+            timeout: 10000, // 10 second timeout
+            enableHighAccuracy: true,
+            maximumAge: 300000 // 5 minutes cache
+        }
+    );
+}
+
+function showLocationStatus(message, type) {
+    const statusDiv = document.getElementById('location-status');
+    
+    let icon = '';
+    let className = '';
+    
+    switch(type) {
+        case 'loading':
+            icon = '<div class="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>';
+            className = 'text-blue-600';
+            break;
+        case 'success':
+            icon = '✅';
+            className = 'text-green-600';
+            break;
+        case 'error':
+            icon = '⚠️';
+            className = 'text-yellow-600';
+            break;
+        default:
+            icon = 'ℹ️';
+            className = 'text-gray-600';
+    }
+    
+    statusDiv.innerHTML = `<span>${icon}</span><span class="${className}">${message}</span>`;
+    
+    // Auto-hide success/error messages after 5 seconds
+    if (type === 'success' || type === 'error') {
+        setTimeout(() => {
+            statusDiv.innerHTML = '';
+        }, 5000);
+    }
+}
+
+// Category selection
+function selectCategory(event, category) {
+    // Get category colors
+    const colors = {
+        'Emergency': '#DC2626',
+        'Fire': '#EA580C', 
+        'Traffic': '#2563EB',
+        'Weather': '#7C3AED',
+        'Community': '#059669',
+        'Other': '#6B7280'
+    };
+    
+    // Remove previous selection
+    document.querySelectorAll('.category-btn').forEach(btn => {
+        btn.style.backgroundColor = 'white';
+        btn.style.borderColor = '#E5E7EB';
+        btn.style.color = '#111827';
+    });
+    
+    // Highlight selected category
+    const selectedBtn = event.target.closest('.category-btn');
+    selectedBtn.style.backgroundColor = colors[category];
+    selectedBtn.style.borderColor = colors[category];
+    selectedBtn.style.color = 'white';
+    
+    // Update form field
+    document.getElementById('selected_category').value = category;
+    selectedCategory = category;
+}
+
+// Add loading state functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('post-alert-btn');
+    const btnText = submitBtn.querySelector('.btn-text');
+    const btnLoading = submitBtn.querySelector('.btn-loading');
+    
+    form.addEventListener('submit', function(e) {
+        // Check if category is selected
+        const selectedCategory = document.getElementById('selected_category').value;
+        if (!selectedCategory) {
+            e.preventDefault();
+            alert('Please select a category for your alert.');
+            return;
+        }
+        
+        // Check if location is set
+        const latitude = document.getElementById('latitude').value;
+        const longitude = document.getElementById('longitude').value;
+        
+        if (!latitude || !longitude || (latitude === '0' && longitude === '0')) {
+            e.preventDefault();
+            alert('Please set your location by clicking "Use My Location" or clicking on the map.');
+            showLocationStatus('Location required - please click "Use My Location" or click on the map', 'error');
+            return;
+        }
+        
+        // Disable button and show loading state
+        submitBtn.disabled = true;
+        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+        btnText.classList.add('hidden');
+        btnLoading.classList.remove('hidden');
+    });
+    
+    // Auto-hide flash messages after 5 seconds and remove container when empty
+    const alertMessages = document.querySelectorAll('.alert-message');
+    const flashContainer = document.getElementById('flash-container');
+    alertMessages.forEach(function(message) {
+        setTimeout(function() {
+            message.style.transition = 'opacity 0.5s ease-out';
+            message.style.opacity = '0';
+            setTimeout(function() {
+                message.remove();
+                if (flashContainer && !flashContainer.querySelector('.alert-message')) {
+                    flashContainer.remove();
+                }
+            }, 500);
+        }, 5000);
+    });
+});
+</script>
+{% endblock %}

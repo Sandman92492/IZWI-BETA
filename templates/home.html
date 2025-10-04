@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block title %}iZwi - Community Alerts{% endblock %}
+
+{% block content %}
+<div class="flex flex-col min-h-screen">
+  <main class="flex-grow">
+    <div class="px-4 py-12 md:py-20">
+      <div class="container mx-auto max-w-4xl">
+        <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+          <div class="w-full lg:w-1/2 flex justify-center lg:order-last">
+            <div class="relative w-72 h-auto">
+              <div class="absolute -top-4 -left-4 w-full h-full bg-primary/20 rounded-xl transform -rotate-6"></div>
+              <div class="relative z-10 w-full h-auto bg-background-light dark:bg-background-dark p-2 rounded-xl shadow-lg">
+                <img alt="iZwi App on a phone" class="rounded-lg w-full h-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDLCpOuHDpbH3PtRtV17ONkC7ZAq9LIgW3kKxGvhPW6GgWOX6yGifC3ZKpb4cdEROc16Q7wX3z-v0ypVWpeXz1V6YE3zrTPkq8-hug7jF461oNEGVM-vsV6a3_s2bEIDvJC66ju5gyhFpe7tNYPTw4JXm537IwEoy0yXCieow0s_f69CfnRX0jZEwI4alGnqMD_45i8BQABW_ghaKPeAGhO3NFZYaMSOIPnnbTfScF5MREoFNFQBM9ofInU8jjEKSCLbIMqzBLOgSM"/>
+              </div>
+            </div>
+          </div>
+          <div class="w-full lg:w-1/2 text-center lg:text-left">
+            <h1 class="font-display font-semibold text-5xl md:text-6xl text-gray-900 dark:text-white leading-tight">iZwi</h1>
+            <p class="mt-4 text-lg md:text-xl text-gray-600 dark:text-gray-300">Stay informed and connected with your community. Receive real-time alerts and updates on local events, safety concerns, and more.</p>
+            <div class="mt-8 space-y-4">
+              <a href="{{ url_for('signup_page') }}" class="btn btn-primary">Create a Free Community</a>
+              <div class="text-center">
+                <span class="text-gray-500 dark:text-gray-400">Already have an account?</span>
+                <a href="{{ url_for('login') }}" class="text-primary hover:text-primary/80 font-medium ml-1">Sign In</a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="bg-background-light dark:bg-background-dark py-4">
+    <div class="container mx-auto text-center text-sm text-gray-500 dark:text-gray-400">
+      <div class="flex flex-wrap justify-center gap-4 mb-2">
+        <a href="{{ url_for('privacy_policy') }}" class="hover:text-primary">Privacy Policy</a>
+        <span>•</span>
+        <a href="{{ url_for('terms_of_service') }}" class="hover:text-primary">Terms of Service</a>
+      </div>
+      © 2024 iZwi. All rights reserved.
+    </div>
+  </footer>
+</div>
+{% endblock %}

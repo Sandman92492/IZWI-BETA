@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Welcome to iZwi!</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19b3a1",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#11211f",
+                        "text-primary": "#264653",
+                        "text-secondary": "#6b7280",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+        }
+        
+        .welcome-animation {
+            animation: welcomeIn 0.8s ease-out;
+        }
+        
+        @keyframes welcomeIn {
+            0% {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .pulse-button {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.8;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-primary/10 to-primary/20 min-h-screen flex items-center justify-center p-4">
+    <div class="welcome-animation max-w-lg w-full mx-auto">
+        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
+            <!-- Welcome Illustration -->
+            <div class="mb-6">
+                <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="text-4xl">👋</span>
+                </div>
+            </div>
+            
+            <!-- Welcome Message -->
+            <h1 class="text-3xl font-bold text-text-primary mb-3">
+                Welcome, {{ user_name }}!
+            </h1>
+            
+            <p class="text-text-secondary mb-6 leading-relaxed">
+                🎉 Your account has been successfully created! You're now part of your community alert network. 
+                Get ready to stay connected and informed about what's happening around you.
+            </p>
+            
+            <!-- Community Benefits -->
+            <div class="bg-primary/5 rounded-xl p-4 mb-6 text-left">
+                <h3 class="font-semibold text-text-primary mb-3 text-center">What you can do now:</h3>
+                <ul class="space-y-2 text-sm text-text-secondary">
+                    <li class="flex items-center">
+                        <span class="text-primary mr-2">📍</span>
+                        View community alerts on your personalized map
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-primary mr-2">🚨</span>
+                        Post alerts to keep your neighbors informed
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-primary mr-2">🏘️</span>
+                        Connect with other community members
+                    </li>
+                    <li class="flex items-center">
+                        <span class="text-primary mr-2">🔔</span>
+                        Stay updated on local happenings
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Action Button -->
+            <a href="{{ url_for('dashboard') }}" 
+               class="pulse-button inline-block w-full bg-primary text-white font-bold py-4 px-6 rounded-xl hover:bg-primary/90 transition-all duration-300 transform hover:scale-105">
+                Explore Your Community Dashboard
+            </a>
+            
+            <!-- Additional Info -->
+            <p class="text-xs text-text-secondary mt-4">
+                Need help getting started? Check out your dashboard to see community alerts and start engaging!
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Auto-redirect after 30 seconds if user doesn't click
+        setTimeout(function() {
+            window.location.href = "{{ url_for('dashboard') }}";
+        }, 30000);
+        
+        // Add some interactive feedback
+        document.addEventListener('DOMContentLoaded', function() {
+            const button = document.querySelector('.pulse-button');
+            button.addEventListener('click', function() {
+                this.textContent = 'Taking you to your dashboard...';
+                this.classList.remove('pulse-button');
+                this.classList.add('opacity-75', 'cursor-not-allowed');
+            });
+        });
+    </script>
+</body>
+</html>

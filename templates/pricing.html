@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block title %}iZwi - Upgrade Plan{% endblock %}
+
+{% block content %}
+<div class="flex flex-col min-h-screen">
+  <header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm">
+    <div class="flex items-center p-4">
+      <a href="/settings" class="p-2 -ml-2">
+        <span class="material-symbols-outlined text-gray-900 dark:text-white">arrow_back_ios_new</span>
+      </a>
+      <h1 class="flex-1 text-center text-lg font-bold text-gray-900 dark:text-white">Upgrade Plan</h1>
+      <button id="theme-toggle-btn" class="ml-2 p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-soft" title="Toggle theme" aria-label="Toggle theme">
+        <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
+      </button>
+    </div>
+  </header>
+  <main class="flex-grow p-4">
+    <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl overflow-hidden max-w-xl mx-auto">
+      <div class="p-6 text-center">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">iZwi Plus</h2>
+        <p class="text-4xl font-extrabold text-primary my-2">R79<span class="text-base font-medium text-gray-500 dark:text-gray-400"> / month</span></p>
+        <p class="text-gray-600 dark:text-gray-300 mt-2">Unlock powerful features to enhance your community experience.</p>
+      </div>
+      <hr class="border-gray-200 dark:border-gray-700"/>
+      <div class="p-6">
+        <ul class="space-y-4">
+          <li class="flex items-center">
+            <div class="bg-primary/15 text-primary p-1 rounded-full">
+              <span class="material-symbols-outlined text-base">done</span>
+            </div>
+            <span class="ml-3 text-gray-800 dark:text-gray-200">Unlimited Members</span>
+          </li>
+          <li class="flex items-center">
+            <div class="bg-primary/15 text-primary p-1 rounded-full">
+              <span class="material-symbols-outlined text-base">done</span>
+            </div>
+            <span class="ml-3 text-gray-800 dark:text-gray-200">Unlimited Alert History</span>
+          </li>
+          <li class="flex items-center">
+            <div class="bg-primary/15 text-primary p-1 rounded-full">
+              <span class="material-symbols-outlined text-base">done</span>
+            </div>
+            <span class="ml-3 text-gray-800 dark:text-gray-200">Admin & Moderator Roles</span>
+          </li>
+          <li class="flex items-center">
+            <div class="bg-primary/15 text-primary p-1 rounded-full">
+              <span class="material-symbols-outlined text-base">done</span>
+            </div>
+            <span class="ml-3 text-gray-800 dark:text-gray-200">View Member Lists</span>
+          </li>
+        </ul>
+      </div>
+      <div class="p-6">
+        <form method="POST" action="/upgrade/plus">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <button class="btn btn-primary w-full">Upgrade to Plus</button>
+        </form>
+      </div>
+    </div>
+
+    <div class="text-center mt-6">
+      <p class="text-sm text-gray-500 dark:text-gray-400">Secure payments powered by Paystack</p>
+      <div class="flex justify-center items-center space-x-4 mt-2">
+        <img alt="Visa" class="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCrLaRt8ZbMUv-KHiV8GyaeMPE-wgF7Kxw91qua18wvP7l_hhaQT6wxYGcxwmvQNVMNn6h7CTFA2cKNCW3smrLQqmuoN1PgTpX8GErCGLHZ_I2rLaZEKVxXujhM2rbVMgpKfL5WkRQFHI-8RJawyzOMP53mv0d9mmbeBiPGq6_qIvoqCj1kDB2bkumfGTNBhEpyehhKLBY8Cr0BWBFacw-Z7nZCEMuHxjbFuWJVaUo_SLA_VdibDawZkkC9_Edl1FE66enkKfhmeKQ"/>
+        <img alt="Mastercard" class="h-6" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApEQOea79u9VqFoHGBZl4IXNJNRl2d0dybNCAb8QiFUDIa5M2ZhXEpWuJne-6dMpnElZwnPoKNOjFM6S_50JWzJYaEQayWxdf3P8nX1Q8DLTBLxJo_a6xFZnfD4bE_T6pgmfFVWBYqQDNtP5MpOaq2fMZsFFNC0KeqxLhGnIRVUTnMd6dcZdJivNx-j2XxXYuEgwCgy7sAs3MphSeSaMU7sePEHr7LE8jQQjASFXMLQaqYsAo-1hBJvrSnO26wWcdYH1EeMyLt6Xw"/>
+      </div>
+    </div>
+  </main>
+</div>
+{% endblock %}

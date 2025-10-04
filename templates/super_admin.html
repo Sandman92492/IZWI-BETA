@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+{% block title %}Super Admin Dashboard{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
+<style>
+  .custom-alert-marker { background: transparent !important; border: none !important; }
+  .custom-alert-marker:hover { transform: scale(1.06); transition: transform .15s ease; }
+  .grid-cols-fluid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+</style>
+{% endblock %}
+
+{% block content %}
+  <header class="bg-emerald-700 text-white px-4 py-4 md:hidden">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="material-symbols-outlined text-3xl">shield_person</span>
+        <h1 class="text-xl font-semibold">Super Admin</h1>
+      </div>
+      <div class="flex items-center gap-4">
+        <button id="theme-toggle-btn" class="inline-flex items-center justify-center p-2 rounded-full bg-white/10 hover:bg-white/20" title="Toggle theme" aria-label="Toggle theme">
+          <span class="material-symbols-outlined" id="theme-toggle-icon">light_mode</span>
+        </button>
+        <a href="/settings" class="inline-flex items-center gap-2 text-white/90 hover:text-white">
+          <span class="material-symbols-outlined">settings</span>
+          <span>Settings</span>
+        </a>
+        <a href="/logout" class="inline-flex items-center gap-2 text-white/90 hover:text-white">
+          <span class="material-symbols-outlined">logout</span>
+          <span>Logout</span>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto p-4 grid gap-4 md:grid-cols-12 lg:grid-cols-12">
+    <aside class="md:col-span-4 lg:col-span-3 bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-140px)] lg:overflow-y-auto">
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Managed Communities</h2>
+        <span class="text-xs text-gray-500 dark:text-gray-400">{{ communities|length }}</span>
+      </div>
+      <div class="space-y-1 max-h-[60vh] overflow-y-auto" id="community-list">
+        {% for c in communities %}
+        <button data-id="{{ c.id }}" class="w-full text-left px-3 py-2 rounded-md border border-transparent hover:bg-gray-50 dark:hover:bg-gray-700/40 {% if selected and selected.id == c.id %}!bg-emerald-50 dark:!bg-emerald-900/20 !border-emerald-300{% endif %}">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-emerald-700 dark:text-emerald-300">location_city</span>
+            <span class="truncate text-gray-900 dark:text-gray-100">{{ c.name }}</span>
+          </div>
+        </button>
+        {% endfor %}
+      </div>
+
+      <div class="mt-4 p-3 rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200 text-sm flex items-start gap-2">
+        <span class="material-symbols-outlined mt-0.5">info</span>
+        <div>Select a community to view its map and alerts.</div>
+      </div>
+    </aside>
+
+    <section class="md:col-span-8 lg:col-span-6 space-y-4">
+      <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 lg:sticky lg:top-4 lg:h-[calc(100vh-140px)] lg:flex lg:flex-col">
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined">map</span>
+            <h3 class="font-semibold text-gray-900 dark:text-gray-100">{{ selected.name if selected else 'No community selected' }}</h3>
+          </div>
+          <div class="flex items-center gap-2">
+            <button id="post-verified" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50" {% if not selected %}disabled{% endif %}>
+              <span class="material-symbols-outlined">verified</span>
+              Post Verified Alert
+            </button>
+          </div>
+        </div>
+        <div id="sa-map" class="h-[380px] md:h-[420px] lg:grow"></div>
+      </div>
+    </section>
+
+    <aside class="hidden lg:block lg:col-span-3">
+      <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 lg:sticky lg:top-4 lg:max-h-[calc(100vh-140px)] lg:overflow-y-auto">
+        <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center gap-3">
+          <span class="material-symbols-outlined">notifications_active</span>
+          <h3 class="font-semibold text-gray-900 dark:text-gray-100">Alerts</h3>
+          <div class="ml-auto flex items-center gap-2 text-sm">
+            <label class="flex items-center gap-1 cursor-pointer select-none"><input id="toggle-reported" type="checkbox" class="rounded"/> Reported only</label>
+          </div>
+        </div>
+        <div id="sa-alerts" class="p-4 grid gap-3 grid-cols-1"></div>
+      </div>
+    </aside>
+  </main>
+
+  <script>
+    const selectedCommunityId = {{ selected.id if selected else 'null' }};
+    const csrf = '{{ csrf_token() }}';
+
+    function fetchAlertsAndBoundary(communityId) {
+      return fetch(`/super-admin/alerts?community_id=${communityId}`, { credentials: 'same-origin' })
+        .then(r => r.json());
+    }
+
+    function renderAlerts(alerts) {
+      const container = document.getElementById('sa-alerts');
+      container.innerHTML = '';
+      if (!alerts || alerts.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">No alerts.</div>';
+        return;
+      }
+      for (const a of alerts) {
+        const el = document.createElement('div');
+        const verified = a.is_verified ? '<span class="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded bg-green-100 text-green-800"><span class="material-symbols-outlined text-xs">verified</span>Verified</span>' : '';
+        el.className = 'rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 p-3 hover:shadow-sm cursor-pointer';
+        el.innerHTML = `<div class="flex items-start gap-2">
+            <div class=\"w-9 h-9 rounded-full flex items-center justify-center text-white\" style=\"background-color:${getColor(a.category)}\">${getIcon(a.category)}</div>
+            <div class=\"min-w-0\">
+              <div class=\"flex items-center gap-2 text-sm font-semibold text-gray-900 dark:text-gray-100\">${a.category} ${verified}</div>
+              <div class=\"text-sm text-gray-700 dark:text-gray-300\">${a.description}</div>
+            </div>
+          </div>`;
+        el.addEventListener('click', function(){ openAlertDetail(a.id); });
+        container.appendChild(el);
+      }
+    }
+
+    function getIcon(category) {
+      const lc = (category||'').toLowerCase();
+      if (lc==='emergency') return '🚨';
+      if (lc==='fire') return '🔥';
+      if (lc==='traffic') return '🚗';
+      if (lc==='weather') return '⛈️';
+      if (lc==='community') return '🏘️';
+      return '❗';
+    }
+    function getColor(category) {
+      const lc = (category||'').toLowerCase();
+      if (lc==='emergency') return '#DC2626';
+      if (lc==='fire') return '#EA580C';
+      if (lc==='traffic') return '#2563EB';
+      if (lc==='weather') return '#7C3AED';
+      if (lc==='community') return '#059669';
+      return '#6B7280';
+    }
+
+    let map, boundaryLayer;
+    function initMap() {
+      map = L.map('sa-map', { gestureHandling: true }).setView([-26.2041, 28.0473], 12);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
+      // Ensure proper layout reflow
+      setTimeout(function(){ try { map.invalidateSize(); } catch(_) {} }, 200);
+      window.addEventListener('resize', function(){ try { map.invalidateSize(); } catch(_) {} });
+      document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible'){ try { map.invalidateSize(); } catch(_) {} } });
+    }
+    function showBoundary(geo) {
+      if (boundaryLayer) { map.removeLayer(boundaryLayer); boundaryLayer = null; }
+      if (!geo) return;
+      let data = geo;
+      if (data && data.type && ['Polygon','MultiPolygon','LineString','MultiLineString','Point','MultiPoint'].includes(data.type)) {
+        data = { type: 'Feature', geometry: data, properties: {} };
+      }
+      try {
+        boundaryLayer = L.geoJSON(data, { style: { color:'#264653', weight:3, fillOpacity:.1 } }).addTo(map);
+        map.fitBounds(boundaryLayer.getBounds(), { padding: [16,16], maxZoom: 15 });
+      } catch(e) {}
+    }
+
+    function showMarkers(alerts) {
+      if (!alerts) return;
+      const markers = alerts.map(a => {
+        const icon = L.divIcon({
+          className: 'custom-alert-marker',
+          html: `<div class="relative"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shadow border-2 border-white" style="background-color:${getColor(a.category)}">${getIcon(a.category)}</div>${a.is_verified?'<span class=\"absolute -top-2 -right-2 bg-green-600 text-white rounded-full text-[10px] px-1\">✔</span>':''}</div>`,
+          iconSize: [40, 48], iconAnchor: [20, 40]
+        });
+        const m = L.marker([a.latitude||a.lat||0, a.longitude||a.lng||0], { icon }).addTo(map);
+        m.bindPopup(`<div class=\"p-2 text-sm\"><div class=\"font-semibold\">${a.category}</div><div>${a.description||''}</div></div>`);
+        return m;
+      });
+      try {
+        const group = L.featureGroup(markers);
+        map.fitBounds(group.getBounds(), { padding:[16,16], maxZoom:15 });
+      } catch(_) {}
+    }
+
+    function loadCommunity(communityId) {
+      const reportedOnly = document.getElementById('toggle-reported').checked;
+      if (reportedOnly) {
+        fetch(`/super-admin/reported-alerts?community_id=${communityId}`).then(r=>r.json()).then(data => {
+          const alerts = data.alerts || [];
+          renderAlerts(alerts);
+          fetchAlertsAndBoundary(communityId).then(({ boundary }) => { showBoundary(boundary); showMarkers(alerts); });
+        });
+      } else {
+        fetchAlertsAndBoundary(communityId).then(({ alerts, boundary }) => {
+          renderAlerts(alerts);
+          showBoundary(boundary);
+          showMarkers(alerts);
+          setTimeout(function(){ try { map.invalidateSize(); } catch(_) {} }, 50);
+        });
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      initMap();
+      if (selectedCommunityId) loadCommunity(selectedCommunityId);
+
+      document.getElementById('community-list').addEventListener('click', function(e) {
+        const btn = e.target.closest('button[data-id]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        window.history.replaceState({}, '', `/super-admin?community_id=${id}`);
+        loadCommunity(id);
+      });
+
+      document.getElementById('post-verified').addEventListener('click', function() {
+        const id = (new URLSearchParams(location.search)).get('community_id') || selectedCommunityId;
+        if (!id) return;
+        const category = prompt('Category (e.g., Emergency, Fire, Traffic, Weather, Community):');
+        if (!category) return;
+        const description = prompt('Describe the verified alert:');
+        if (!description) return;
+        fetch('/super-admin/post-verified', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrf },
+          body: JSON.stringify({ community_id: id, category, description })
+        }).then(r => r.json()).then(res => {
+          if (res && res.success) loadCommunity(id);
+          else alert(res.message || 'Failed to post');
+        }).catch(() => alert('Failed to post'));
+      });
+
+      document.getElementById('toggle-reported').addEventListener('change', function(){
+        const id = (new URLSearchParams(location.search)).get('community_id') || selectedCommunityId;
+        if (id) loadCommunity(id);
+      });
+    });
+
+    function lockPageScroll(){ try { document.documentElement.style.overflow = 'hidden'; } catch(_) {} }
+    function unlockPageScroll(){ try { document.documentElement.style.overflow = ''; } catch(_) {} }
+
+    function openAlertDetail(alertId){
+      fetch(`/super-admin/alerts/${alertId}`).then(r=>r.json()).then(detail => {
+        if (!detail || detail.error) { alert(detail && detail.error || 'Failed to load'); return; }
+        const html = `
+        <div class=\"fixed inset-0 bg-black/50 flex items-center justify-center z-[2000]\" onclick=\"if(event.target===this){ this.remove(); (window.unlockPageScroll&&window.unlockPageScroll()); }\">
+          <div class=\"bg-white dark:bg-gray-800 max-w-md w-full rounded-lg shadow-xl overflow-hidden\" onclick=\"event.stopPropagation()\">
+            <div class=\"px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between\">
+              <div class=\"font-semibold\">${detail.category} · ${detail.community_name||''}</div>
+              <button onclick=\"this.closest('div[data-modal]').remove(); (window.unlockPageScroll&&window.unlockPageScroll());\" class=\"text-gray-500\">✕</button>
+            </div>
+            <div class=\"p-4 space-y-2\">
+              <div class=\"text-sm text-gray-700 dark:text-gray-300\">${detail.description||''}</div>
+              <div class=\"text-xs text-gray-500 dark:text-gray-400\">By: ${detail.author_name||'Unknown'} (${detail.author_email||''})</div>
+              <div class=\"text-xs text-gray-500 dark:text-gray-400\">Reports: ${detail.report_count||0}</div>
+              <div class=\"text-xs text-gray-500 dark:text-gray-400\">Resolved: ${detail.is_resolved? 'Yes':'No'}</div>
+            </div>
+            <div class=\"px-4 py-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2\">
+              <button class=\"px-3 py-1.5 rounded bg-amber-600 text-white\" onclick=\"resolveAlert(${detail.id}, this)\">Resolve</button>
+              <button class=\"px-3 py-1.5 rounded bg-red-600 text-white\" onclick=\"deleteAlert(${detail.id}, this)\">Delete</button>
+            </div>
+          </div>
+        </div>`;
+        const wrap = document.createElement('div');
+        wrap.setAttribute('data-modal','');
+        wrap.innerHTML = html;
+        document.body.appendChild(wrap);
+        window.unlockPageScroll = unlockPageScroll;
+        lockPageScroll();
+      }).catch(()=>alert('Failed to load alert'));
+    }
+
+    function resolveAlert(id, btn){
+      if (!confirm('Mark this alert as resolved?')) return;
+      fetch(`/super-admin/alerts/${id}/resolve`, { method:'POST', headers:{ 'X-CSRFToken': csrf }})
+        .then(r=>r.json())
+        .then(res=>{ if(res && res.success){ btn.closest('[data-modal]').remove(); unlockPageScroll(); const cid=(new URLSearchParams(location.search)).get('community_id')||selectedCommunityId; if(cid) loadCommunity(cid); } else { alert('Failed to resolve'); } })
+        .catch(()=>alert('Failed to resolve'));
+    }
+
+    function deleteAlert(id, btn){
+      if (!confirm('This will permanently remove the alert. Continue?')) return;
+      fetch(`/super-admin/alerts/${id}`, { method:'DELETE', headers:{ 'X-CSRFToken': csrf }})
+        .then(r=>r.json())
+        .then(res=>{ if(res && res.success){ btn.closest('[data-modal]').remove(); unlockPageScroll(); const cid=(new URLSearchParams(location.search)).get('community_id')||selectedCommunityId; if(cid) loadCommunity(cid); } else { alert('Delete failed'); } })
+        .catch(()=>alert('Delete failed'));
+    }
+  </script>
+
+{% endblock %}
+
+

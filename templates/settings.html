@@ -1,0 +1,676 @@
+{% extends 'base.html' %}
+
+{% block title %}iZwi - Settings{% endblock %}
+
+{% block extra_head %}
+<style>
+    .leaflet-draw-toolbar { display: none !important; }
+</style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
+{% endblock %}
+
+{% block content %}
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="flex flex-col min-h-screen text-gray-800 dark:text-gray-200">
+        <header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm md:hidden">
+            <div class="flex items-center p-4">
+                <a href="/dashboard" class="p-2 -ml-2">
+                    <span class="material-symbols-outlined text-gray-900 dark:text-white">arrow_back</span>
+                </a>
+                <h1 class="flex-1 text-center text-lg font-bold text-gray-900 dark:text-white">Settings</h1>
+                <button id="theme-toggle-btn" class="ml-2 p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-soft" title="Toggle theme" aria-label="Toggle theme">
+                    <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
+                </button>
+            </div>
+        </header>
+        <main class="flex-grow p-4">
+            <div class="mb-6">
+                <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-primary text-xl">dark_mode</span>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Appearance</h2>
+                    </div>
+                    <hr class="my-4 border-gray-200 dark:border-gray-700">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <button type="button" data-theme="system" class="theme-option flex items-center justify-between p-3 rounded-lg border bg-gray-50 dark:bg-gray-700/50 border-gray-200 dark:border-gray-700">
+                            <span class="text-gray-900 dark:text-white font-medium">Use System</span>
+                            <span class="material-symbols-outlined text-gray-500">settings</span>
+                        </button>
+                        <button type="button" data-theme="light" class="theme-option flex items-center justify-between p-3 rounded-lg border bg-white dark:bg-gray-700/50 border-gray-200 dark:border-gray-700">
+                            <span class="text-gray-900 dark:text-white font-medium">Light</span>
+                            <span class="material-symbols-outlined text-amber-500">light_mode</span>
+                        </button>
+                        <button type="button" data-theme="dark" class="theme-option flex items-center justify-between p-3 rounded-lg border bg-gray-900/90 text-white border-gray-800">
+                            <span class="font-medium">Dark</span>
+                            <span class="material-symbols-outlined text-blue-300">dark_mode</span>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">Your choice is saved on this device.</p>
+                </div>
+            </div>
+            <div class="mb-6">
+                <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
+                    {% if current_user.role == 'Admin' %}
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-primary text-xl">admin_panel_settings</span>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Community Management</h2>
+                    </div>
+                    <hr class="my-4 border-gray-200 dark:border-gray-700">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Community Name</span>
+                            <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                                <span class="text-gray-900 dark:text-white">{{ community.name }}</span>
+                                <button onclick="openEditNameModal()" class="text-primary hover:text-primary/80">Edit</button>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Community Boundary</span>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-2">Define the area covered by your community</p>
+                            <button id="editBoundaryBtn" class="w-full bg-primary/10 text-primary font-medium py-2 px-4 rounded-lg hover:bg-primary/20 transition-colors">
+                                Edit Boundary
+                            </button>
+                        </div>
+                    </div>
+                    <hr class="my-6 border-gray-200 dark:border-gray-700">
+                    {% endif %}
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-primary text-xl">group_add</span>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Invite Link</h2>
+                    </div>
+                    <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg mb-4">
+                        <span class="text-gray-900 dark:text-white break-all">{{ request.host_url }}join/{{ community.invite_link_slug }}</span>
+                    </div>
+                    <button onclick="copyInviteLink()" class="w-full bg-primary/10 text-primary font-medium py-2 px-4 rounded-lg hover:bg-primary/20 transition-colors flex items-center justify-center gap-2">
+                        <span class="material-symbols-outlined text-base">content_copy</span>
+                        Copy Link
+                    </button>
+                    <hr class="my-6 border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-primary text-xl">group</span>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Members</h2>
+                    </div>
+                    <div class="space-y-3 mb-4">
+                        {% for member in members %}
+                        <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-medium">
+                                    {{ member.name[:1] if member.name else member.email[:1] }}
+                                </div>
+                                <div>
+                                    <p class="text-gray-900 dark:text-white font-medium">{{ member.name if member.name else member.email }}</p>
+                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.role }}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                {% if current_user.role == 'Admin' and member.id != current_user.id %}
+                                    {% if member.role == 'Member' %}
+                                    <form method="POST" action="/members/{{ member.id }}/promote">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="text-primary hover:text-primary/80" title="Promote to Moderator">Promote</button>
+                                    </form>
+                                    {% elif member.role == 'Moderator' %}
+                                    <form method="POST" action="/members/{{ member.id }}/demote">
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        <button class="text-amber-600 hover:text-amber-700" title="Demote to Member">Demote</button>
+                                    </form>
+                                    {% endif %}
+                                    <button onclick="removeMember(this.getAttribute('data-member-id'))" data-member-id="{{ member.id }}" class="text-red-600 hover:text-red-700">Remove</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if not members %}
+                        <p class="text-center text-gray-500 dark:text-gray-400 py-4">No members in this community yet.</p>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4">
+                        <a href="/alerts/history" class="inline-flex items-center gap-2 text-primary">
+                            <span class="material-symbols-outlined text-base">history</span>
+                            View Alert History (Plus)
+                        </a>
+                    </div>
+                    <hr class="my-6 border-gray-200 dark:border-gray-700">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-primary text-xl">payment</span>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Subscription</h2>
+                    </div>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Current Plan</label>
+                            <div class="bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                                <span class="text-gray-900 dark:text-white">{{ effective_plan }}</span>
+                            </div>
+                        </div>
+                        <a href="/pricing" class="block w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg transition-colors text-center">
+                            Upgrade Plan
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="mb-6">
+                <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-xl">shield_person</span>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Business / Super Admin</h2>
+                        </div>
+                        <div class="flex items-center gap-2">
+                        {% if founder_access %}
+                        <a href="/founder" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
+                            <span class="material-symbols-outlined">terminal</span>
+                            Founder Console
+                        </a>
+                        {% endif %}
+                        {% if current_user.business_id %}
+                        <a href="/super-admin" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">
+                            <span class="material-symbols-outlined">open_in_new</span>
+                            Super Admin
+                        </a>
+                        {% endif %}
+                        </div>
+                    </div>
+                    <hr class="my-4 border-gray-200 dark:border-gray-700">
+                    {% if not current_user.business_id %}
+                    <form action="/settings/create-business" method="POST" class="space-y-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label class="block text-sm font-medium">Business Name</label>
+                        <input name="business_name" required placeholder="e.g., ABC Security" class="w-full bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                        <label class="block text-sm font-medium">Invite Code</label>
+                        <input name="invite_code" placeholder="Enter invite code" class="w-full bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                        <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg">Create Business & Become Super Admin</button>
+                    </form>
+                    {% else %}
+                    <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">You're associated with a business. You can attach this community to your business.</div>
+                    <form action="/settings/attach-community-to-business" method="POST" class="space-y-3">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg">Attach Current Community</button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+        </main>
+        <footer class="p-4 text-center text-sm text-gray-500 dark:text-gray-400">
+            <a href="/privacy-policy">Privacy Policy</a>
+            &bull;
+            <a href="/terms-of-service">Terms of Service</a>
+            <p>&copy; 2024 iZwi. All rights reserved.</p>
+            <div class="mt-3">
+                <a href="/logout" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700">
+                    <span class="material-symbols-outlined">logout</span>
+                    Sign out
+                </a>
+            </div>
+        </footer>
+    </div>
+    <!-- Edit Boundary Modal -->
+    <div id="boundaryModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl max-w-2xl w-full mx-4 h-[85vh] max-h-[90vh] overflow-hidden flex flex-col">
+            <div class="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700 shrink-0">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Community Boundary</h2>
+                <button onclick="closeBoundaryModal()">
+                    <span class="material-symbols-outlined text-gray-500">close</span>
+                </button>
+            </div>
+            <div class="p-4 flex-1 overflow-y-auto">
+                <div id="boundaryMap" class="w-full h-[50vh] sm:h-[55vh] md:h-[60vh] rounded-lg"></div>
+                <div class="mt-4">
+                    <label for="boundarySearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+                    <input type="text" id="boundarySearch" class="w-full bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+                </div>
+                <div class="mt-3 flex flex-wrap gap-2">
+                    <button type="button" onclick="startBoundaryDraw()" class="px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">Draw Boundary</button>
+                    <button type="button" onclick="enableBoundaryEdit()" class="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700">Edit Shape</button>
+                    <button type="button" onclick="clearBoundary()" class="px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">Clear</button>
+                </div>
+                <button onclick="useCurrentLocationForBoundary()" class="mt-2 flex items-center gap-2 text-primary">
+                    <span class="material-symbols-outlined">my_location</span>
+                    Use My Location
+                </button>
+                <button onclick="centerOnCommunity()" class="mt-2 flex items-center gap-2 text-primary">
+                    <span class="material-symbols-outlined">home</span>
+                    Community Center
+                </button>
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3 shrink-0">
+                <button onclick="closeBoundaryModal()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Cancel</button>
+                <button onclick="saveBoundary()" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">Save Boundary</button>
+            </div>
+        </div>
+    </div>
+    <!-- Edit Name Modal -->
+    <div id="nameModal" class="fixed inset-0 bg-black/50 hidden flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl max-w-md w-full mx-4">
+            <div class="p-4 flex justify-between items-center border-b border-gray-200 dark:border-gray-700">
+                <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Edit Community Name</h2>
+                <button onclick="closeEditNameModal()">
+                    <span class="material-symbols-outlined text-gray-500">close</span>
+                </button>
+            </div>
+            <div class="p-4">
+                <label for="newCommunityName" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Community Name</label>
+                <input type="text" id="newCommunityName" value="{{ community.name }}" class="w-full bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+            </div>
+            <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+                <button onclick="closeEditNameModal()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">Cancel</button>
+                <button onclick="saveCommunityName()" class="px-4 py-2 bg-primary text-white rounded hover:bg-primary/90">Save Name</button>
+            </div>
+        </div>
+    </div>
+    <script>
+    // Settings page JS for boundary editing, name update, invite copy, member removal
+    let boundaryMapInstance = null;
+    let boundaryDrawnItems = null;
+    let boundaryDrawControl = null;
+    let existingBoundaryLayer = null;
+    let polygonDrawHandler = null;
+    let editHandler = null;
+
+    function openBoundaryModal() {
+        const modal = document.getElementById('boundaryModal');
+        modal.classList.remove('hidden');
+
+        // Initialize map after modal is visible to ensure correct sizing
+        setTimeout(initBoundaryMap, 0);
+    }
+
+    function closeBoundaryModal() {
+        const modal = document.getElementById('boundaryModal');
+        modal.classList.add('hidden');
+    }
+
+    function initBoundaryMap() {
+        const mapEl = document.getElementById('boundaryMap');
+        if (!mapEl) return;
+
+        // Create map if not created yet
+        if (!boundaryMapInstance) {
+            boundaryMapInstance = L.map('boundaryMap', { gestureHandling: true }).setView([-26.2041, 28.0473], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(boundaryMapInstance);
+
+            boundaryDrawnItems = new L.FeatureGroup();
+            boundaryMapInstance.addLayer(boundaryDrawnItems);
+
+            // Keep Draw API available but rely on our custom buttons
+            boundaryDrawControl = new L.Control.Draw({
+                edit: { featureGroup: boundaryDrawnItems },
+                draw: {
+                    polygon: {
+                        allowIntersection: false,
+                        shapeOptions: { color: '#19b3a1', fillOpacity: 0.2 }
+                    },
+                    rectangle: false,
+                    circle: false,
+                    polyline: false,
+                    marker: false,
+                    circlemarker: false
+                }
+            });
+            boundaryMapInstance.addControl(boundaryDrawControl);
+
+            boundaryMapInstance.on(L.Draw.Event.CREATED, function (e) {
+                const layer = e.layer;
+                boundaryDrawnItems.clearLayers();
+                boundaryDrawnItems.addLayer(layer);
+            });
+
+            boundaryMapInstance.on(L.Draw.Event.EDITED, function () {
+                // No-op; we will read layers on save
+            });
+
+            boundaryMapInstance.on('resize', function(){
+                boundaryMapInstance.invalidateSize();
+            });
+        } else {
+            setTimeout(() => boundaryMapInstance.invalidateSize(), 50);
+        }
+
+        // Load existing boundary if available
+        try {
+            let raw = JSON.parse('{{ boundary_data|tojson|safe if boundary_data else "null" }}');
+            // If boundary is stored as a JSON string, parse it
+            if (typeof raw === 'string') {
+                try { raw = JSON.parse(raw); } catch (e) { /* ignore parse error */ }
+            }
+            console.debug('Loaded boundary_data:', raw);
+            const looksLikeGeoJson = raw && typeof raw === 'object' && (raw.type || raw.features);
+            if (looksLikeGeoJson) {
+                if (existingBoundaryLayer) {
+                    boundaryMapInstance.removeLayer(existingBoundaryLayer);
+                    existingBoundaryLayer = null;
+                }
+                existingBoundaryLayer = L.geoJSON(raw, {
+                    style: { color: '#0f766e', weight: 2, fillOpacity: 0.1 }
+                }).addTo(boundaryMapInstance);
+                boundaryMapInstance.fitBounds(existingBoundaryLayer.getBounds(), { padding: [20, 20] });
+            } else {
+                if (raw) {
+                    console.warn('Boundary data is not valid GeoJSON. Skipping render.', raw);
+                }
+                // Try geolocation as a helpful default
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        pos => boundaryMapInstance.setView([pos.coords.latitude, pos.coords.longitude], 15),
+                        () => {},
+                        { enableHighAccuracy: true, timeout: 5000 }
+                    );
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to load existing boundary', e);
+        }
+    }
+
+    function startBoundaryDraw() {
+        if (!boundaryMapInstance) return;
+        try { if (editHandler) editHandler.disable(); } catch(_) {}
+        if (polygonDrawHandler) { try { polygonDrawHandler.disable(); } catch(_) {} }
+        polygonDrawHandler = new L.Draw.Polygon(boundaryMapInstance, {
+            allowIntersection: false,
+            shapeOptions: { color: '#19b3a1', fillOpacity: 0.2 }
+        });
+        polygonDrawHandler.enable();
+        showDrawHint('Click to add points. Double-click to finish.');
+    }
+
+    function enableBoundaryEdit() {
+        if (!boundaryMapInstance || !boundaryDrawnItems) return;
+        try { if (polygonDrawHandler) polygonDrawHandler.disable(); } catch(_) {}
+        editHandler = new L.EditToolbar.Edit(boundaryMapInstance, { featureGroup: boundaryDrawnItems });
+        editHandler.enable();
+        showDrawHint('Drag points to adjust. Click map to finish editing.');
+        // Disable edit after first click outside tools
+        boundaryMapInstance.once('click', function(){ try { editHandler.disable(); } catch(_) {} hideDrawHint(); });
+    }
+
+    function clearBoundary() {
+        if (!boundaryDrawnItems) return;
+        boundaryDrawnItems.clearLayers();
+        hideDrawHint();
+    }
+
+    function showDrawHint(text) {
+        let el = document.getElementById('draw-hint');
+        if (!el) {
+            el = document.createElement('div');
+            el.id = 'draw-hint';
+            el.className = 'absolute top-3 left-3 bg-white/90 dark:bg-black/70 text-sm rounded px-3 py-2 shadow';
+            const mapWrap = document.getElementById('boundaryMap');
+            if (mapWrap && mapWrap.parentElement) {
+                mapWrap.parentElement.style.position = 'relative';
+                mapWrap.parentElement.appendChild(el);
+            }
+        }
+        el.textContent = text;
+        el.style.display = 'block';
+    }
+
+    function hideDrawHint() {
+        const el = document.getElementById('draw-hint');
+        if (el) el.style.display = 'none';
+    }
+
+    function useCurrentLocationForBoundary() {
+        if (!boundaryMapInstance) return;
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    boundaryMapInstance.setView([pos.coords.latitude, pos.coords.longitude], 16);
+                },
+                () => alert('Unable to get your location. Please check permissions.'),
+                { enableHighAccuracy: true, timeout: 5000 }
+            );
+        } else {
+            alert('Geolocation is not supported by your browser.');
+        }
+    }
+
+    function centerOnCommunity() {
+        if (!boundaryMapInstance) return;
+        try {
+            const raw = JSON.parse('{{ boundary_data|tojson|safe if boundary_data else "null" }}');
+            if (raw) {
+                const temp = L.geoJSON(raw);
+                boundaryMapInstance.fitBounds(temp.getBounds(), { padding: [20, 20] });
+                boundaryMapInstance.removeLayer(temp);
+            } else {
+                boundaryMapInstance.setView([-26.2041, 28.0473], 13);
+            }
+        } catch { /* ignore */ }
+    }
+
+    function saveBoundary() {
+        if (!boundaryMapInstance || !boundaryDrawnItems) return;
+
+        let geojson = null;
+        boundaryDrawnItems.eachLayer(function(layer) {
+            if (!geojson) geojson = layer.toGeoJSON();
+        });
+
+        if (!geojson && !existingBoundaryLayer) {
+            if (!confirm('No new boundary drawn. This will clear the boundary. Continue?')) {
+                return;
+            }
+        }
+
+        fetch('/update-community-boundary', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]') ? document.querySelector('input[name="csrf_token"]').value : ''
+            },
+            body: JSON.stringify({ boundary_data: geojson ? JSON.stringify(geojson) : '' })
+        })
+        .then(async r => {
+            let payload;
+            try {
+                const ct = r.headers.get('content-type') || '';
+                const isJson = ct.includes('application/json');
+                payload = isJson ? await r.json() : { success: false, message: await r.text() };
+            } catch (err) {
+                payload = { success: false, message: 'Unexpected response from server' };
+            }
+            if (r.ok && payload && payload.success) {
+                try { sessionStorage.setItem('toast_after_reload', JSON.stringify({m: 'Boundary saved successfully', k: 'success'})); } catch (e) {}
+                closeBoundaryModal();
+                window.location.reload();
+            } else {
+                showToast((payload && payload.message) ? payload.message : 'Failed to save boundary', 'error');
+            }
+        })
+        .catch(err => {
+            console.error('Save boundary error:', err);
+            showToast('An error occurred while saving boundary', 'error');
+        });
+    }
+
+    // Simple address search via Nominatim
+    function searchBoundaryAddress() {
+        const input = document.getElementById('boundarySearch');
+        if (!input) return;
+        const query = input.value.trim();
+        if (!query) {
+            alert('Please enter a place or address to search.');
+            return;
+        }
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=za`;
+        fetch(url)
+            .then(res => res.json())
+            .then(results => {
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+                    boundaryMapInstance.setView([lat, lon], 15);
+                } else {
+                    alert('Location not found. Try another search term.');
+                }
+            })
+            .catch(() => alert('Search failed. Please try again.'));
+    }
+
+    // Wire Enter key for search and button handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        const input = document.getElementById('boundarySearch');
+        if (input) {
+            input.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    searchBoundaryAddress();
+                }
+            });
+        }
+
+        const editBtn = document.getElementById('editBoundaryBtn');
+        if (editBtn) {
+            editBtn.addEventListener('click', openBoundaryModal);
+        }
+
+        // show deferred toast if present
+        try {
+            const raw = sessionStorage.getItem('toast_after_reload');
+            if (raw) {
+                const {m, k} = JSON.parse(raw);
+                if (m) showToast(m, k || 'success');
+                sessionStorage.removeItem('toast_after_reload');
+            }
+        } catch (e) {}
+    });
+
+    // Name modal handlers
+    function openEditNameModal() {
+        document.getElementById('nameModal').classList.remove('hidden');
+    }
+    function closeEditNameModal() {
+        document.getElementById('nameModal').classList.add('hidden');
+    }
+    function saveCommunityName() {
+        const newName = document.getElementById('newCommunityName').value.trim();
+        if (!newName) { alert('Please enter a community name.'); return; }
+        fetch('/update-community-name', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]') ? document.querySelector('input[name="csrf_token"]').value : ''
+            },
+            body: JSON.stringify({ name: newName })
+        }).then(async r => {
+            let payload;
+            try {
+                const ct = r.headers.get('content-type') || '';
+                const isJson = ct.includes('application/json');
+                payload = isJson ? await r.json() : { success: false, message: await r.text() };
+            } catch (err) {
+                payload = { success: false, message: 'Unexpected response from server' };
+            }
+            if (r.ok && payload && payload.success) {
+                alert('Community name updated');
+                closeEditNameModal();
+                window.location.reload();
+            } else {
+                alert((payload && payload.message) ? payload.message : 'Failed to update name');
+            }
+        }).catch(err => {
+            console.error('Update name error:', err);
+            alert('An error occurred while updating the name');
+        });
+    }
+
+    // Invite link copy
+    function copyInviteLink() {
+        const text = `${window.location.origin}/join/{{ community.invite_link_slug }}`;
+        navigator.clipboard.writeText(text).then(() => showToast('Invite link sent', 'success')).catch(() => showToast('Failed to copy link', 'error'));
+    }
+
+    // Remove member
+    function removeMember(memberId) {
+        if (!confirm('Remove this member from the community?')) return;
+        window.location.href = `/remove-member/${memberId}`;
+    }
+
+    // Expose functions to global scope for inline handlers
+    window.openBoundaryModal = openBoundaryModal;
+    window.closeBoundaryModal = closeBoundaryModal;
+    window.useCurrentLocationForBoundary = useCurrentLocationForBoundary;
+    window.centerOnCommunity = centerOnCommunity;
+    window.saveBoundary = saveBoundary;
+    window.openEditNameModal = openEditNameModal;
+    window.closeEditNameModal = closeEditNameModal;
+    window.saveCommunityName = saveCommunityName;
+    window.copyInviteLink = copyInviteLink;
+    window.removeMember = removeMember;
+    </script>
+    <script>
+    // Theme selector logic
+    (function(){
+        function applyTheme(mode){
+            try {
+                if (mode === 'system') {
+                    localStorage.removeItem('theme');
+                    var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    document.documentElement.classList.toggle('dark', !!prefersDark);
+                } else if (mode === 'dark') {
+                    localStorage.setItem('theme', 'dark');
+                    document.documentElement.classList.add('dark');
+                } else {
+                    localStorage.setItem('theme', 'light');
+                    document.documentElement.classList.remove('dark');
+                }
+            } catch(_) {}
+        }
+
+        function syncActive(){
+            var stored = null;
+            try { stored = localStorage.getItem('theme'); } catch(_) {}
+            var mode = stored || 'system';
+            var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            if (stored === 'dark') mode = 'dark';
+            else if (stored === 'light') mode = 'light';
+            else mode = 'system';
+            document.querySelectorAll('.theme-option').forEach(function(btn){
+                var active = btn.getAttribute('data-theme') === mode;
+                btn.classList.toggle('ring-2', active);
+                btn.classList.toggle('ring-primary', active);
+            });
+            // Keep UI in sync if system changes and user is on 'system'
+            try {
+                if (!stored) {
+                    document.documentElement.classList.toggle('dark', !!prefersDark);
+                }
+            } catch(_) {}
+        }
+
+        document.addEventListener('DOMContentLoaded', function(){
+            document.querySelectorAll('.theme-option').forEach(function(btn){
+                btn.addEventListener('click', function(){
+                    var mode = btn.getAttribute('data-theme');
+                    applyTheme(mode);
+                    syncActive();
+                });
+            });
+
+            // React to system theme changes when in 'system' mode
+            if (window.matchMedia) {
+                var mq = window.matchMedia('(prefers-color-scheme: dark)');
+                if (mq && mq.addEventListener) {
+                    mq.addEventListener('change', function(){
+                        var stored = null; try { stored = localStorage.getItem('theme'); } catch(_) {}
+                        if (!stored) {
+                            document.documentElement.classList.toggle('dark', mq.matches);
+                            syncActive();
+                        }
+                    });
+                }
+            }
+
+            syncActive();
+        });
+    })();
+    </script>
+{% endblock %}

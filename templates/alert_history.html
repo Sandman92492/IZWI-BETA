@@ -1,0 +1,74 @@
+{% extends 'base.html' %}
+
+{% block title %}iZwi - Alert History{% endblock %}
+
+{% block content %}
+<div class="flex flex-col min-h-screen">
+  <header class="sticky top-0 z-10 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-sm">
+    <div class="flex items-center p-4">
+      <a href="/dashboard" class="p-2 -ml-2">
+        <span class="material-symbols-outlined text-gray-900 dark:text-white">arrow_back_ios_new</span>
+      </a>
+      <h1 class="flex-1 text-center text-lg font-bold text-gray-900 dark:text-white">Alert History</h1>
+      <button id="theme-toggle-btn" class="ml-2 p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-soft" title="Toggle theme" aria-label="Toggle theme">
+        <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
+      </button>
+    </div>
+  </header>
+  <main class="flex-grow p-4 space-y-4 max-w-3xl mx-auto w-full">
+    <form method="GET" class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <input type="text" name="q" placeholder="Search description" value="{{ q }}" class="sm:col-span-2 w-full bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-2" />
+      <select name="category" class="w-full bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
+        <option value="">All categories</option>
+        {% for c in categories %}
+        <option value="{{ c }}" {% if selected_category==c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+      <label class="inline-flex items-center gap-2 justify-self-start sm:justify-self-end">
+        <input type="checkbox" name="resolved" value="1" {% if include_resolved %}checked{% endif %} />
+        <span class="text-sm">Include resolved</span>
+      </label>
+      <div class="sm:col-span-4 flex justify-end">
+        <button class="btn btn-primary">Filter</button>
+      </div>
+    </form>
+
+    <div class="space-y-3">
+      {% for a in alerts %}
+      <div class="bg-white dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-primary">notifications_active</span>
+            <span class="font-semibold text-gray-900 dark:text-white">{{ a.category }}</span>
+          </div>
+          <span class="text-sm text-gray-500 dark:text-gray-400">{{ a.time_ago }}</span>
+        </div>
+        <p class="mt-2 text-gray-800 dark:text-gray-200">{{ a.description }}</p>
+        <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">By {{ a.author_name }}</div>
+        {% if a.is_resolved %}
+        <div class="mt-2 inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-emerald-600 text-white">
+          <span class="material-symbols-outlined text-xs">check_circle</span> Resolved
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% if not alerts %}
+      <p class="text-center text-gray-500 dark:text-gray-400">No alerts found.</p>
+      {% endif %}
+    </div>
+
+    {% if pages and pages > 1 %}
+    <div class="flex items-center justify-center gap-2 pt-2">
+      {% set prev = page-1 %}{% set next = page+1 %}
+      <a class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 {{ 'opacity-50 pointer-events-none' if page<=1 }}" href="?q={{ q }}&category={{ selected_category }}&resolved={{ 1 if include_resolved else 0 }}&page={{ 1 }}">First</a>
+      <a class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 {{ 'opacity-50 pointer-events-none' if page<=1 }}" href="?q={{ q }}&category={{ selected_category }}&resolved={{ 1 if include_resolved else 0 }}&page={{ prev }}">Prev</a>
+      <span class="px-3 py-1">Page {{ page }} of {{ pages }}</span>
+      <a class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 {{ 'opacity-50 pointer-events-none' if page>=pages }}" href="?q={{ q }}&category={{ selected_category }}&resolved={{ 1 if include_resolved else 0 }}&page={{ next }}">Next</a>
+      <a class="px-3 py-1 rounded border border-gray-200 dark:border-gray-700 {{ 'opacity-50 pointer-events-none' if page>=pages }}" href="?q={{ q }}&category={{ selected_category }}&resolved={{ 1 if include_resolved else 0 }}&page={{ pages }}">Last</a>
+    </div>
+    {% endif %}
+  </main>
+</div>
+{% endblock %}
+
+

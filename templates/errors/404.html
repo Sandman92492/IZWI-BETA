@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Page Not Found - iZwi</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#19b3a1",
+                        "background-light": "#f6f8f8",
+                        "background-dark": "#11211f",
+                        "primary-text": "#264653",
+                        "secondary-text": "#8A9A9E",
+                    },
+                    fontFamily: {
+                        "display": ["Poppins", "sans-serif"],
+                        "body": ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&amp;family=Inter:wght@400&amp;display=swap" rel="stylesheet"/>
+<style>
+  body {
+    margin: 0;
+  }
+</style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-body text-primary-text dark:text-background-light antialiased">
+<div class="flex flex-col min-h-screen justify-center items-center">
+<main class="text-center p-8">
+<h1 class="text-6xl font-display font-bold text-primary mb-4">404</h1>
+<h2 class="text-2xl font-display font-semibold mb-4">Page Not Found</h2>
+<p class="text-secondary-text mb-8">Sorry, the page you're looking for doesn't exist.</p>
+<a href="/" class="bg-primary text-white px-6 py-3 rounded-lg hover:bg-opacity-90 transition-colors">
+Go Home
+</a>
+</main>
+</div>
+</body>
+</html>

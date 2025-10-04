@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>{% block title %}iZwi{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <link href="{{ url_for('static', filename='styles/app.css') }}?v={{ config['ASSET_VERSION'] }}" rel="stylesheet"/>
+    <script>
+        // Theme bootstrap: set initial theme before paint
+        (function() {
+            try {
+                var stored = localStorage.getItem('theme');
+                var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+                var useDark = stored ? (stored === 'dark') : prefersDark;
+                if (useDark) document.documentElement.classList.add('dark');
+                else document.documentElement.classList.remove('dark');
+            } catch (_) {}
+        })();
+    </script>
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#17a899",
+                        "background-light": "#f7f9f9",
+                        "background-dark": "#142522",
+                        "success-light": "#e6f7f5",
+                        "success-dark-text": "#19b3a1",
+                        "error-light": "#fdeaea",
+                        "error-dark-text": "#ef4444",
+                        "info-light": "#e9f5fe",
+                        "info-dark-text": "#3b82f6"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+        'FILL' 1,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+      }
+    </style>
+    <style>
+    body {
+      margin: 0;
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+<div id="flash-container" class="fixed top-4 inset-x-0 z-50 flex justify-center px-4">
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <div class="space-y-3 max-w-md w-full">
+      {% for category, message in messages %}
+        <div class="alert-message flex items-center gap-4 p-4 rounded-xl shadow-lg {% if category == 'success' %}bg-success-light dark:bg-primary/20{% elif category == 'error' %}bg-error-light dark:bg-red-500/20{% else %}bg-info-light dark:bg-blue-500/20{% endif %}">
+          <span class="material-symbols-outlined {% if category == 'success' %}text-success-dark-text dark:text-primary{% elif category == 'error' %}text-error-dark-text dark:text-red-400{% else %}text-info-dark-text dark:text-blue-400{% endif %}">{% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}info{% endif %}</span>
+          <p class="text-gray-800 dark:text-background-light font-medium">{{ message }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+</div>
+<nav class="hidden lg:block sticky top-0 z-40 bg-white/90 dark:bg-gray-900/70 backdrop-blur border-b border-gray-200 dark:border-gray-700">
+  <div class="max-w-7xl mx-auto px-4">
+    <div class="h-14 flex items-center justify-between">
+      <div class="flex items-center gap-6">
+        <a href="/dashboard" class="inline-flex items-center gap-2 text-gray-900 dark:text-gray-100 font-semibold">
+          <span class="material-symbols-outlined text-primary">home</span>
+          <span>iZwi</span>
+        </a>
+        <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-primary">Dashboard</a>
+        <a href="/post-alert" class="text-gray-700 dark:text-gray-300 hover:text-primary">Post Alert</a>
+        <a href="/alerts/history" class="text-gray-700 dark:text-gray-300 hover:text-primary">History</a>
+        {% if current_user.is_authenticated and current_user.business_id %}
+        <a href="/super-admin" class="text-gray-700 dark:text-gray-300 hover:text-primary">Super Admin</a>
+        {% endif %}
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="/settings" class="text-gray-700 dark:text-gray-300 hover:text-primary">Settings</a>
+        <a href="/logout" class="text-gray-700 dark:text-gray-300 hover:text-primary">Logout</a>
+        <button id="theme-toggle-btn" class="p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-soft" title="Toggle theme" aria-label="Toggle theme">
+          <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  </nav>
+{% block content %}{% endblock %}
+<script>
+  // Global toast utility and auto-hide for flashed messages
+  (function(){
+    // Theme toggle logic (binds to elements if present on page)
+    function currentTheme(){
+      try { var stored = localStorage.getItem('theme'); if (stored === 'dark' || stored === 'light') return stored; } catch(_) {}
+      return 'system';
+    }
+    function applyThemeMode(mode){
+      try {
+        if (mode === 'dark') { localStorage.setItem('theme','dark'); document.documentElement.classList.add('dark'); }
+        else if (mode === 'light') { localStorage.setItem('theme','light'); document.documentElement.classList.remove('dark'); }
+        else { localStorage.removeItem('theme'); var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.classList.toggle('dark', !!prefersDark); }
+      } catch(_) {}
+    }
+    function cycleTheme(){
+      var mode = currentTheme();
+      var next = mode === 'light' ? 'dark' : (mode === 'dark' ? 'system' : 'light');
+      applyThemeMode(next);
+      renderThemeIcon();
+    }
+    function renderThemeIcon(){
+      var mode = currentTheme();
+      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var effectiveDark = (mode === 'dark') || (mode === 'system' && prefersDark);
+      var icon = document.getElementById('theme-toggle-icon');
+      if (icon) icon.textContent = effectiveDark ? 'light_mode' : 'dark_mode';
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+      var btn = document.getElementById('theme-toggle-btn');
+      if (btn) btn.addEventListener('click', cycleTheme);
+      renderThemeIcon();
+      if (window.matchMedia) {
+        var mq = window.matchMedia('(prefers-color-scheme: dark)');
+        if (mq && mq.addEventListener) mq.addEventListener('change', renderThemeIcon);
+      }
+    });
+
+    function hideAfterDelay(el, delay){
+      setTimeout(function(){
+        try {
+          el.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
+          el.style.opacity = '0';
+          el.style.transform = 'translateY(-4px)';
+          setTimeout(function(){ el.remove(); }, 400);
+        } catch(_) {}
+      }, delay);
+    }
+    document.addEventListener('DOMContentLoaded', function(){
+      try {
+        document.querySelectorAll('#flash-container .alert-message').forEach(function(msg){ hideAfterDelay(msg, 4500); });
+      } catch(_) {}
+    });
+    window.showToast = function(message, kind){
+      var c = document.getElementById('flash-container');
+      if (!c) return;
+      var wrapper = document.createElement('div');
+      var bg; var iconName; var iconClass; var textClass = 'text-gray-800 dark:text-background-light';
+      if (kind === 'success') { bg = 'bg-success-light dark:bg-primary/20'; iconName = 'check_circle'; iconClass = 'text-success-dark-text dark:text-primary'; }
+      else if (kind === 'error') { bg = 'bg-error-light dark:bg-red-500/20'; iconName = 'error'; iconClass = 'text-error-dark-text dark:text-red-400'; }
+      else { bg = 'bg-info-light dark:bg-blue-500/20'; iconName = 'info'; iconClass = 'text-info-dark-text dark:text-blue-400'; }
+      wrapper.className = 'alert-message flex items-center gap-4 p-4 rounded-xl shadow-lg ' + bg + ' mt-2';
+      var icon = document.createElement('span'); icon.className = 'material-symbols-outlined ' + iconClass; icon.textContent = iconName;
+      var text = document.createElement('p'); text.className = textClass + ' font-medium'; text.textContent = message;
+      wrapper.appendChild(icon); wrapper.appendChild(text); c.appendChild(wrapper);
+      hideAfterDelay(wrapper, 3500);
+    };
+  })();
+</script>
+</body>
+</html>

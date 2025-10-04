@@ -1,0 +1,76 @@
+{% extends 'base.html' %}
+
+{% block title %}iZwi - Community Alerts{% endblock %}
+
+{% block content %}
+<div class="flex flex-col min-h-screen">
+  <main class="flex-grow">
+    <div class="px-4 py-12 md:py-20">
+      <div class="container mx-auto max-w-4xl">
+        <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
+          <div class="w-full lg:w-1/2">
+            <div class="relative w-full aspect-video rounded-lg shadow-lg overflow-hidden">
+              <img alt="Map showing community boundary" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWMrzf8SPsBugB2OA-B7dAl8bgfh5onqxQGBuLgPSZunCcJhUKZspbmJ8YfMxkw4UzaX6H4c2AhsVYvkRs47JbdL84-3FfbndmMeLa6rIZJpugz-6MfP_kxKOA0VmxxiCVofQbIS5JNq7bMpd_j-ZyfYilEyuz87lwQBLc9d4u2avPv--lLWKj-PYGEGJXHxaTOotmFpAMOCQuUoULSUnhw8FZ0Ija_ppr0xrSXwaAvVLHi_7kVxcKNcMytJi3k7h1nYri5x3VHfc"/>
+            </div>
+          </div>
+          <div class="w-full lg:w-1/2 text-center lg:text-left">
+            <h1 class="font-display font-semibold text-3xl md:text-4xl text-gray-900 dark:text-white leading-tight">{% if invite %}You're invited to join a community!{% else %}Create Your Community{% endif %}</h1>
+            <form method="POST" action="{{ url_for('signup_submit') }}" class="mt-8 space-y-4" autocomplete="on">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <div>
+                <label class="sr-only" for="name">Username</label>
+                <input class="input" id="name" name="name" placeholder="Choose a username" type="text" autocomplete="nickname" required/>
+              </div>
+              <div>
+                <label class="sr-only" for="email">Email address</label>
+                <input class="input" id="email" name="email" placeholder="Enter your email address" type="email" autocomplete="email" required/>
+              </div>
+              <div>
+                <label class="sr-only" for="password">Password</label>
+                <input class="input" id="password" name="password" placeholder="Create a password" type="password" autocomplete="new-password" required/>
+              </div>
+              <div class="flex items-start gap-3">
+                <input type="checkbox" name="consent" id="consent" required class="mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2">
+                <label for="consent" class="text-sm text-gray-700 dark:text-gray-300">I agree to the <a href="{{ url_for('terms_of_service') }}" class="text-primary hover:text-primary/80 underline" target="_blank">Terms</a> and <a href="{{ url_for('privacy_policy') }}" class="text-primary hover:text-primary/80 underline" target="_blank">Privacy</a>.</label>
+              </div>
+              <button id="signup-btn" class="btn btn-primary w-full" type="submit">
+                <span class="btn-text">{% if invite %}Join Community{% else %}Create a Free Community{% endif %}</span>
+                <span class="btn-loading hidden">{% if invite %}Joining...{% else %}Creating...{% endif %}</span>
+              </button>
+            </form>
+            <div class="mt-4 text-center">
+              <span class="text-gray-500 dark:text-gray-400">Already have an account?</span>
+              <a href="{{ url_for('login') }}" class="text-primary hover:text-primary/80 font-medium ml-1">Sign In</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  <footer class="bg-background-light dark:bg-background-dark py-4">
+    <div class="container mx-auto text-center text-sm text-gray-500 dark:text-gray-400">
+      <div class="flex flex-wrap justify-center gap-4 mb-2">
+        <a href="{{ url_for('privacy_policy') }}" class="hover:text-primary">Privacy Policy</a>
+        <span>•</span>
+        <a href="{{ url_for('terms_of_service') }}" class="hover:text-primary">Terms of Service</a>
+      </div>
+      © 2024 iZwi. All rights reserved.
+    </div>
+  </footer>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const form = document.querySelector('form');
+  const submitBtn = document.getElementById('signup-btn');
+  if (!form || !submitBtn) return;
+  const btnText = submitBtn.querySelector('.btn-text');
+  const btnLoading = submitBtn.querySelector('.btn-loading');
+  form.addEventListener('submit', function() {
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    if (btnText) btnText.classList.add('hidden');
+    if (btnLoading) btnLoading.classList.remove('hidden');
+  });
+});
+</script>
+{% endblock %}
