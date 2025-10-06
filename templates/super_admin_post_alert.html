@@ -1,45 +1,67 @@
 {% extends 'base.html' %}
 
-{% block title %}iZwi - Post Alert{% endblock %}
+{% block title %}iZwi - Post Verified Alert{% endblock %}
 
 {% block extra_head %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
+.verified-alert-form {
+  max-width: 600px;
+  margin: 0 auto;
+}
 .category-btn {
   transition: all 0.2s ease;
 }
 .category-btn:hover {
   transform: translateY(-1px);
 }
+.category-btn.selected {
+  ring-2 ring-offset-2;
+}
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <!-- Header -->
   <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
         <div class="flex items-center gap-4">
-          <a href="{{ url_for('dashboard') }}" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+          <a href="/super-admin{% if selected %}?community_id={{ selected.id }}{% endif %}" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
             <span class="material-symbols-outlined text-gray-600 dark:text-gray-300">arrow_back</span>
           </a>
-          <div>
-            <h1 class="text-xl font-bold text-gray-900 dark:text-white">Post Alert</h1>
-            <p class="text-sm text-gray-600 dark:text-gray-400">Share important information with your community</p>
+          <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-emerald-600 text-2xl">verified</span>
+            <div>
+              <h1 class="text-xl font-bold text-gray-900 dark:text-white">Post Verified Alert</h1>
+              <p class="text-sm text-gray-600 dark:text-gray-400">Community: {{ selected.name if selected else 'Not selected' }}</p>
+            </div>
           </div>
         </div>
+        {% if selected %}
+        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+          <span class="material-symbols-outlined text-emerald-600">location_city</span>
+          <span>{{ selected.name }}</span>
+        </div>
+        {% endif %}
       </div>
     </div>
   </header>
 
-  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <form method="POST" action="{{ url_for('post_alert') }}" class="bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8 max-w-2xl mx-auto">
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <form method="POST" action="{{ url_for('super_admin_post_verified') }}" class="verified-alert-form bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      {% if selected %}
+      <input type="hidden" name="community_id" value="{{ selected.id }}"/>
+      {% endif %}
+
       <!-- Category Selection -->
       <div class="mb-8">
         <div class="flex items-center gap-2 mb-4">
-          <span class="material-symbols-outlined text-primary">category</span>
+          <span class="material-symbols-outlined text-emerald-600">category</span>
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Alert Category</h2>
         </div>
         <input type="hidden" name="category" id="selected_category" required>
@@ -70,23 +92,24 @@
           </button>
         </div>
       </div>
+
       <!-- Description -->
       <div class="mb-8">
         <div class="flex items-center gap-2 mb-4">
-          <span class="material-symbols-outlined text-primary">description</span>
+          <span class="material-symbols-outlined text-emerald-600">description</span>
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Alert Description</h2>
         </div>
-        <textarea name="description" id="description" class="w-full h-32 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none resize-none" placeholder="Provide detailed information about this alert..." required></textarea>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Be specific and include relevant details to help your community respond appropriately.</p>
+        <textarea name="description" id="description" class="w-full h-32 p-4 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none resize-none" placeholder="Provide detailed information about this verified alert..." required></textarea>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">This alert will be marked as verified and posted immediately to the community.</p>
       </div>
 
       <!-- Alert Duration -->
       <div class="mb-8">
         <div class="flex items-center gap-2 mb-4">
-          <span class="material-symbols-outlined text-primary">schedule</span>
+          <span class="material-symbols-outlined text-emerald-600">schedule</span>
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Alert Duration (Optional)</h2>
         </div>
-        <select name="duration_minutes" id="duration_minutes" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none">
+        <select name="duration_minutes" id="duration_minutes" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 focus:outline-none">
           <option value="">No expiration (permanent alert)</option>
           <option value="15">15 minutes</option>
           <option value="30">30 minutes</option>
@@ -96,17 +119,17 @@
           <option value="480">8 hours</option>
           <option value="1440">24 hours</option>
         </select>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Set how long this alert should remain visible. Leave blank for permanent alerts.</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Set how long this verified alert should remain visible. Leave blank for permanent alerts.</p>
       </div>
 
       <!-- Location -->
       <div class="mb-8">
         <div class="flex items-center gap-2 mb-4">
-          <span class="material-symbols-outlined text-primary">location_on</span>
+          <span class="material-symbols-outlined text-emerald-600">location_on</span>
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Location</h2>
         </div>
         <div class="mb-4 flex gap-3">
-          <button type="button" onclick="requestCurrentLocation()" class="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
+          <button type="button" onclick="requestCurrentLocation()" class="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors font-medium">
             <span class="text-sm">📍</span>
             <span>Use Current Location</span>
           </button>
@@ -121,16 +144,21 @@
         <input type="hidden" name="latitude" id="latitude" required>
         <input type="hidden" name="longitude" id="longitude" required>
       </div>
+
       <!-- Submit Button -->
-      <div class="pt-6">
-        <button type="submit" id="post-alert-btn" class="w-full bg-primary text-white font-semibold py-4 px-6 rounded-lg hover:bg-primary/90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
-          <span class="btn-text">Post Alert</span>
-          <span class="btn-loading hidden">Posting Alert...</span>
+      <div class="flex gap-4 pt-6">
+        <a href="/super-admin{% if selected %}?community_id={{ selected.id }}{% endif %}" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center">
+          Cancel
+        </a>
+        <button type="submit" id="post-alert-btn" class="flex-1 bg-emerald-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-emerald-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
+          <span class="btn-text">Post Verified Alert</span>
+          <span class="btn-loading hidden">Posting...</span>
         </button>
       </div>
     </form>
   </main>
 </div>
+
 <script>
 // Initialize location map
 var locationMap = L.map('location-map').setView([-26.2041, 28.0473], 13);
@@ -139,24 +167,25 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 }).addTo(locationMap);
 
 var selectedMarker = null;
-var selectedCategory = null;
 
 // Handle map clicks for location selection
 locationMap.on('click', function(e) {
     var lat = e.latlng.lat;
     var lng = e.latlng.lng;
-    
+
     // Remove existing marker
     if (selectedMarker) {
         locationMap.removeLayer(selectedMarker);
     }
-    
+
     // Add new marker
     selectedMarker = L.marker([lat, lng]).addTo(locationMap);
-    
+
     // Update form fields
     document.getElementById('latitude').value = lat;
     document.getElementById('longitude').value = lng;
+
+    showLocationStatus('Location set successfully', 'success');
 });
 
 // Location detection functions
@@ -172,23 +201,23 @@ function requestCurrentLocation() {
         function(position) {
             var lat = position.coords.latitude;
             var lng = position.coords.longitude;
-            
+
             // Update map view
             locationMap.setView([lat, lng], 15);
-            
+
             // Remove existing marker
             if (selectedMarker) {
                 locationMap.removeLayer(selectedMarker);
             }
-            
+
             // Add marker at current location
             selectedMarker = L.marker([lat, lng]).addTo(locationMap);
             selectedMarker.bindPopup('<div class="text-center p-2"><strong>Your Current Location</strong></div>');
-            
+
             // Update form fields
             document.getElementById('latitude').value = lat;
             document.getElementById('longitude').value = lng;
-            
+
             showLocationStatus('Location set successfully', 'success');
         },
         function(error) {
@@ -220,14 +249,14 @@ function requestCurrentLocation() {
 
 function showLocationStatus(message, type) {
     const statusDiv = document.getElementById('location-status');
-    
+
     let icon = '';
     let className = '';
-    
+
     switch(type) {
         case 'loading':
-            icon = '<div class="animate-spin w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>';
-            className = 'text-blue-600';
+            icon = '<div class="animate-spin w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full"></div>';
+            className = 'text-emerald-600';
             break;
         case 'success':
             icon = '✅';
@@ -241,9 +270,9 @@ function showLocationStatus(message, type) {
             icon = 'ℹ️';
             className = 'text-gray-600';
     }
-    
+
     statusDiv.innerHTML = `<span>${icon}</span><span class="${className}">${message}</span>`;
-    
+
     // Auto-hide success/error messages after 5 seconds
     if (type === 'success' || type === 'error') {
         setTimeout(() => {
@@ -266,7 +295,7 @@ function selectCategory(event, category) {
 
     // Remove previous selection
     document.querySelectorAll('.category-btn').forEach(btn => {
-        btn.classList.remove('ring-2', 'ring-offset-2');
+        btn.classList.remove('selected');
         btn.style.backgroundColor = '';
         btn.style.borderColor = '';
         btn.style.color = '';
@@ -274,65 +303,99 @@ function selectCategory(event, category) {
 
     // Highlight selected category
     const selectedBtn = event.target.closest('.category-btn');
-    selectedBtn.classList.add('ring-2', 'ring-offset-2');
+    selectedBtn.classList.add('selected');
     selectedBtn.style.backgroundColor = colors[category];
     selectedBtn.style.borderColor = colors[category];
     selectedBtn.style.color = 'white';
 
     // Update form field
     document.getElementById('selected_category').value = category;
-    selectedCategory = category;
 }
 
-// Add loading state functionality
+// Form validation and submission
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     const submitBtn = document.getElementById('post-alert-btn');
     const btnText = submitBtn.querySelector('.btn-text');
     const btnLoading = submitBtn.querySelector('.btn-loading');
-    
+
     form.addEventListener('submit', function(e) {
+        e.preventDefault(); // Prevent normal form submission
+
         // Check if category is selected
         const selectedCategory = document.getElementById('selected_category').value;
         if (!selectedCategory) {
-            e.preventDefault();
             alert('Please select a category for your alert.');
             return;
         }
-        
+
+        // Check if description is provided
+        const description = document.getElementById('description').value.trim();
+        if (!description) {
+            alert('Please provide a description for your alert.');
+            document.getElementById('description').focus();
+            return;
+        }
+
         // Check if location is set
         const latitude = document.getElementById('latitude').value;
         const longitude = document.getElementById('longitude').value;
-        
+
         if (!latitude || !longitude || (latitude === '0' && longitude === '0')) {
-            e.preventDefault();
-            alert('Please set your location by clicking "Use My Location" or clicking on the map.');
-            showLocationStatus('Location required - please click "Use My Location" or click on the map', 'error');
+            alert('Please set your location by clicking "Use Current Location" or clicking on the map.');
+            showLocationStatus('Location required - please click "Use Current Location" or click on the map', 'error');
             return;
         }
-        
+
+        // Submit via AJAX
+        submitForm();
+    });
+
+    function submitForm() {
         // Disable button and show loading state
         submitBtn.disabled = true;
         submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
         btnText.classList.add('hidden');
         btnLoading.classList.remove('hidden');
-    });
-    
-    // Auto-hide flash messages after 5 seconds and remove container when empty
-    const alertMessages = document.querySelectorAll('.alert-message');
-    const flashContainer = document.getElementById('flash-container');
-    alertMessages.forEach(function(message) {
-        setTimeout(function() {
-            message.style.transition = 'opacity 0.5s ease-out';
-            message.style.opacity = '0';
-            setTimeout(function() {
-                message.remove();
-                if (flashContainer && !flashContainer.querySelector('.alert-message')) {
-                    flashContainer.remove();
-                }
-            }, 500);
-        }, 5000);
-    });
+
+        // Get form data
+        const formData = new FormData(form);
+        const csrfToken = document.querySelector('input[name="csrf_token"]').value;
+
+        // Submit the form
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Success - redirect back to super admin dashboard
+                const communityId = formData.get('community_id');
+                const redirectUrl = communityId ?
+                    `/super-admin?community_id=${communityId}` :
+                    '/super-admin';
+
+                // Show success message and redirect
+                window.location.href = redirectUrl + '&alert_posted=1';
+            } else {
+                throw new Error(data.error || 'Failed to post alert');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Failed to post alert: ' + error.message);
+
+            // Re-enable button
+            submitBtn.disabled = false;
+            submitBtn.classList.remove('opacity-75', 'cursor-not-allowed');
+            btnText.classList.remove('hidden');
+            btnLoading.classList.add('hidden');
+        });
+    }
 });
 </script>
 {% endblock %}

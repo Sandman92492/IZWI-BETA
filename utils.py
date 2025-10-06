@@ -121,6 +121,40 @@ def format_time_ago(timestamp_input):
         # Fallback: return the original input as string
         return str(timestamp_input)
 
+def format_time_left(expires_at):
+    """Format time remaining until expiration"""
+    if not expires_at:
+        return "No expiration"
+    
+    try:
+        # Handle both datetime objects and timestamp strings
+        if isinstance(expires_at, datetime):
+            expires = expires_at
+        else:
+            # If it's a string, parse it
+            expires_str = str(expires_at)
+            expires = datetime.fromisoformat(expires_str.replace('Z', '+00:00'))
+        
+        now = datetime.now(expires.tzinfo) if expires.tzinfo else datetime.now()
+        diff = expires - now
+        
+        if diff.total_seconds() <= 0:
+            return "Expired"
+        elif diff.days > 0:
+            return f"{diff.days} {'day' if diff.days == 1 else 'days'} left"
+        elif diff.seconds > 3600:
+            hours = diff.seconds // 3600
+            return f"{hours} {'hour' if hours == 1 else 'hours'} left"
+        elif diff.seconds > 60:
+            minutes = diff.seconds // 60
+            return f"{minutes} {'minute' if minutes == 1 else 'minutes'} left"
+        else:
+            return "Less than a minute left"
+    except Exception as e:
+        # Fallback: return the original input as string
+        return str(expires_at)
+
+
 # Subscription and Premium Feature Utilities
 
 # Plan ranking and normalization for cumulative entitlements

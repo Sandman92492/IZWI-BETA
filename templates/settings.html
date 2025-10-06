@@ -23,9 +23,6 @@
                     <span class="material-symbols-outlined text-gray-900 dark:text-white">arrow_back</span>
                 </a>
                 <h1 class="flex-1 text-center text-lg font-bold text-gray-900 dark:text-white">Settings</h1>
-                <button id="theme-toggle-btn" class="ml-2 p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-soft" title="Toggle theme" aria-label="Toggle theme">
-                    <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
-                </button>
             </div>
         </header>
         <main class="flex-grow p-4">
@@ -155,12 +152,37 @@
             </div>
             <div class="mb-6">
                 <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
-                    <div class="flex items-center justify-between mb-2">
+                    <div class="flex flex-col gap-3 mb-2">
                         <div class="flex items-center gap-2">
                             <span class="material-symbols-outlined text-primary text-xl">shield_person</span>
                             <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Business / Super Admin</h2>
                         </div>
-                        <div class="flex items-center gap-2">
+
+                        <!-- Navigation and Admin buttons with equal spacing -->
+                        <div class="flex flex-col gap-3 md:hidden">
+                            <!-- Back to Dashboard button -->
+                            <a href="/dashboard" class="inline-flex items-center justify-center gap-2 w-full px-4 py-3 rounded-lg bg-gray-600 text-white hover:bg-gray-700 font-medium transition-colors">
+                                <span class="material-symbols-outlined">dashboard</span>
+                                Back to Dashboard
+                            </a>
+
+                            <!-- Admin action buttons -->
+                            <div class="flex flex-col sm:flex-row gap-3">
+                            {% if founder_access %}
+                            <a href="/founder" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-medium">
+                                <span class="material-symbols-outlined">terminal</span>
+                                Founder Console
+                            </a>
+                            {% endif %}
+                            {% if current_user.business_id %}
+                            <a href="/super-admin" class="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 font-medium">
+                                <span class="material-symbols-outlined">open_in_new</span>
+                                Super Admin
+                            </a>
+                            {% endif %}
+                            </div>
+                        </div>
+                        <div class="hidden md:flex items-center gap-2">
                         {% if founder_access %}
                         <a href="/founder" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700">
                             <span class="material-symbols-outlined">terminal</span>
@@ -186,11 +208,18 @@
                         <button type="submit" class="w-full bg-primary hover:bg-primary/90 text-white font-medium py-2 px-4 rounded-lg">Create Business & Become Super Admin</button>
                     </form>
                     {% else %}
-                    <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">You're associated with a business. You can attach this community to your business.</div>
-                    <form action="/settings/attach-community-to-business" method="POST" class="space-y-3">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-2 px-4 rounded-lg">Attach Current Community</button>
-                    </form>
+                        {% if community.business_id and community.business_id == current_user.business_id %}
+                        <div class="w-full bg-emerald-600 text-white font-medium py-3 px-4 rounded-lg text-center">
+                            <span class="material-symbols-outlined text-sm mr-2">check_circle</span>
+                            Community Attached
+                        </div>
+                        {% else %}
+                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">You're associated with a business. You can attach this community to your business.</div>
+                        <form action="/settings/attach-community-to-business" method="POST" class="space-y-3">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">Attach Current Community</button>
+                        </form>
+                        {% endif %}
                     {% endif %}
                 </div>
             </div>

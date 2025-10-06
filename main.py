@@ -13,6 +13,7 @@ import secrets
 import string
 from datetime import datetime, timedelta
 from models import User, InviteCode, Alert, AlertReport
+from sqlalchemy import not_
 
 # Import our modular components
 from auth import authenticate_user, create_user
@@ -386,6 +387,33 @@ def super_admin_delete_alert(alert_id: int):
         return jsonify({'success': False, 'error': 'Delete failed'}), 500
 
 
+@app.route('/super-admin/post-alert')
+@login_required
+def super_admin_post_alert():
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        abort(403)
+
+    # Get community_id from query parameters
+    community_id = request.args.get('community_id', type=int)
+    selected = None
+
+    if community_id:
+        community = Community.query.get(community_id)
+        if community and community.business_id == current_user.business_id:
+            selected = community
+        else:
+            community_id = None
+
+    # If no valid community selected, get the first available community
+    if not selected:
+        communities = get_business_communities(current_user.business_id)
+        if communities:
+            selected = communities[0]
+            community_id = selected.id
+
+    return render_template('super_admin_post_alert.html', selected=selected, community_id=community_id)
+
+
 @app.route('/super-admin/post-verified', methods=['POST'])
 @login_required
 def super_admin_post_verified():
@@ -397,12 +425,13 @@ def super_admin_post_verified():
     description = data.get('description')
     latitude = data.get('latitude', 0.0)
     longitude = data.get('longitude', 0.0)
-    
+    duration_minutes = data.get('duration_minutes')
+
     community = Community.query.get(community_id)
     if not community or community.business_id != current_user.business_id:
         return jsonify({'error': 'Forbidden'}), 403
-    
-    alert_id, error = create_verified_alert(community_id, current_user.id, category, description, latitude, longitude)
+
+    alert_id, error = create_verified_alert(community_id, current_user.id, category, description, latitude, longitude, duration_minutes=duration_minutes)
     if alert_id:
         return jsonify({'success': True, 'alert_id': alert_id})
     else:
@@ -422,13 +451,20 @@ def define_community():
             # Update user with community_id
             user = db.session.get(User, current_user.id)
             user.community_id = community_id
+            user.role = 'Admin'
             db.session.commit()
-            
+
             # Update current_user
             current_user.community_id = community_id
-            
-            flash('Community created successfully!')
-            return redirect(url_for('dashboard'))
+            current_user.role = 'Admin'
+
+            # Store user info for welcome screen
+            session['new_community_welcome'] = True
+            session['user_name'] = user.name or user.email.split('@')[0]
+            session['community_name'] = community_name
+
+            flash('Community created successfully! Welcome to your new community.', 'success')
+            return redirect(url_for('welcome'))
         else:
             if error:
                 flash(error)
@@ -444,8 +480,9 @@ def post_alert():
         description = request.form.get('description')
         latitude = request.form.get('latitude', 0.0)
         longitude = request.form.get('longitude', 0.0)
+        duration_minutes = request.form.get('duration_minutes')
 
-        alert_id, error = create_alert(current_user.community_id, current_user.id, category, description, latitude, longitude)
+        alert_id, error = create_alert(current_user.community_id, current_user.id, category, description, latitude, longitude, duration_minutes=duration_minutes)
 
         if alert_id:
             flash('Alert posted successfully!')
@@ -671,6 +708,40 @@ def report_alert_route():
         }), 500
 
 
+@app.route('/edit-alert/<int:alert_id>', methods=['GET', 'POST'])
+@login_required
+def edit_alert(alert_id):
+    """Edit an alert (only by the alert author)"""
+    from alerts import get_alert_by_id, update_alert
+
+    alert = get_alert_by_id(alert_id)
+    if not alert:
+        flash('Alert not found')
+        return redirect(url_for('dashboard'))
+
+    # Check if user is the author
+    if alert['user_id'] != current_user.id:
+        flash('You can only edit your own alerts')
+        return redirect(url_for('dashboard'))
+
+    if request.method == 'POST':
+        category = request.form.get('category')
+        description = request.form.get('description')
+        latitude = request.form.get('latitude', 0.0)
+        longitude = request.form.get('longitude', 0.0)
+        duration_minutes = request.form.get('duration_minutes')
+
+        success, message = update_alert(alert_id, current_user.id, category, description, latitude, longitude, duration_minutes)
+
+        if success:
+            flash('Alert updated successfully!')
+            return redirect(url_for('dashboard'))
+        else:
+            flash(message)
+
+    return render_template('edit_alert.html', alert=alert)
+
+
 @app.route('/update-community-name', methods=['POST'])
 @login_required
 def update_community_name_route():
@@ -888,6 +959,44 @@ def demote_member(user_id: int):
 
 
 # --- Alert deletion by Admin and Moderator ---
+@app.route('/admin/cleanup-expired-alerts', methods=['POST'])
+def cleanup_expired_alerts():
+    """Clean up expired alerts (can be called by cron job)"""
+    try:
+        from datetime import datetime
+        from models import Alert, AlertReport
+
+        now = datetime.now()
+        expired_alerts = Alert.query.filter(
+            not_(Alert.expires_at == None),
+            Alert.expires_at < now
+        ).all()
+
+        deleted_count = 0
+        for alert in expired_alerts:
+            # Delete associated reports first
+            AlertReport.query.filter_by(alert_id=alert.id).delete()
+            # Delete the alert
+            db.session.delete(alert)
+            deleted_count += 1
+
+        db.session.commit()
+
+        app.logger.info(f'Expired alerts cleanup: {deleted_count} alerts removed')
+        return jsonify({
+            'success': True,
+            'deleted_count': deleted_count,
+            'message': f'Successfully removed {deleted_count} expired alerts'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        app.logger.error(f'Error during expired alerts cleanup: {e}')
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 @app.route('/alerts/<int:alert_id>', methods=['DELETE'])
 @login_required
 def delete_alert(alert_id: int):
@@ -903,9 +1012,14 @@ def delete_alert(alert_id: int):
         can_delete = True
     elif getattr(current_user, 'is_moderator', lambda: False)():
         can_delete = (author and author.role not in ['Admin', 'Moderator'])
+    elif alert.user_id == current_user.id:
+        # Users can delete their own alerts
+        can_delete = True
     if not can_delete:
         return jsonify({'error': 'Forbidden'}), 403
     try:
+        # Also delete associated reports
+        AlertReport.query.filter_by(alert_id=alert_id).delete()
         db.session.delete(alert)
         db.session.commit()
         return jsonify({'success': True})

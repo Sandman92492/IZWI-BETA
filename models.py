@@ -62,6 +62,8 @@ class Alert(db.Model):
     is_resolved = db.Column(db.Boolean, default=False)
     is_premium_feature = db.Column(db.Boolean, default=False)
     is_verified = db.Column(db.Boolean, default=False)
+    expires_at = db.Column(db.DateTime, nullable=True)
+    duration_minutes = db.Column(db.Integer, nullable=True)
 
 
 class Business(db.Model):

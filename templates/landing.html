@@ -5,54 +5,168 @@
 {% block content %}
 <div class="flex flex-col min-h-screen">
   <main class="flex-grow">
-    <div class="px-4 py-12 md:py-20">
+    <div class="px-4 py-8 md:py-12">
       <div class="container mx-auto max-w-4xl">
-        <div class="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
-          <div class="w-full lg:w-1/2">
-            <div class="relative w-full aspect-video rounded-lg shadow-lg overflow-hidden">
-              <img alt="Map showing community boundary" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCWMrzf8SPsBugB2OA-B7dAl8bgfh5onqxQGBuLgPSZunCcJhUKZspbmJ8YfMxkw4UzaX6H4c2AhsVYvkRs47JbdL84-3FfbndmMeLa6rIZJpugz-6MfP_kxKOA0VmxxiCVofQbIS5JNq7bMpd_j-ZyfYilEyuz87lwQBLc9d4u2avPv--lLWKj-PYGEGJXHxaTOotmFpAMOCQuUoULSUnhw8FZ0Ija_ppr0xrSXwaAvVLHi_7kVxcKNcMytJi3k7h1nYri5x3VHfc"/>
+        <!-- Header Section -->
+        <div class="text-center mb-8">
+          <h1 class="font-display font-semibold text-3xl md:text-4xl text-gray-900 dark:text-white leading-tight mb-4">
+            {% if invite %}Join Your Community{% else %}Create Your Community{% endif %}
+          </h1>
+          <p class="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
+            {% if invite %}Welcome! You're invited to join an existing community. Enter your details below to get started.{% else %}Start building your local alert network. Connect with neighbors and stay informed about what's happening in your area.{% endif %}
+          </p>
+        </div>
+
+        <!-- Progress Steps (only show for new community creation) -->
+        {% if not invite %}
+        <div class="mb-8">
+          <div class="flex items-center justify-center space-x-4">
+            <div class="flex items-center">
+              <div class="w-8 h-8 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold">1</div>
+              <span class="ml-2 text-sm font-medium text-gray-700 dark:text-gray-300">Account</span>
+            </div>
+            <div class="w-8 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+            <div class="flex items-center">
+              <div class="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold">2</div>
+              <span class="ml-2 text-sm font-medium text-gray-500">Community</span>
+            </div>
+            <div class="w-8 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+            <div class="flex items-center">
+              <div class="w-8 h-8 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold">3</div>
+              <span class="ml-2 text-sm font-medium text-gray-500">Welcome</span>
             </div>
           </div>
-          <div class="w-full lg:w-1/2 text-center lg:text-left">
-            <h1 class="font-display font-semibold text-3xl md:text-4xl text-gray-900 dark:text-white leading-tight">{% if invite %}You're invited to join a community!{% else %}Create Your Community{% endif %}</h1>
-            <form method="POST" action="{{ url_for('signup_submit') }}" class="mt-8 space-y-4" autocomplete="on">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-              <div>
-                <label class="sr-only" for="name">Username</label>
-                <input class="input" id="name" name="name" placeholder="Choose a username" type="text" autocomplete="nickname" required/>
+        </div>
+        {% endif %}
+
+        <div class="flex flex-col lg:flex-row items-start gap-8 lg:gap-12">
+          <!-- Left side - Visual/Info -->
+          <div class="w-full lg:w-2/5">
+            <div class="bg-gradient-to-br from-primary/10 to-primary/20 rounded-xl p-6 mb-6">
+              <div class="flex items-center mb-4">
+                <div class="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center mr-3">
+                  <span class="text-primary text-lg">🏘️</span>
+                </div>
+                <div>
+                  <h3 class="font-semibold text-gray-900 dark:text-white">Community Benefits</h3>
+                  <p class="text-sm text-gray-600 dark:text-gray-300">What you'll get</p>
+                </div>
               </div>
-              <div>
-                <label class="sr-only" for="email">Email address</label>
-                <input class="input" id="email" name="email" placeholder="Enter your email address" type="email" autocomplete="email" required/>
+              <ul class="space-y-3 text-sm">
+                <li class="flex items-start">
+                  <span class="text-primary mr-2 mt-0.5">✅</span>
+                  <span class="text-gray-700 dark:text-gray-200">Real-time community alerts</span>
+                </li>
+                <li class="flex items-start">
+                  <span class="text-primary mr-2 mt-0.5">✅</span>
+                  <span class="text-gray-700 dark:text-gray-200">Connect with local neighbors</span>
+                </li>
+                <li class="flex items-start">
+                  <span class="text-primary mr-2 mt-0.5">✅</span>
+                  <span class="text-gray-700 dark:text-gray-200">Stay informed about local events</span>
+                </li>
+                <li class="flex items-start">
+                  <span class="text-primary mr-2 mt-0.5">✅</span>
+                  <span class="text-gray-700 dark:text-gray-200">Free to use forever</span>
+                </li>
+              </ul>
+            </div>
+
+            {% if invite %}
+            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-6">
+              <div class="flex items-center mb-3">
+                <span class="text-blue-500 text-lg mr-2">🔗</span>
+                <h3 class="font-semibold text-gray-900 dark:text-white">Community Invitation</h3>
               </div>
-              <div>
-                <label class="sr-only" for="password">Password</label>
-                <input class="input" id="password" name="password" placeholder="Create a password" type="password" autocomplete="new-password" required/>
-              </div>
-              <div class="flex items-start gap-3">
-                <input type="checkbox" name="consent" id="consent" required class="mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2">
-                <label for="consent" class="text-sm text-gray-700 dark:text-gray-300">I agree to the <a href="{{ url_for('terms_of_service') }}" class="text-primary hover:text-primary/80 underline" target="_blank">Terms</a> and <a href="{{ url_for('privacy_policy') }}" class="text-primary hover:text-primary/80 underline" target="_blank">Privacy</a>.</label>
-              </div>
-              <button id="signup-btn" class="btn btn-primary w-full" type="submit">
-                <span class="btn-text">{% if invite %}Join Community{% else %}Create a Free Community{% endif %}</span>
-                <span class="btn-loading hidden">{% if invite %}Joining...{% else %}Creating...{% endif %}</span>
-              </button>
-            </form>
-            <div class="mt-4 text-center">
-              <span class="text-gray-500 dark:text-gray-400">Already have an account?</span>
-              <a href="{{ url_for('login') }}" class="text-primary hover:text-primary/80 font-medium ml-1">Sign In</a>
+              <p class="text-sm text-gray-600 dark:text-gray-300">
+                You're joining <strong class="text-gray-900 dark:text-white">{{ invite.community_name }}</strong>.
+                Welcome to the community!
+              </p>
+            </div>
+            {% endif %}
+          </div>
+
+          <!-- Right side - Form -->
+          <div class="w-full lg:w-3/5">
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6">
+              <form method="POST" action="{{ url_for('signup_submit') }}" class="space-y-5" autocomplete="on">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                <!-- Name Field -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="name">
+                    What's your name? *
+                  </label>
+                  <input class="input w-full" id="name" name="name" placeholder="Enter your full name" type="text" autocomplete="nickname" required/>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This is how other community members will see you</p>
+                </div>
+
+                <!-- Email Field -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="email">
+                    Email address *
+                  </label>
+                  <input class="input w-full" id="email" name="email" placeholder="your.email@example.com" type="email" autocomplete="email" required/>
+                  <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">We'll use this to send you important community updates</p>
+                </div>
+
+                <!-- Password Field -->
+                <div>
+                  <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="password">
+                    Create a password *
+                  </label>
+                  <input class="input w-full" id="password" name="password" placeholder="Choose a strong password" type="password" autocomplete="new-password" required/>
+                  <div class="mt-2 space-y-1">
+                    <div class="flex items-center text-xs">
+                      <span id="length-check" class="flex items-center text-gray-400">○</span>
+                      <span class="ml-1">At least 8 characters</span>
+                    </div>
+                    <div class="flex items-center text-xs">
+                      <span id="uppercase-check" class="flex items-center text-gray-400">○</span>
+                      <span class="ml-1">One uppercase letter</span>
+                    </div>
+                    <div class="flex items-center text-xs">
+                      <span id="number-check" class="flex items-center text-gray-400">○</span>
+                      <span class="ml-1">One number</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Consent Checkbox -->
+                <div class="pt-2">
+                  <div class="flex items-start gap-3">
+                    <input type="checkbox" name="consent" id="consent" required class="mt-1 h-4 w-4 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2">
+                    <label for="consent" class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                      I agree to the <a href="{{ url_for('terms_of_service') }}" class="text-primary hover:text-primary/80 underline font-medium" target="_blank">Terms of Service</a> and <a href="{{ url_for('privacy_policy') }}" class="text-primary hover:text-primary/80 underline font-medium" target="_blank">Privacy Policy</a> *
+                    </label>
+                  </div>
+                </div>
+
+                <!-- Submit Button -->
+                <button id="signup-btn" class="btn btn-primary w-full h-12 text-base font-semibold" type="submit">
+                  <span class="btn-text">{% if invite %}Join {{ invite.community_name }}{% else %}Create My Community{% endif %}</span>
+                  <span class="btn-loading hidden">{% if invite %}Joining...{% else %}Creating...{% endif %}</span>
+                </button>
+
+                <!-- Login Link -->
+                <div class="text-center pt-2">
+                  <span class="text-gray-500 dark:text-gray-400 text-sm">Already have an account?</span>
+                  <a href="{{ url_for('login') }}" class="text-primary hover:text-primary/80 font-medium ml-2">Sign In</a>
+                </div>
+              </form>
             </div>
           </div>
         </div>
       </div>
     </div>
   </main>
+
   <footer class="bg-background-light dark:bg-background-dark py-4">
     <div class="container mx-auto text-center text-sm text-gray-500 dark:text-gray-400">
       <div class="flex flex-wrap justify-center gap-4 mb-2">
-        <a href="{{ url_for('privacy_policy') }}" class="hover:text-primary">Privacy Policy</a>
+        <a href="{{ url_for('privacy_policy') }}" class="hover:text-primary transition-colors">Privacy Policy</a>
         <span>•</span>
-        <a href="{{ url_for('terms_of_service') }}" class="hover:text-primary">Terms of Service</a>
+        <a href="{{ url_for('terms_of_service') }}" class="hover:text-primary transition-colors">Terms of Service</a>
       </div>
       © 2024 iZwi. All rights reserved.
     </div>
@@ -62,14 +176,68 @@
 document.addEventListener('DOMContentLoaded', function() {
   const form = document.querySelector('form');
   const submitBtn = document.getElementById('signup-btn');
+  const passwordInput = document.getElementById('password');
+
   if (!form || !submitBtn) return;
+
+  // Password strength checker
+  if (passwordInput) {
+    passwordInput.addEventListener('input', function() {
+      const password = this.value;
+
+      // Check length (8+ characters)
+      const lengthCheck = document.getElementById('length-check');
+      if (password.length >= 8) {
+        lengthCheck.innerHTML = '✓';
+        lengthCheck.className = 'flex items-center text-green-500';
+      } else {
+        lengthCheck.innerHTML = '○';
+        lengthCheck.className = 'flex items-center text-gray-400';
+      }
+
+      // Check uppercase letter
+      const uppercaseCheck = document.getElementById('uppercase-check');
+      if (/[A-Z]/.test(password)) {
+        uppercaseCheck.innerHTML = '✓';
+        uppercaseCheck.className = 'flex items-center text-green-500';
+      } else {
+        uppercaseCheck.innerHTML = '○';
+        uppercaseCheck.className = 'flex items-center text-gray-400';
+      }
+
+      // Check number
+      const numberCheck = document.getElementById('number-check');
+      if (/\d/.test(password)) {
+        numberCheck.innerHTML = '✓';
+        numberCheck.className = 'flex items-center text-green-500';
+      } else {
+        numberCheck.innerHTML = '○';
+        numberCheck.className = 'flex items-center text-gray-400';
+      }
+    });
+  }
+
+  // Form submission handling
   const btnText = submitBtn.querySelector('.btn-text');
   const btnLoading = submitBtn.querySelector('.btn-loading');
+
   form.addEventListener('submit', function() {
     submitBtn.disabled = true;
     submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
     if (btnText) btnText.classList.add('hidden');
     if (btnLoading) btnLoading.classList.remove('hidden');
+  });
+
+  // Add smooth animations for form interactions
+  const inputs = form.querySelectorAll('input');
+  inputs.forEach(input => {
+    input.addEventListener('focus', function() {
+      this.parentElement.classList.add('ring-2', 'ring-primary/20');
+    });
+
+    input.addEventListener('blur', function() {
+      this.parentElement.classList.remove('ring-2', 'ring-primary/20');
+    });
   });
 });
 </script>

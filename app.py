@@ -154,7 +154,7 @@ csrf = CSRFProtect(app)
 
 # Import after app context
 from auth import load_user, check_session_activity
-from utils import get_category_color, get_category_icon, format_time_ago
+from utils import get_category_color, get_category_icon, format_time_ago, format_time_left
 
 # Set up user loader for Flask-Login
 login_manager.user_loader(load_user)
@@ -166,7 +166,11 @@ app.before_request(check_session_activity)
 app.jinja_env.globals.update(get_category_color=get_category_color,
                              get_category_icon=get_category_icon,
                              format_time_ago=format_time_ago,
+                             format_time_left=format_time_left,
                              csrf_token=generate_csrf)
+
+# Also register as Jinja filters for pipe syntax
+app.jinja_env.filters.update(format_time_left=format_time_left)
 
 
 @app.errorhandler(CSRFError)

@@ -100,9 +100,6 @@
       <div class="flex items-center gap-3">
         <a href="/settings" class="text-gray-700 dark:text-gray-300 hover:text-primary">Settings</a>
         <a href="/logout" class="text-gray-700 dark:text-gray-300 hover:text-primary">Logout</a>
-        <button id="theme-toggle-btn" class="p-2 rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-soft" title="Toggle theme" aria-label="Toggle theme">
-          <span class="material-symbols-outlined" id="theme-toggle-icon">dark_mode</span>
-        </button>
       </div>
     </div>
   </div>
@@ -111,40 +108,6 @@
 <script>
   // Global toast utility and auto-hide for flashed messages
   (function(){
-    // Theme toggle logic (binds to elements if present on page)
-    function currentTheme(){
-      try { var stored = localStorage.getItem('theme'); if (stored === 'dark' || stored === 'light') return stored; } catch(_) {}
-      return 'system';
-    }
-    function applyThemeMode(mode){
-      try {
-        if (mode === 'dark') { localStorage.setItem('theme','dark'); document.documentElement.classList.add('dark'); }
-        else if (mode === 'light') { localStorage.setItem('theme','light'); document.documentElement.classList.remove('dark'); }
-        else { localStorage.removeItem('theme'); var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches; document.documentElement.classList.toggle('dark', !!prefersDark); }
-      } catch(_) {}
-    }
-    function cycleTheme(){
-      var mode = currentTheme();
-      var next = mode === 'light' ? 'dark' : (mode === 'dark' ? 'system' : 'light');
-      applyThemeMode(next);
-      renderThemeIcon();
-    }
-    function renderThemeIcon(){
-      var mode = currentTheme();
-      var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-      var effectiveDark = (mode === 'dark') || (mode === 'system' && prefersDark);
-      var icon = document.getElementById('theme-toggle-icon');
-      if (icon) icon.textContent = effectiveDark ? 'light_mode' : 'dark_mode';
-    }
-    document.addEventListener('DOMContentLoaded', function(){
-      var btn = document.getElementById('theme-toggle-btn');
-      if (btn) btn.addEventListener('click', cycleTheme);
-      renderThemeIcon();
-      if (window.matchMedia) {
-        var mq = window.matchMedia('(prefers-color-scheme: dark)');
-        if (mq && mq.addEventListener) mq.addEventListener('change', renderThemeIcon);
-      }
-    });
 
     function hideAfterDelay(el, delay){
       setTimeout(function(){

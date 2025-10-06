@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html lang="en"><head>
-<meta charset="utf-8"/>
-<title>iZwi - Define Community</title>
-<link href="https://fonts.googleapis.com" rel="preconnect"/>
-<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<script>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>iZwi - Create Your Community</title>
+    <link href="https://fonts.googleapis.com" rel="preconnect"/>
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script>
       tailwind.config = {
         darkMode: "class",
         theme: {
@@ -30,41 +32,61 @@
               lg: "0.75rem",
               full: "9999px",
             },
+            animation: {
+              'fade-in': 'fadeIn 0.5s ease-in-out',
+              'slide-up': 'slideUp 0.3s ease-out',
+              'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
           },
         },
       };
     </script>
-<style>
+    <style>
       .material-symbols-outlined {
         font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
       }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes slideUp {
+        from { transform: translateY(10px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+      }
     </style>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.css" />
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
-<script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
-  <style>
-    body {
-      margin: 0;
-    }
-  </style>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        min-height: 100vh;
+      }
+
+      .step-indicator {
+        transition: all 0.3s ease;
+      }
+
+      .step-active {
+        background-color: #2A9D8F !important;
+        color: white !important;
+      }
+    </style>
   </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-content-light dark:text-content-dark">
 <div id="flash-container" class="fixed top-4 inset-x-0 z-50 flex justify-center px-4">
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
-    <div class="space-y-3 max-w-md w-full">
+    <div class="space-y-3 max-w-md w-full animate-fade-in">
       {% for category, message in messages %}
-        <div class="alert-message flex items-start gap-3 p-4 rounded-lg shadow-lg {% if category == 'success' %}bg-[#ecfdf5] text-[#065f46] dark:bg-[#052e28] dark:text-[#a7f3d0]{% elif category == 'error' %}bg-[#fef2f2] text-[#991b1b] dark:bg-[#2d0d0d] dark:text-[#fecaca]{% else %}bg-[#fff8e1] text-[#8c7d5f] dark:bg-[#3c2e00] dark:text-[#ffdca2]{% endif %}" role="alert">
-          <span class="material-symbols-outlined mt-0.5 {% if category == 'success' %}text-[#10b981] dark:text-[#34d399]{% elif category == 'error' %}text-[#ef4444] dark:text-[#fca5a5]{% else %}text-[#fab938] dark:text-[#ffd166]{% endif %}">{% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}warning{% endif %}</span>
+        <div class="alert-message flex items-start gap-3 p-4 rounded-lg shadow-lg {% if category == 'success' %}bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-200{% elif category == 'error' %}bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200{% else %}bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200{% endif %} border-l-4 {% if category == 'success' %}border-green-500{% elif category == 'error' %}border-red-500{% else %}border-yellow-500{% endif %}" role="alert">
+          <span class="material-symbols-outlined mt-0.5 {% if category == 'success' %}text-green-600{% elif category == 'error' %}text-red-600{% else %}text-yellow-600{% endif %}">{% if category == 'success' %}check_circle{% elif category == 'error' %}error{% else %}warning{% endif %}</span>
           <span class="text-base font-normal">{{ message }}</span>
         </div>
       {% endfor %}
@@ -72,261 +94,201 @@
   {% endif %}
 {% endwith %}
 </div>
-<div class="flex h-screen flex-col">
-<header class="flex items-center justify-between p-4">
-<div class="flex items-center gap-2">
-<a href="{{ url_for('index') }}" class="rounded-full p-2 hover:bg-subtle-light dark:hover:bg-subtle-dark" title="Go to Home">
-<svg class="text-content-light dark:text-content-dark" fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg">
-<path d="M19 12H5"></path>
-<path d="M12 19l-7-7 7-7"></path>
-</svg>
-</a>
-</div>
-<h1 class="text-lg font-bold">Define Your Community</h1>
-<div class="flex items-center gap-2">
-<a href="{{ url_for('logout') }}" class="text-sm px-3 py-2 rounded-lg bg-subtle-light dark:bg-subtle-dark hover:bg-primary hover:text-white transition-colors">
-Sign in as different user
-</a>
-</div>
-</header>
-<main class="flex flex-1 flex-col gap-4 p-4">
 
-<!-- Flash Messages moved to overlay at top -->
+<!-- Progress Header -->
+<div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+  <div class="max-w-4xl mx-auto px-4 py-4">
+    <div class="flex items-center justify-between mb-4">
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('index') }}" class="flex items-center gap-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+          <span class="material-symbols-outlined">arrow_back</span>
+          <span class="text-sm">Back to Home</span>
+        </a>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="{{ url_for('logout') }}" class="text-sm px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+          Switch Account
+        </a>
+      </div>
+    </div>
 
-<form method="POST" class="flex flex-1 flex-col gap-4">
-<input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-<div class="flex flex-col">
-<label class="sr-only" for="community-name">Community Name</label>
-<input class="h-14 w-full rounded-lg border-none bg-subtle-light px-4 text-content-light placeholder-placeholder-light focus:ring-2 focus:ring-primary dark:bg-subtle-dark dark:text-content-dark dark:placeholder-placeholder-dark" id="community-name" name="community_name" placeholder="Community Name" type="text" required/>
-<input type="hidden" name="boundary_data" id="boundary_data">
+    <!-- Progress Steps -->
+    <div class="flex items-center justify-center space-x-4">
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold step-indicator step-active">1</div>
+        <span class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Name</span>
+      </div>
+      <div class="w-8 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold step-indicator">2</div>
+        <span class="ml-2 text-sm font-medium text-gray-500">Location</span>
+      </div>
+      <div class="w-8 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold step-indicator">3</div>
+        <span class="ml-2 text-sm font-medium text-gray-500">Create</span>
+      </div>
+    </div>
+  </div>
 </div>
-<div class="relative flex-1 rounded-lg bg-subtle-light dark:bg-subtle-dark">
-<div class="absolute top-3 left-3 right-3 z-20 space-y-2">
-<div class="flex gap-2">
-<input id="addressSearchDefine" type="text" placeholder="Search for address, city, or landmark..." 
-       class="flex-1 px-3 py-2 bg-background-light/95 dark:bg-background-dark/95 border border-subtle-light dark:border-subtle-dark rounded-lg focus:ring-primary focus:border-primary text-sm text-content-light dark:text-content-dark placeholder-placeholder-light dark:placeholder-placeholder-dark">
-<button type="button" onclick="searchAddressDefine()" class="px-4 py-2 bg-primary text-white rounded-lg hover:opacity-90 text-sm font-medium">
-Search
-</button>
-</div>
-<div class="flex gap-2">
-<button type="button" onclick="useMyLocationDefine()" class="flex items-center gap-2 px-3 py-2 bg-background-light/95 dark:bg-background-dark/95 text-content-light dark:text-content-dark rounded-lg hover:bg-primary hover:text-white transition-colors text-sm">
-<span class="material-symbols-outlined text-sm">my_location</span>
-Use My Location
-</button>
-</div>
-</div>
-<div id="community-map" class="w-full h-full rounded-lg"></div>
-<div class="absolute top-3 left-3 bg-white/90 dark:bg-black/70 text-sm rounded px-3 py-2 shadow" id="define-hint" style="display:none"></div>
-<div class="absolute bottom-3 left-3 bg-background-light/90 dark:bg-background-dark/90 p-3 rounded-lg shadow-lg text-sm z-10">
-<p class="text-content-light dark:text-content-dark">
-              Use the drawing tools to define your community boundaries on the map.
+
+<div class="flex min-h-screen">
+  <!-- Left Panel - Instructions & Tips -->
+  <div class="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-6 hidden lg:block">
+    <div class="sticky top-6">
+      <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-4">Community Setup Guide</h2>
+
+      <!-- Step 1 -->
+      <div class="mb-6 p-4 bg-primary/10 rounded-lg">
+        <div class="flex items-center mb-2">
+          <span class="w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs font-semibold mr-2">1</span>
+          <h3 class="font-medium text-gray-900 dark:text-white">Name Your Community</h3>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-300">
+          Give your community a clear, recognizable name that reflects your neighborhood or area.
+        </p>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+        <div class="flex items-center mb-2">
+          <span class="w-6 h-6 bg-gray-400 text-white rounded-full flex items-center justify-center text-xs font-semibold mr-2">2</span>
+          <h3 class="font-medium text-gray-900 dark:text-white">Define Location</h3>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-300">
+          Draw a boundary around your community area on the map. This helps focus alerts to your local area.
+        </p>
+      </div>
+
+      <!-- Tips -->
+      <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+        <h4 class="font-medium text-gray-900 dark:text-white mb-2 flex items-center">
+          <span class="material-symbols-outlined text-blue-500 mr-2 text-sm">lightbulb</span>
+          Pro Tips
+        </h4>
+        <ul class="text-sm text-gray-600 dark:text-gray-300 space-y-1">
+          <li>• Include major streets or landmarks</li>
+          <li>• Start with a rough outline and refine</li>
+          <li>• You can always adjust boundaries later</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <div class="flex-1 flex flex-col">
+    <!-- Step 1: Community Name -->
+    <div id="step-1" class="flex-1 p-6">
+      <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-8">
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">What's your community called?</h1>
+          <p class="text-gray-600 dark:text-gray-300">Choose a name that represents your neighborhood or local area</p>
+        </div>
+
+        <form method="POST" class="space-y-6">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="community-name">
+              Community Name *
+            </label>
+            <input class="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent" id="community-name" name="community_name" placeholder="e.g., Downtown Community, Riverdale Neighborhood" type="text" required/>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This name will be visible to all community members</p>
+          </div>
+
+          <input type="hidden" name="boundary_data" id="boundary_data">
+
+          <!-- Navigation Buttons -->
+          <div class="flex justify-between pt-4">
+            <button type="button" onclick="window.history.back()" class="px-6 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+              Back
+            </button>
+            <button type="button" onclick="nextStep()" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
+              Continue to Location
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Step 2: Map Interface -->
+    <div id="step-2" class="flex-1 hidden">
+      <div class="h-full flex flex-col">
+        <!-- Map Controls -->
+        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
+          <div class="flex flex-wrap gap-3 items-center justify-between">
+            <div class="flex gap-3">
+              <input id="addressSearchDefine" type="text" placeholder="Search for address or landmark..."
+                     class="px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary focus:border-primary text-sm flex-1 min-w-48">
+              <button type="button" onclick="searchAddressDefine()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90 text-sm font-medium">
+                Search
+              </button>
+            </div>
+            <button type="button" onclick="useMyLocationDefine()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-sm">
+              <span class="material-symbols-outlined text-sm">my_location</span>
+              Use My Location
+            </button>
+          </div>
+        </div>
+
+        <!-- Map Container -->
+        <div class="flex-1 relative">
+          <div id="community-map" class="w-full h-full"></div>
+
+          <!-- Map Instructions -->
+          <div class="absolute top-4 left-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg p-3 shadow-lg max-w-xs">
+            <div class="flex items-center mb-2">
+              <span class="material-symbols-outlined text-primary mr-2">edit</span>
+              <span class="font-medium text-gray-900 dark:text-white text-sm">Draw Your Boundary</span>
+            </div>
+            <p class="text-xs text-gray-600 dark:text-gray-300">
+              Click on the map to add points. Double-click to finish drawing your community area.
             </p>
-</div>
-</div>
-</main>
-<footer class="p-4">
-<button type="submit" id="create-community-btn" class="h-14 w-full rounded-lg bg-primary text-white font-bold hover:bg-primary/90">
-          <span class="btn-text">Create Community</span>
-          <span class="btn-loading hidden">Creating Community...</span>
-        </button>
-</form>
-</footer>
+          </div>
+
+          <!-- Drawing Status -->
+          <div class="absolute bottom-4 left-4 bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm rounded-lg p-3 shadow-lg" id="drawing-status">
+            <p class="text-sm text-gray-600 dark:text-gray-300">
+              Click "Draw Boundary" to start defining your community area
+            </p>
+          </div>
+        </div>
+
+        <!-- Step Navigation -->
+        <div class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
+          <div class="flex justify-between items-center">
+            <button type="button" onclick="prevStep()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+              Back to Name
+            </button>
+            <div class="flex gap-3">
+              <button type="button" onclick="skipBoundary()" class="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                Skip for now
+              </button>
+              <button type="button" onclick="nextStep()" id="continue-btn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Create Community
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-// Initialize the community boundary map
-var communityMap = L.map('community-map', { gestureHandling: true }).setView([-26.2041, 28.0473], 13);
+// Step management
+let currentStep = 1;
+let communityMap = null;
+let drawnItems = null;
+let hasBoundary = false;
 
-// Add tile layer
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
-}).addTo(communityMap);
-
-// Initialize the FeatureGroup to store editable layers
-var drawnItems = new L.FeatureGroup();
-communityMap.addLayer(drawnItems);
-
-// Initialize the draw control and pass it the FeatureGroup of editable layers
-var drawControl = new L.Control.Draw({
-    edit: {
-        featureGroup: drawnItems
-    },
-    draw: {
-        polygon: {
-            allowIntersection: false,
-            drawError: {
-                color: '#e1e100',
-                message: '<strong>Error:</strong> shape edges cannot cross!'
-            },
-            shapeOptions: {
-                color: '#2A9D8F',
-                fillOpacity: 0.2
-            }
-        },
-        polyline: false,
-        rectangle: false,
-        circle: false,
-        marker: false,
-        circlemarker: false
-    }
-});
-communityMap.addControl(drawControl);
-// Friendly hint while drawing
-communityMap.on(L.Draw.Event.DRAWSTART, function(){
-    var h=document.getElementById('define-hint'); if(h){h.textContent='Click to add points. Double-click to finish.'; h.style.display='block';}
-});
-communityMap.on(L.Draw.Event.CREATED, function(){
-    var h=document.getElementById('define-hint'); if(h){h.style.display='none';}
-});
-
-// Get user's current location for initial map center
-if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-        function(position) {
-            var lat = position.coords.latitude;
-            var lng = position.coords.longitude;
-            communityMap.setView([lat, lng], 15);
-            
-            // Add a marker to show user's location
-            L.marker([lat, lng]).addTo(communityMap)
-                .bindPopup('Your current location')
-                .openPopup();
-        },
-        function(error) {
-            console.log('Geolocation error:', error);
-            // Stay with default coordinates if geolocation fails
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
-    );
-}
-
-// Handle drawing events
-communityMap.on(L.Draw.Event.CREATED, function (e) {
-    var type = e.layerType,
-        layer = e.layer;
-
-    // Clear existing drawings (only allow one boundary)
-    drawnItems.clearLayers();
-    
-    // Add the new boundary
-    drawnItems.addLayer(layer);
-    
-    // Store boundary data
-    var boundaryData = layer.toGeoJSON();
-    document.getElementById('boundary_data').value = JSON.stringify(boundaryData);
-    console.log('Community boundary defined:', boundaryData);
-});
-
-communityMap.on(L.Draw.Event.EDITED, function (e) {
-    var layers = e.layers;
-    layers.eachLayer(function (layer) {
-        var boundaryData = layer.toGeoJSON();
-        document.getElementById('boundary_data').value = JSON.stringify(boundaryData);
-        console.log('Community boundary updated:', boundaryData);
-    });
-});
-
-communityMap.on(L.Draw.Event.DELETED, function (e) {
-    document.getElementById('boundary_data').value = '';
-    console.log('Community boundary deleted');
-});
-
-function useMyLocationDefine() {
-    if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-            function(position) {
-                const lat = position.coords.latitude;
-                const lng = position.coords.longitude;
-                communityMap.setView([lat, lng], 16);
-                
-                // Remove any existing location markers
-                communityMap.eachLayer(function(layer) {
-                    if (layer instanceof L.Marker && layer.getPopup() && 
-                        layer.getPopup().getContent() === 'Your current location') {
-                        communityMap.removeLayer(layer);
-                    }
-                });
-                
-                // Add new location marker
-                L.marker([lat, lng]).addTo(communityMap)
-                    .bindPopup('Your current location')
-                    .openPopup();
-            },
-            function(error) {
-                alert('Unable to get your location. Please check your browser permissions.');
-            },
-            { enableHighAccuracy: true, timeout: 5000 }
-        );
-    } else {
-        alert('Geolocation is not supported by your browser.');
-    }
-}
-
-function searchAddressDefine() {
-    const query = document.getElementById('addressSearchDefine').value.trim();
-    if (!query) {
-        alert('Please enter an address or location to search for.');
-        return;
-    }
-    
-    // Use OpenStreetMap Nominatim for geocoding (free, no API key needed)
-    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=za`;
-    
-    fetch(url)
-        .then(response => response.json())
-        .then(data => {
-            if (data && data.length > 0) {
-                const result = data[0];
-                const lat = parseFloat(result.lat);
-                const lng = parseFloat(result.lon);
-                
-                communityMap.setView([lat, lng], 15);
-                
-                // Add a marker for the searched location
-                L.marker([lat, lng]).addTo(communityMap)
-                    .bindPopup(`Found: ${result.display_name}`)
-                    .openPopup();
-                    
-                // Clear the search box
-                document.getElementById('addressSearchDefine').value = '';
-            } else {
-                alert('Location not found. Please try a different search term.');
-            }
-        })
-        .catch(error => {
-            console.error('Search error:', error);
-            alert('Error searching for location. Please try again.');
-        });
-}
-
-// Allow Enter key to trigger search
+// Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
-    const addressInput = document.getElementById('addressSearchDefine');
-    if (addressInput) {
-        addressInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault(); // Prevent form submission
-                searchAddressDefine();
-            }
-        });
-    }
-    
-    // Add loading state functionality
-    const form = document.querySelector('form');
-    const submitBtn = document.getElementById('create-community-btn');
-    const btnText = submitBtn.querySelector('.btn-text');
-    const btnLoading = submitBtn.querySelector('.btn-loading');
-    
-    form.addEventListener('submit', function() {
-        // Disable button and show loading state
-        submitBtn.disabled = true;
-        submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
-        btnText.classList.add('hidden');
-        btnLoading.classList.remove('hidden');
-    });
-    
-    // Auto-hide flash messages after 5 seconds and remove container when empty
+    initializeMap();
+    setupEventListeners();
+    updateStepIndicator();
+
+    // Auto-hide flash messages after 5 seconds
     const alertMessages = document.querySelectorAll('.alert-message');
     const flashContainer = document.getElementById('flash-container');
     alertMessages.forEach(function(message) {
@@ -342,6 +304,345 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 5000);
     });
 });
+
+// Initialize the map
+function initializeMap() {
+    // Initialize the community boundary map
+    communityMap = L.map('community-map', {
+        gestureHandling: true,
+        zoomControl: true,
+        scrollWheelZoom: true
+    }).setView([-26.2041, 28.0473], 13);
+
+    // Add tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(communityMap);
+
+    // Initialize the FeatureGroup to store editable layers
+    drawnItems = new L.FeatureGroup();
+    communityMap.addLayer(drawnItems);
+
+    // Initialize the draw control
+    var drawControl = new L.Control.Draw({
+        edit: {
+            featureGroup: drawnItems
+        },
+        draw: {
+            polygon: {
+                allowIntersection: false,
+                drawError: {
+                    color: '#e1e100',
+                    message: '<strong>Error:</strong> shape edges cannot cross!'
+                },
+                shapeOptions: {
+                    color: '#2A9D8F',
+                    fillOpacity: 0.2,
+                    weight: 2
+                }
+            },
+            polyline: false,
+            rectangle: false,
+            circle: false,
+            marker: false,
+            circlemarker: false
+        }
+    });
+    communityMap.addControl(drawControl);
+
+    // Handle drawing events
+    communityMap.on(L.Draw.Event.CREATED, function (e) {
+        var type = e.layerType,
+            layer = e.layer;
+
+        // Clear existing drawings (only allow one boundary)
+        drawnItems.clearLayers();
+
+        // Add the new boundary
+        drawnItems.addLayer(layer);
+
+        // Store boundary data
+        var boundaryData = layer.toGeoJSON();
+        document.getElementById('boundary_data').value = JSON.stringify(boundaryData);
+        hasBoundary = true;
+        updateContinueButton();
+
+        // Update status
+        updateDrawingStatus('Great! You\'ve defined your community boundary. You can edit it or continue.');
+    });
+
+    communityMap.on(L.Draw.Event.EDITED, function (e) {
+        var layers = e.layers;
+        layers.eachLayer(function (layer) {
+            var boundaryData = layer.toGeoJSON();
+            document.getElementById('boundary_data').value = JSON.stringify(boundaryData);
+            hasBoundary = true;
+            updateContinueButton();
+        });
+    });
+
+    communityMap.on(L.Draw.Event.DELETED, function (e) {
+        document.getElementById('boundary_data').value = '';
+        hasBoundary = false;
+        updateContinueButton();
+        updateDrawingStatus('Click "Draw Boundary" to start defining your community area');
+    });
+
+    // Get user's current location for initial map center
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                communityMap.setView([lat, lng], 15);
+
+                // Add a marker to show user's location
+                L.marker([lat, lng]).addTo(communityMap)
+                    .bindPopup('Your current location')
+                    .openPopup();
+            },
+            function(error) {
+                console.log('Geolocation error:', error);
+                // Stay with default coordinates if geolocation fails
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+        );
+    }
+}
+
+// Step navigation functions
+function nextStep() {
+    if (currentStep === 1) {
+        // Validate community name
+        const communityName = document.getElementById('community-name').value.trim();
+        if (!communityName) {
+            showAlert('Please enter a community name', 'error');
+            return;
+        }
+
+        // Move to step 2
+        document.getElementById('step-1').classList.add('hidden');
+        document.getElementById('step-2').classList.remove('hidden');
+        currentStep = 2;
+        updateStepIndicator();
+
+        // Focus map after transition
+        setTimeout(() => {
+            communityMap.invalidateSize();
+        }, 100);
+    } else if (currentStep === 2) {
+        // Create community
+        createCommunity();
+    }
+}
+
+function prevStep() {
+    if (currentStep === 2) {
+        document.getElementById('step-2').classList.add('hidden');
+        document.getElementById('step-1').classList.remove('hidden');
+        currentStep = 1;
+        updateStepIndicator();
+    }
+}
+
+function updateStepIndicator() {
+    // Update step indicators
+    document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+        if (index + 1 === currentStep) {
+            indicator.classList.add('step-active');
+            indicator.classList.remove('bg-gray-200', 'text-gray-500');
+            indicator.classList.add('bg-primary', 'text-white');
+        } else {
+            indicator.classList.remove('step-active');
+            indicator.classList.add('bg-gray-200', 'text-gray-500');
+            indicator.classList.remove('bg-primary', 'text-white');
+        }
+    });
+
+    // Update step labels
+    document.querySelectorAll('.step-indicator').forEach((indicator, index) => {
+        const label = indicator.nextElementSibling;
+        if (index + 1 === currentStep) {
+            label.classList.remove('text-gray-500');
+            label.classList.add('text-gray-900', 'dark:text-white');
+        } else {
+            label.classList.add('text-gray-500');
+            label.classList.remove('text-gray-900', 'dark:text-white');
+        }
+    });
+}
+
+function updateContinueButton() {
+    const continueBtn = document.getElementById('continue-btn');
+    if (hasBoundary) {
+        continueBtn.disabled = false;
+        continueBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    } else {
+        continueBtn.disabled = true;
+        continueBtn.classList.add('opacity-50', 'cursor-not-allowed');
+    }
+}
+
+function updateDrawingStatus(message) {
+    const statusEl = document.getElementById('drawing-status');
+    if (statusEl) {
+        statusEl.querySelector('p').textContent = message;
+    }
+}
+
+function skipBoundary() {
+    // Set empty boundary and continue
+    document.getElementById('boundary_data').value = '';
+    hasBoundary = true;
+    updateContinueButton();
+    createCommunity();
+}
+
+function createCommunity() {
+    const form = document.querySelector('form');
+    const submitBtn = document.getElementById('continue-btn');
+    const originalText = submitBtn.textContent;
+
+    // Show loading state
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    submitBtn.textContent = 'Creating Community...';
+
+    // Submit form
+    form.submit();
+}
+
+// Map helper functions
+function useMyLocationDefine() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+            function(position) {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                communityMap.setView([lat, lng], 16);
+
+                // Remove any existing location markers
+                communityMap.eachLayer(function(layer) {
+                    if (layer instanceof L.Marker && layer.getPopup() &&
+                        layer.getPopup().getContent() === 'Your current location') {
+                        communityMap.removeLayer(layer);
+                    }
+                });
+
+                // Add new location marker
+                L.marker([lat, lng]).addTo(communityMap)
+                    .bindPopup('Your current location')
+                    .openPopup();
+            },
+            function(error) {
+                showAlert('Unable to get your location. Please check your browser permissions.', 'error');
+            },
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
+    } else {
+        showAlert('Geolocation is not supported by your browser.', 'error');
+    }
+}
+
+function searchAddressDefine() {
+    const query = document.getElementById('addressSearchDefine').value.trim();
+    if (!query) {
+        showAlert('Please enter an address or location to search for.', 'warning');
+        return;
+    }
+
+    // Use OpenStreetMap Nominatim for geocoding (free, no API key needed)
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=za`;
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            if (data && data.length > 0) {
+                const result = data[0];
+                const lat = parseFloat(result.lat);
+                const lng = parseFloat(result.lon);
+
+                communityMap.setView([lat, lng], 15);
+
+                // Add a marker for the searched location
+                L.marker([lat, lng]).addTo(communityMap)
+                    .bindPopup(`Found: ${result.display_name}`)
+                    .openPopup();
+
+                // Clear the search box
+                document.getElementById('addressSearchDefine').value = '';
+            } else {
+                showAlert('Location not found. Please try a different search term.', 'warning');
+            }
+        })
+        .catch(error => {
+            console.error('Search error:', error);
+            showAlert('Error searching for location. Please try again.', 'error');
+        });
+}
+
+// Utility functions
+function showAlert(message, type = 'info') {
+    const flashContainer = document.getElementById('flash-container');
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert-message flex items-start gap-3 p-4 rounded-lg shadow-lg animate-fade-in ${
+        type === 'error' ? 'bg-red-50 text-red-800 dark:bg-red-900/20 dark:text-red-200 border-l-4 border-red-500' :
+        type === 'warning' ? 'bg-yellow-50 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-200 border-l-4 border-yellow-500' :
+        'bg-blue-50 text-blue-800 dark:bg-blue-900/20 dark:text-blue-200 border-l-4 border-blue-500'
+    }`;
+    alertDiv.innerHTML = `
+        <span class="material-symbols-outlined mt-0.5 ${
+            type === 'error' ? 'text-red-600' :
+            type === 'warning' ? 'text-yellow-600' :
+            'text-blue-600'
+        }">
+            ${type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info'}
+        </span>
+        <span class="text-base font-normal">${message}</span>
+    `;
+
+    if (flashContainer) {
+        flashContainer.appendChild(alertDiv);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            alertDiv.style.transition = 'opacity 0.5s ease-out';
+            alertDiv.style.opacity = '0';
+            setTimeout(() => alertDiv.remove(), 500);
+        }, 5000);
+    }
+}
+
+// Event listeners
+function setupEventListeners() {
+    // Enter key to trigger search
+    const addressInput = document.getElementById('addressSearchDefine');
+    if (addressInput) {
+        addressInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                searchAddressDefine();
+            }
+        });
+    }
+
+    // Community name validation
+    const communityNameInput = document.getElementById('community-name');
+    if (communityNameInput) {
+        communityNameInput.addEventListener('input', function() {
+            const name = this.value.trim();
+            if (name.length > 0 && name.length <= 100) {
+                this.classList.remove('border-red-500');
+                this.classList.add('border-green-500');
+            } else if (name.length > 100) {
+                this.classList.remove('border-green-500');
+                this.classList.add('border-red-500');
+            } else {
+                this.classList.remove('border-red-500', 'border-green-500');
+            }
+        });
+    }
+}
 </script>
 
 </body></html>

@@ -90,8 +90,27 @@ document.addEventListener('DOMContentLoaded', function() {
     function doInitMap(){
         if (map) return map;
         try {
-            map = L.map('map', { gestureHandling: true }).setView(mapCenter, mapZoom);
-            console.log('Map initialized successfully');
+            // Ensure map container is visible and has dimensions
+            const mapElement = document.getElementById('map');
+            if (!mapElement) {
+                console.error('Map element not found');
+                return null;
+            }
+
+            if (mapElement.offsetWidth === 0 || mapElement.offsetHeight === 0) {
+                console.warn('Map container has no dimensions, retrying...');
+                setTimeout(doInitMap, 100);
+                return null;
+            }
+
+            map = L.map('map', {
+                gestureHandling: true,
+                fadeAnimation: true,
+                zoomAnimation: true,
+                markerZoomAnimation: true
+            }).setView(mapCenter, mapZoom);
+
+            console.log('Map initialized successfully with dimensions:', mapElement.offsetWidth, 'x', mapElement.offsetHeight);
         } catch (e) {
             console.error('Error initializing map:', e);
             return null;
@@ -104,11 +123,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function initWhenReady(){
+        console.log('initWhenReady called. Container size:', containerHasSize() ? 'has size' : 'no size');
+
         if (!containerHasSize()) {
+            console.log('Container has no size, setting up observers...');
             // Delay and observe for size changes
             try {
                 if (!window.__mapSizeObserver) {
                     window.__mapSizeObserver = new ResizeObserver(function(){
+                        console.log('ResizeObserver triggered, container size:', containerHasSize());
                         if (containerHasSize()) {
                             try { window.__mapSizeObserver.disconnect(); } catch(_) {}
                             setTimeout(function(){ if (!map) { doInitMap(); afterInit(); } }, 0);
@@ -116,11 +139,17 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
                 window.__mapSizeObserver.observe(mapContainer);
-            } catch(_) {}
+            } catch(_) {
+                console.warn('ResizeObserver not supported');
+            }
             // Fallback timer
-            setTimeout(function(){ if (!map && containerHasSize()) { doInitMap(); afterInit(); } }, 300);
+            setTimeout(function(){
+                console.log('Fallback timer, container size:', containerHasSize());
+                if (!map && containerHasSize()) { doInitMap(); afterInit(); }
+            }, 300);
             return;
         }
+        console.log('Container has size, initializing map...');
         if (!map) { doInitMap(); afterInit(); }
     }
 
@@ -129,7 +158,11 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('AfterInit: Map ready, processing alerts:', alerts.length);
         
         // Add standard OSM tiles and adjust visuals in dark mode to keep color but reduce glare
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap contributors' }).addTo(map);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors',
+            maxZoom: 18,
+            errorTileUrl: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=='
+        }).addTo(map);
 
         function isDarkMode(){ return document.documentElement.classList.contains('dark'); }
         function applyMapVisuals(){
@@ -204,26 +237,53 @@ document.addEventListener('DOMContentLoaded', function() {
             console.log('Processing alert:', alert);
             var categoryColor = getCategoryColor(alert.category);
             var categoryIcon = getCategoryIcon(alert.category);
-            var verifiedBadge = alert.is_verified ? '<span class="absolute -top-2 -right-2 bg-green-600 text-white rounded-full text-[10px] px-1.5 py-0.5 shadow">✔</span>' : '';
-            
+            var markerVerifiedBadge = alert.is_verified ? '<span class="absolute -top-2 -right-2 bg-green-600 text-white rounded-full text-[10px] px-1.5 py-0.5 shadow">✔</span>' : '';
+
             // Handle both lat/lng and latitude/longitude field names
             var lat = alert.lat || alert.latitude || -26.2041;
             var lng = alert.lng || alert.longitude || 28.0473;
-            
+
             var icon = L.divIcon({
                 className: 'custom-alert-marker',
                 html: '<div class="relative">' +
-                      '<div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg border-4 border-white" style="background-color: ' + categoryColor + ';">' + 
-                      categoryIcon + 
-                      '</div>' + verifiedBadge +
+                      '<div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg border-4 border-white" style="background-color: ' + categoryColor + ';">' +
+                      categoryIcon +
+                      '</div>' + markerVerifiedBadge +
                       '<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-8 border-transparent" style="border-top-color: ' + categoryColor + ';"></div>' +
                       '</div>',
                 iconSize: [48, 56],
                 iconAnchor: [24, 48]
             });
             var marker = L.marker([lat, lng], {icon: icon}).addTo(map);
-            marker.bindPopup('<div class="p-3"><div class="flex items-center gap-2 mb-2"><span class="text-lg">' + categoryIcon + '</span><strong class="text-lg">' + alert.category + '</strong></div>' + 
-                             '<p class="text-gray-700">' + alert.description + '</p><small class="text-gray-500">' + alert.timestamp + '</small></div>');
+            // Enhanced popup with better styling and more information
+            const popupVerifiedBadge = alert.is_verified ? '<span style="display: inline-flex; align-items: center; gap: 2px; font-size: 10px; padding: 2px 6px; border-radius: 12px; background-color: #DCFCE7; color: #166534;"><span style="font-size: 10px;">✓</span>Verified</span>' : '';
+            const timeAgo = formatTimeAgo(alert.timestamp);
+
+            marker.bindPopup(`
+              <div style="min-width: 280px; max-width: 320px; font-family: inherit;">
+                <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px;">
+                  <div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; flex-shrink: 0; background-color: ${getCategoryColor(alert.category)};">
+                    ${categoryIcon}
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                      <h3 style="font-weight: 600; color: #111827; font-size: 14px; margin: 0;">${alert.category}</h3>
+                      ${popupVerifiedBadge}
+                    </div>
+                    <p style="color: #374151; font-size: 14px; line-height: 1.5; margin: 0 0 8px 0;">${alert.description}</p>
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #6B7280;">
+                      <span>By: ${alert.author_name || 'Anonymous'}</span>
+                      <span>${timeAgo}</span>
+                    </div>
+                  </div>
+                </div>
+                <div style="border-top: 1px solid #E5E7EB; padding: 12px; background-color: #F9FAFB;">
+                  <button onclick="reportAlert(${alert.id})" style="width: 100%; background-color: #DC2626; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;" onmouseover="this.style.backgroundColor='#B91C1C'" onmouseout="this.style.backgroundColor='#DC2626'">
+                    Report Alert
+                  </button>
+                </div>
+              </div>
+            `);
             alertMarkers.push(marker);
         });
 
@@ -253,11 +313,49 @@ document.addEventListener('DOMContentLoaded', function() {
         window.dashboardMap = map;
         console.log('Map setup complete with', alertMarkers.length, 'markers');
 
-        // Invalidate on layout changes
-        setTimeout(function(){ try { map.invalidateSize(); } catch(_) {} }, 300);
-        window.addEventListener('resize', function(){ try { map.invalidateSize(); } catch(_) {} });
-        window.addEventListener('load', function(){ try { map.invalidateSize(); } catch(_) {} });
-        document.addEventListener('visibilitychange', function(){ if(document.visibilityState==='visible'){ try { map.invalidateSize(); } catch(_) {} } });
+        // Ensure map is properly sized and visible
+        function ensureMapSize() {
+            try {
+                if (map && mapContainer) {
+                    const rect = mapContainer.getBoundingClientRect();
+                    console.log('Map container dimensions:', rect.width, 'x', rect.height);
+                    if (rect.width > 0 && rect.height > 0) {
+                        map.invalidateSize();
+                        console.log('Map invalidated and resized');
+                    }
+                }
+            } catch(_) {
+                console.warn('Error ensuring map size');
+            }
+        }
+
+        // Ensure map fits properly in its container
+        function fitMapToContainer() {
+            try {
+                if (map && mapContainer) {
+                    const rect = mapContainer.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        map.invalidateSize();
+                        console.log('Map fitted to container:', rect.width, 'x', rect.height);
+                    }
+                }
+            } catch(_) {
+                console.warn('Error fitting map to container');
+            }
+        }
+
+        // Invalidate on layout changes with multiple attempts
+        setTimeout(fitMapToContainer, 100);
+        setTimeout(fitMapToContainer, 300);
+        setTimeout(fitMapToContainer, 500);
+
+        window.addEventListener('resize', fitMapToContainer);
+        window.addEventListener('load', fitMapToContainer);
+        document.addEventListener('visibilitychange', function(){
+            if(document.visibilityState==='visible'){
+                setTimeout(fitMapToContainer, 100);
+            }
+        });
     }
 
     // Kick off init once ready
@@ -411,9 +509,74 @@ function getCategoryColor(category) {
     }
 }
 
+function formatTimeAgo(timestamp) {
+    if (!timestamp) return 'Unknown time';
+
+    try {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+
+        return date.toLocaleDateString();
+    } catch (e) {
+        return 'Unknown time';
+    }
+}
+
 // Navigation functions
 function showPostAlert() {
     window.location.href = '/post-alert';
+}
+
+function deleteAlert(alertId) {
+    if (confirm('Are you sure you want to delete this alert? This action cannot be undone.')) {
+        // Get CSRF token
+        const csrfToken = document.querySelector('input[name="csrf_token"]') ?
+            document.querySelector('input[name="csrf_token"]').value : '';
+
+        console.log('Attempting to delete alert:', alertId, 'with CSRF token:', csrfToken ? 'present' : 'missing');
+
+        fetch(`/alerts/${alertId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(response => {
+            console.log('Delete response status:', response.status);
+            if (response.status === 401) {
+                alert('You must be logged in to delete alerts. Please refresh the page and try again.');
+                return null;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data && data.success) {
+                console.log('Alert deleted successfully');
+                // Remove the alert from the page
+                const alertElement = document.querySelector(`[data-alert-id="${alertId}"]`) ||
+                                   document.querySelector(`button[onclick="deleteAlert(${alertId})"]`).closest('.alert-card');
+                if (alertElement) {
+                    alertElement.remove();
+                }
+                // Show success message
+                showLocationMessage('Alert deleted successfully', 'success');
+            } else {
+                console.error('Delete failed:', data);
+                alert('There was an error deleting the alert. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error deleting alert:', error);
+            alert('There was an error deleting the alert. Please try again.');
+        });
+    }
 }
 
 function reportAlert(alertId) {
@@ -422,7 +585,7 @@ function reportAlert(alertId) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('input[name="csrf_token"]') ? 
+                'X-CSRFToken': document.querySelector('input[name="csrf_token"]') ?
                     document.querySelector('input[name="csrf_token"]').value : ''
             },
             body: JSON.stringify({

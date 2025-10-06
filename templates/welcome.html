@@ -80,46 +80,92 @@
             
             <!-- Welcome Message -->
             <h1 class="text-3xl font-bold text-text-primary mb-3">
-                Welcome, {{ user_name }}!
+                {% if session.get('new_community_welcome') %}
+                    Welcome to {{ session.get('community_name', 'your community') }}!
+                {% else %}
+                    Welcome, {{ user_name }}!
+                {% endif %}
             </h1>
-            
+
             <p class="text-text-secondary mb-6 leading-relaxed">
-                🎉 Your account has been successfully created! You're now part of your community alert network. 
-                Get ready to stay connected and informed about what's happening around you.
+                {% if session.get('new_community_welcome') %}
+                    🎉 Your community has been created successfully! You're now the admin of <strong>{{ session.get('community_name') }}</strong>.
+                    Get ready to connect with your neighbors and stay informed about local happenings.
+                {% else %}
+                    🎉 Your account has been successfully created! You're now part of your community alert network.
+                    Get ready to stay connected and informed about what's happening around you.
+                {% endif %}
             </p>
             
             <!-- Community Benefits -->
             <div class="bg-primary/5 rounded-xl p-4 mb-6 text-left">
-                <h3 class="font-semibold text-text-primary mb-3 text-center">What you can do now:</h3>
+                <h3 class="font-semibold text-text-primary mb-3 text-center">
+                    {% if session.get('new_community_welcome') %}
+                        As a community admin, you can:
+                    {% else %}
+                        What you can do now:
+                    {% endif %}
+                </h3>
                 <ul class="space-y-2 text-sm text-text-secondary">
-                    <li class="flex items-center">
-                        <span class="text-primary mr-2">📍</span>
-                        View community alerts on your personalized map
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-primary mr-2">🚨</span>
-                        Post alerts to keep your neighbors informed
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-primary mr-2">🏘️</span>
-                        Connect with other community members
-                    </li>
-                    <li class="flex items-center">
-                        <span class="text-primary mr-2">🔔</span>
-                        Stay updated on local happenings
-                    </li>
+                    {% if session.get('new_community_welcome') %}
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">👑</span>
+                            Manage your community settings and members
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">📍</span>
+                            View and manage community alerts on your map
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">🚨</span>
+                            Post alerts and approve community content
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">🔗</span>
+                            Share your community invite link with neighbors
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">📊</span>
+                            Monitor community activity and engagement
+                        </li>
+                    {% else %}
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">📍</span>
+                            View community alerts on your personalized map
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">🚨</span>
+                            Post alerts to keep your neighbors informed
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">🏘️</span>
+                            Connect with other community members
+                        </li>
+                        <li class="flex items-center">
+                            <span class="text-primary mr-2">🔔</span>
+                            Stay updated on local happenings
+                        </li>
+                    {% endif %}
                 </ul>
             </div>
             
             <!-- Action Button -->
-            <a href="{{ url_for('dashboard') }}" 
+            <a href="{{ url_for('dashboard') }}"
                class="pulse-button inline-block w-full bg-primary text-white font-bold py-4 px-6 rounded-xl hover:bg-primary/90 transition-all duration-300 transform hover:scale-105">
-                Explore Your Community Dashboard
+                {% if session.get('new_community_welcome') %}
+                    Go to Community Dashboard
+                {% else %}
+                    Explore Your Community
+                {% endif %}
             </a>
             
             <!-- Additional Info -->
             <p class="text-xs text-text-secondary mt-4">
-                Need help getting started? Check out your dashboard to see community alerts and start engaging!
+                {% if session.get('new_community_welcome') %}
+                    Need help getting started? Your dashboard lets you manage members, view alerts, and customize your community settings.
+                {% else %}
+                    Need help getting started? Check out your dashboard to see community alerts and start engaging with your neighbors!
+                {% endif %}
             </p>
         </div>
     </div>
