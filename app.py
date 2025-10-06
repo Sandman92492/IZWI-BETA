@@ -130,6 +130,26 @@ def init_database():
                 except Exception as mig_e:
                     db.session.rollback()
                     app.logger.error(f"Failed to add 'is_verified' column: {mig_e}")
+
+            # Check for expires_at column
+            if 'expires_at' not in columns:
+                try:
+                    db.session.execute(text('ALTER TABLE alert ADD COLUMN expires_at TIMESTAMP'))
+                    db.session.commit()
+                    app.logger.info("Added missing column 'expires_at' to alert table")
+                except Exception as mig_e:
+                    db.session.rollback()
+                    app.logger.error(f"Failed to add 'expires_at' column: {mig_e}")
+
+            # Check for duration_minutes column
+            if 'duration_minutes' not in columns:
+                try:
+                    db.session.execute(text('ALTER TABLE alert ADD COLUMN duration_minutes INTEGER'))
+                    db.session.commit()
+                    app.logger.info("Added missing column 'duration_minutes' to alert table")
+                except Exception as mig_e:
+                    db.session.rollback()
+                    app.logger.error(f"Failed to add 'duration_minutes' column: {mig_e}")
             # Ensure new tables exist (e.g., AlertReport)
             # Ensure invite_code table exists by creating all again (noop if exists)
             db.create_all()
