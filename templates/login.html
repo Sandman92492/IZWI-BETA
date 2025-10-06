@@ -15,11 +15,17 @@
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div>
         <label class="sr-only" for="email">Email</label>
-        <input class="input" id="email" name="email" placeholder="Email" type="email" autocomplete="email" required/>
+        <input class="input" id="email" name="email" placeholder="Email" type="email" autocomplete="username email" required aria-label="Email address"/>
       </div>
-      <div>
+      <div class="relative">
         <label class="sr-only" for="password">Password</label>
-        <input class="input" id="password" name="password" placeholder="Password" type="password" autocomplete="current-password" required/>
+        <input class="input pl-10 pr-12" id="password" name="password" placeholder="Password" type="password" autocomplete="current-password" required aria-label="Password"/>
+        <div class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm pointer-events-none">
+          🔒
+        </div>
+        <button type="button" onclick="togglePasswordVisibility('password')" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+          <span class="material-symbols-outlined text-lg" id="password-toggle-icon">visibility_off</span>
+        </button>
       </div>
       <div class="flex items-center">
         <input id="remember-me" name="remember" type="checkbox" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
@@ -62,6 +68,57 @@ document.addEventListener('DOMContentLoaded', function() {
     if (btnText) btnText.classList.add('hidden');
     if (btnLoading) btnLoading.classList.remove('hidden');
   });
+});
+
+// Password visibility toggle function
+function togglePasswordVisibility(inputId) {
+  const passwordInput = document.getElementById(inputId);
+  const toggleButton = passwordInput.closest('.relative').querySelector('button');
+  const toggleIcon = toggleButton.querySelector('.material-symbols-outlined');
+
+  if (passwordInput.type === 'password') {
+    passwordInput.type = 'text';
+    toggleIcon.textContent = 'visibility';
+  } else {
+    passwordInput.type = 'password';
+    toggleIcon.textContent = 'visibility_off';
+  }
+}
+
+// Prevent password field from being auto-filled with email
+document.addEventListener('DOMContentLoaded', function() {
+  const passwordInput = document.getElementById('password');
+  const emailInput = document.getElementById('email');
+
+  if (passwordInput && emailInput) {
+    // Monitor for autofill issues
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
+          const value = passwordInput.value;
+          // If password field contains @ symbol, it might be getting email value
+          if (value && value.includes('@') && value.includes('.')) {
+            console.warn('Password field appears to have email value, clearing it');
+            passwordInput.value = '';
+          }
+        }
+      });
+    });
+
+    observer.observe(passwordInput, {
+      attributes: true,
+      attributeFilter: ['value']
+    });
+
+    // Also check on input events
+    passwordInput.addEventListener('input', function() {
+      const value = this.value;
+      if (value && value.includes('@') && value.includes('.')) {
+        console.warn('Password field has email-like value');
+        this.value = '';
+      }
+    });
+  }
 });
 </script>
 {% endblock %}

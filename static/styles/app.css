@@ -7,7 +7,7 @@
   --color-primary-100: #e0f2f1;
   --color-bg: #f7f9f9;
   --color-surface: #ffffff;
-  --color-text: #1f2937;
+  --color-text: #000000;
   --color-muted: #7b8b97;
   --color-border: #edf1f2;
   --radius-sm: 6px;
@@ -53,8 +53,36 @@ p { margin-bottom: 1rem; line-height: 1.6; }
 .btn-ghost { background: transparent; color: var(--color-text); border: 1px solid var(--color-border); }
 .btn-ghost:hover { background: rgba(0,0,0,0.03); }
 
-.input { width: 100%; height: 44px; padding: 0 14px; border-radius: var(--radius-md); background: var(--color-surface); border: 1px solid var(--color-border); color: var(--color-text); }
+.input {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  appearance: none;
+  -webkit-appearance: none;
+}
 .input::placeholder { color: var(--color-muted); }
+.input:focus {
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.1);
+  transition: all 0.2s ease;
+}
+
+.dark .input {
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+}
+.dark .input:focus {
+  color: var(--color-text) !important;
+  -webkit-text-fill-color: var(--color-text) !important;
+}
 
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; background: rgba(25, 179, 161, 0.1); color: var(--color-primary); font-weight: 600; }
 
@@ -123,12 +151,47 @@ p { margin-bottom: 1rem; line-height: 1.6; }
   left: 100%;
 }
 
-/* Enhanced input focus states */
-.input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(42, 157, 143, 0.1);
-  transition: all 0.2s ease;
+/* Override browser autofill styles that might interfere with text visibility */
+.input:-webkit-autofill,
+.input:-webkit-autofill:hover,
+.input:-webkit-autofill:focus,
+.input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface) inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  color: #000000 !important;
+  border: 1px solid var(--color-border) !important;
+}
+
+/* Force text color on all input types and states */
+input[type="text"], input[type="email"], input[type="password"] {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+/* Ensure text is always visible during typing */
+.input:not(:placeholder-shown) {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+.dark .input:not(:placeholder-shown) {
+  color: #000000 !important;
+  -webkit-text-fill-color: #000000 !important;
+}
+
+.dark .input:-webkit-autofill,
+.dark .input:-webkit-autofill:hover,
+.dark .input:-webkit-autofill:focus,
+.dark .input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--color-surface) inset !important;
+  -webkit-text-fill-color: #000000 !important;
+  color: #000000 !important;
+  border: 1px solid var(--color-border) !important;
 }
 
 /* Card hover effects */
