@@ -70,13 +70,17 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
 
     # Handle expiration
     expires_at = None
-    if duration_minutes:
+    if duration_minutes is not None and duration_minutes != '':
         try:
             duration_minutes = int(duration_minutes)
             if duration_minutes > 0:
                 expires_at = datetime.now() + timedelta(minutes=duration_minutes)
+            else:
+                duration_minutes = None
         except (ValueError, TypeError):
-            pass
+            duration_minutes = None
+    else:
+        duration_minutes = None
 
     # Create new alert
     alert = Alert(
@@ -167,13 +171,17 @@ def update_alert(alert_id, user_id, category, description, latitude=0.0, longitu
 
     # Handle expiration
     expires_at = None
-    if duration_minutes:
+    if duration_minutes is not None and duration_minutes != '':
         try:
             duration_minutes = int(duration_minutes)
             if duration_minutes > 0:
                 expires_at = datetime.now() + timedelta(minutes=duration_minutes)
+            else:
+                duration_minutes = None
         except (ValueError, TypeError):
-            pass
+            duration_minutes = None
+    else:
+        duration_minutes = None
 
     # Update alert
     alert.category = category

@@ -213,12 +213,14 @@
                             <span class="material-symbols-outlined text-sm mr-2">check_circle</span>
                             Community Attached
                         </div>
-                        {% else %}
-                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">You're associated with a business. You can attach this community to your business.</div>
+                        {% elif current_user.is_super_admin() %}
+                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">You're a Super Admin. You can attach this community to your business.</div>
                         <form action="/settings/attach-community-to-business" method="POST" class="space-y-3">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-medium py-3 px-4 rounded-lg transition-colors">Attach Current Community</button>
                         </form>
+                        {% else %}
+                        <div class="text-sm text-gray-600 dark:text-gray-300 mb-3">You're associated with a business but don't have Super Admin privileges to attach communities.</div>
                         {% endif %}
                     {% endif %}
                 </div>

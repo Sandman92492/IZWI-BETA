@@ -638,8 +638,15 @@ def settings_create_business():
 @app.route('/settings/attach-community-to-business', methods=['POST'])
 @login_required
 def settings_attach_community_to_business():
+    # Only allow users who belong to a business and are admin of their community
+    if not current_user.business_id:
+        flash('You must belong to a business to attach communities', 'error')
+        return redirect(url_for('settings'))
+
     if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
-        abort(403)
+        flash('Only Super Admins can attach communities to businesses', 'error')
+        return redirect(url_for('settings'))
+
     # Only allow attaching the user's own community and must be admin of it
     community_id = current_user.community_id
     if not community_id:
