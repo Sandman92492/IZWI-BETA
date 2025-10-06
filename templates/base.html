@@ -82,24 +82,52 @@
   {% endif %}
 {% endwith %}
 </div>
-<nav class="hidden lg:block sticky top-0 z-40 bg-white/90 dark:bg-gray-900/70 backdrop-blur border-b border-gray-200 dark:border-gray-700">
-  <div class="max-w-7xl mx-auto px-4">
-    <div class="h-14 flex items-center justify-between">
-      <div class="flex items-center gap-6">
-        <a href="/dashboard" class="inline-flex items-center gap-2 text-gray-900 dark:text-gray-100 font-semibold">
-          <span class="material-symbols-outlined text-primary">home</span>
-          <span>iZwi</span>
+<nav class="hidden lg:block sticky top-0 z-40 bg-gradient-to-r from-white/95 via-white/90 to-white/95 dark:from-gray-900/95 dark:via-gray-900/90 dark:to-gray-900/95 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-700/50 shadow-sm">
+  <div class="max-w-7xl mx-auto px-6">
+    <div class="h-16 flex items-center justify-between">
+      <!-- Logo/Brand Section -->
+      <div class="flex items-center gap-8">
+        <a href="/dashboard" class="group inline-flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all duration-200">
+          <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm group-hover:shadow-md transition-all duration-200">
+            <span class="material-symbols-outlined text-white text-lg">home</span>
+          </div>
+          <span class="font-bold text-lg text-gray-900 dark:text-gray-100 tracking-tight">iZwi</span>
         </a>
-        <a href="/dashboard" class="text-gray-700 dark:text-gray-300 hover:text-primary">Dashboard</a>
-        <a href="/post-alert" class="text-gray-700 dark:text-gray-300 hover:text-primary">Post Alert</a>
-        <a href="/alerts/history" class="text-gray-700 dark:text-gray-300 hover:text-primary">History</a>
-        {% if current_user.is_authenticated and current_user.business_id %}
-        <a href="/super-admin" class="text-gray-700 dark:text-gray-300 hover:text-primary">Super Admin</a>
-        {% endif %}
+
+        <!-- Navigation Links -->
+        <div class="hidden xl:flex items-center gap-1">
+          <a href="/dashboard" class="nav-link px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all duration-200 relative group">
+            <span class="relative z-10">Dashboard</span>
+            <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </a>
+          <a href="/post-alert" class="nav-link px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all duration-200 relative group">
+            <span class="relative z-10">Post Alert</span>
+            <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </a>
+          <a href="/alerts/history" class="nav-link px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all duration-200 relative group">
+            <span class="relative z-10">History</span>
+            <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </a>
+          {% if current_user.is_authenticated and current_user.business_id %}
+          <a href="/super-admin" class="nav-link px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all duration-200 relative group">
+            <span class="relative z-10">Super Admin</span>
+            <div class="absolute inset-0 rounded-lg bg-gradient-to-r from-primary/0 to-primary/5 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
+          </a>
+          {% endif %}
+        </div>
       </div>
-      <div class="flex items-center gap-3">
-        <a href="/settings" class="text-gray-700 dark:text-gray-300 hover:text-primary">Settings</a>
-        <a href="/logout" class="text-gray-700 dark:text-gray-300 hover:text-primary">Logout</a>
+
+      <!-- User Actions -->
+      <div class="flex items-center gap-2">
+        <a href="/settings" class="group inline-flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 hover:text-primary hover:bg-primary/5 dark:hover:bg-primary/10 transition-all duration-200">
+          <span class="material-symbols-outlined text-lg">settings</span>
+          <span class="hidden xl:inline">Settings</span>
+        </a>
+        <div class="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
+        <a href="/logout" class="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200">
+          <span class="material-symbols-outlined text-lg">logout</span>
+          <span class="hidden xl:inline">Logout</span>
+        </a>
       </div>
     </div>
   </div>

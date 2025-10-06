@@ -28,22 +28,22 @@
   <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div class="flex items-center justify-between h-16">
-        <div class="flex items-center gap-4">
-          <a href="/super-admin{% if selected %}?community_id={{ selected.id }}{% endif %}" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <a href="/super-admin{% if selected %}?community_id={{ selected.id }}{% endif %}" class="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex-shrink-0">
             <span class="material-symbols-outlined text-gray-600 dark:text-gray-300">arrow_back</span>
           </a>
-          <div class="flex items-center gap-3">
-            <span class="material-symbols-outlined text-emerald-600 text-2xl">verified</span>
-            <div>
-              <h1 class="text-xl font-bold text-gray-900 dark:text-white">Post Verified Alert</h1>
-              <p class="text-sm text-gray-600 dark:text-gray-400">Community: {{ selected.name if selected else 'Not selected' }}</p>
+          <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+            <span class="material-symbols-outlined text-emerald-600 text-lg sm:text-2xl flex-shrink-0">verified</span>
+            <div class="min-w-0 flex-1">
+              <h1 class="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">Post Verified Alert</h1>
+              <p class="text-xs sm:text-sm text-gray-600 dark:text-gray-400 truncate">Community: {{ selected.name if selected else 'Not selected' }}</p>
             </div>
           </div>
         </div>
         {% if selected %}
-        <div class="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+        <div class="hidden sm:flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 flex-shrink-0">
           <span class="material-symbols-outlined text-emerald-600">location_city</span>
-          <span>{{ selected.name }}</span>
+          <span class="truncate max-w-24">{{ selected.name }}</span>
         </div>
         {% endif %}
       </div>
@@ -51,8 +51,8 @@
   </header>
 
   <!-- Main Content -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <form method="POST" action="{{ url_for('super_admin_post_verified') }}" class="verified-alert-form bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-8">
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+    <form method="POST" action="{{ url_for('super_admin_post_verified') }}" class="verified-alert-form bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-8 w-full">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       {% if selected %}
       <input type="hidden" name="community_id" value="{{ selected.id }}"/>
@@ -66,29 +66,29 @@
         </div>
         <input type="hidden" name="category" id="selected_category" required>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <button type="button" onclick="selectCategory(event, 'Emergency')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500">
-            <span class="text-2xl">🚨</span>
-            <span class="font-semibold text-gray-900 dark:text-white">Emergency</span>
+          <button type="button" onclick="selectCategory(event, 'Emergency')" class="category-btn flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 text-center sm:text-left">
+            <span class="text-xl sm:text-2xl">🚨</span>
+            <span class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Emergency</span>
           </button>
-          <button type="button" onclick="selectCategory(event, 'Fire')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500">
-            <span class="text-2xl">🔥</span>
-            <span class="font-semibold text-gray-900 dark:text-white">Fire</span>
+          <button type="button" onclick="selectCategory(event, 'Fire')" class="category-btn flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-orange-500 text-center sm:text-left">
+            <span class="text-xl sm:text-2xl">🔥</span>
+            <span class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Fire</span>
           </button>
-          <button type="button" onclick="selectCategory(event, 'Traffic')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500">
-            <span class="text-2xl">🚗</span>
-            <span class="font-semibold text-gray-900 dark:text-white">Traffic</span>
+          <button type="button" onclick="selectCategory(event, 'Traffic')" class="category-btn flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-center sm:text-left">
+            <span class="text-xl sm:text-2xl">🚗</span>
+            <span class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Traffic</span>
           </button>
-          <button type="button" onclick="selectCategory(event, 'Weather')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500">
-            <span class="text-2xl">⛈️</span>
-            <span class="font-semibold text-gray-900 dark:text-white">Weather</span>
+          <button type="button" onclick="selectCategory(event, 'Weather')" class="category-btn flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-500 text-center sm:text-left">
+            <span class="text-xl sm:text-2xl">⛈️</span>
+            <span class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Weather</span>
           </button>
-          <button type="button" onclick="selectCategory(event, 'Community')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500">
-            <span class="text-2xl">🏘️</span>
-            <span class="font-semibold text-gray-900 dark:text-white">Community</span>
+          <button type="button" onclick="selectCategory(event, 'Community')" class="category-btn flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 text-center sm:text-left">
+            <span class="text-xl sm:text-2xl">🏘️</span>
+            <span class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Community</span>
           </button>
-          <button type="button" onclick="selectCategory(event, 'Other')" class="category-btn flex items-center gap-3 p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500">
-            <span class="text-2xl">❗</span>
-            <span class="font-semibold text-gray-900 dark:text-white">Other</span>
+          <button type="button" onclick="selectCategory(event, 'Other')" class="category-btn flex flex-col sm:flex-row items-center gap-2 sm:gap-3 p-3 sm:p-4 rounded-lg bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 hover:shadow-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gray-500 text-center sm:text-left">
+            <span class="text-xl sm:text-2xl">❗</span>
+            <span class="font-semibold text-gray-900 dark:text-white text-sm sm:text-base">Other</span>
           </button>
         </div>
       </div>
@@ -135,9 +135,9 @@
           </button>
           <div id="location-status" class="flex items-center gap-2 text-sm"></div>
         </div>
-        <div class="relative h-64 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
+        <div class="relative h-48 sm:h-64 w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-600">
           <div id="location-map" class="w-full h-full"></div>
-          <div class="absolute top-3 left-3 bg-white/90 dark:bg-gray-800/90 p-2 rounded-lg shadow-lg text-xs">
+          <div class="absolute top-2 left-2 sm:top-3 sm:left-3 bg-white/90 dark:bg-gray-800/90 p-2 rounded-lg shadow-lg text-xs">
             <span class="text-gray-800 dark:text-gray-200">Click "Use Current Location" or click on the map to set location</span>
           </div>
         </div>
@@ -146,7 +146,7 @@
       </div>
 
       <!-- Submit Button -->
-      <div class="flex gap-4 pt-6">
+      <div class="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6">
         <a href="/super-admin{% if selected %}?community_id={{ selected.id }}{% endif %}" class="flex-1 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold py-3 px-6 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-center">
           Cancel
         </a>

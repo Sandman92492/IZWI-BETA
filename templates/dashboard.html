@@ -8,9 +8,9 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
 <style>
-.custom-alert-marker { background: transparent !important; border: none !important; animation: pulse-once .8s ease-out; }
-@keyframes pulse-once { 0%{ transform: scale(.8); opacity:.7;} 50%{ transform: scale(1.1); opacity:1;} 100%{ transform: scale(1); opacity:1;} }
-.custom-alert-marker:hover { transform: scale(1.1); transition: transform .2s ease; }
+.custom-alert-marker { background: transparent !important; border: none !important; animation: pulse-once 0.8s ease-out; }
+@keyframes pulse-once { 0%{ transform: scale(0.8); opacity:0.7;} 50%{ transform: scale(1.1); opacity:1;} 100%{ transform: scale(1); opacity:1;} }
+.custom-alert-marker:hover { transform: scale(1.1); transition: transform 0.2s ease; }
 .alert-card { position: relative; border-left: 6px solid var(--accent); background: color-mix(in srgb, var(--accent) 6%, #ffffff); box-shadow: 0 6px 16px rgba(0,0,0,0.05), 0 2px 8px color-mix(in srgb, var(--accent) 20%, transparent); }
 .dark .alert-card { background: rgba(255,255,255,0.04); box-shadow: 0 6px 16px rgba(0,0,0,0.25), 0 2px 8px rgba(0,0,0,0.15); }
 .alert-card:hover { background: color-mix(in srgb, var(--accent) 8%, #ffffff); }
@@ -23,23 +23,23 @@
 {% block content %}
 <main class="flex-1 flex flex-col min-h-0 bg-gray-50 dark:bg-gray-900/30">
 
-<header class="bg-gradient-to-r from-primary to-primary/80 text-white px-6 py-6 md:hidden">
-  <div class="flex items-center justify-between mb-4">
-    <img alt="iZwi Logo" class="h-8 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_pOQD51q3I4utHDxslkN1ZBiEl-4EUWUU_FQqCvGSavCkVmN-lbf04w7_Qh8qmxlpIxQojb1JpWBbWB1eiNFCNbgo9wGtZYgh8ApxzdC9NzEOlxHQUWlFF8metjKlTZAyDzSD4QMrQxzEdtnsbwKGkDUezK7Ll1FoufX6C2r39f4Mjp59oBfDyVtQB7yHBri-X5_zV2ASI6UP7U117eycls3T2YarZGCWiS_EwxzQMbhIKeFZw-2DLoO3ygX6j-W3d_i-i1TEpoU"/>
+<header class="bg-gradient-to-r from-primary to-primary/80 text-white px-4 sm:px-6 py-4 sm:py-6 md:hidden">
+  <div class="flex items-center justify-between mb-3 sm:mb-4">
+    <img alt="iZwi Logo" class="h-6 sm:h-8 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_pOQD51q3I4utHDxslkN1ZBiEl-4EUWUU_FQqCvGSavCkVmN-lbf04w7_Qh8qmxlpIxQojb1JpWBbWB1eiNFCNbgo9wGtZYgh8ApxzdC9NzEOlxHQUWlFF8metjKlTZAyDzSD4QMrQxzEdtnsbwKGkDUezK7Ll1FoufX6C2r39f4Mjp59oBfDyVtQB7yHBri-X5_zV2ASI6UP7U117eycls3T2YarZGCWiS_EwxzQMbhIKeFZw-2DLoO3ygX6j-W3d_i-i1TEpoU"/>
     <div class="flex items-center gap-3">
       <a href="{{ url_for('settings') }}" class="p-2 rounded-full hover:bg-white/10 transition-colors">
-        <svg class="h-6 w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+        <svg class="h-5 w-5 sm:h-6 sm:w-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
           <path d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0zm6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
         </svg>
       </a>
     </div>
   </div>
-  <div class="space-y-3">
-    <h1 class="font-display font-bold text-2xl leading-tight">{{ community.name }}</h1>
-    <div class="flex flex-wrap items-center gap-4 text-white/90">
+  <div class="space-y-2 sm:space-y-3">
+    <h1 class="font-display font-bold text-xl sm:text-2xl leading-tight">{{ community.name }}</h1>
+    <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white/90">
       <div class="flex items-center gap-2">
-        <span class="material-symbols-outlined text-lg">group</span>
-        <span class="font-medium">{{ member_count }} {% if member_count == 1 %}member{% else %}members{% endif %}</span>
+        <span class="material-symbols-outlined text-base sm:text-lg">group</span>
+        <span class="font-medium text-sm sm:text-base">{{ member_count }} {% if member_count == 1 %}member{% else %}members{% endif %}</span>
       </div>
       <div class="hidden sm:flex items-center gap-2">
         <span class="material-symbols-outlined text-lg">verified</span>
@@ -49,25 +49,36 @@
   </div>
 </header>
 
-<section class="grid grid-cols-1 lg:grid-cols-12 gap-4 p-4 lg:p-6">
+<section class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 p-3 sm:p-4 lg:p-6">
   <div class="hidden md:block lg:col-span-12 mb-6">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ community.name }}</h1>
-    <p class="text-sm text-gray-600 dark:text-gray-300">
-      {{ member_count }} {% if member_count == 1 %}member{% else %}members{% endif %}
-    </p>
+    <div class="flex items-center justify-between">
+      <div>
+        <h1 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">{{ community.name }}</h1>
+        <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-primary">group</span>
+            <span class="font-medium">{{ member_count }} {% if member_count == 1 %}member{% else %}members{% endif %}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="material-symbols-outlined text-base text-green-600 dark:text-green-400">verified</span>
+            <span class="font-medium text-green-700 dark:text-green-300">Active Community</span>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="lg:col-span-7">
-    <div class="relative h-[400px] sm:h-[450px] md:h-[500px] lg:h-[600px] rounded-lg overflow-hidden shadow-sm bg-gray-100 dark:bg-gray-800">
+  <div class="lg:col-span-7 order-1">
+    <div class="relative h-[350px] sm:h-[400px] md:h-[450px] lg:h-[600px] rounded-lg overflow-hidden shadow-sm bg-gray-100 dark:bg-gray-800">
       <div id="map" class="w-full h-full"></div>
     </div>
   </div>
 
-  <div class="lg:col-span-5 lg:mt-0">
-    <div class="bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm h-[400px] sm:h-[450px] md:h-[500px] lg:h-[600px] overflow-y-auto">
+  <div class="lg:col-span-5 lg:mt-0 order-2">
+    <div class="bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm h-[350px] sm:h-[400px] md:h-[450px] lg:h-[600px] overflow-y-auto">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-      <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
         <div class="flex items-center justify-between">
-          <h2 class="font-display font-bold text-xl text-primary">Recent Alerts</h2>
+          <h2 class="font-display font-bold text-lg sm:text-xl text-primary">Recent Alerts</h2>
           {% if has_plus %}
           <a href="/alerts/history" class="hidden md:inline-flex items-center gap-2 text-primary hover:text-primary/80 transition-colors">
             <span class="material-symbols-outlined text-base">history</span>
@@ -76,15 +87,15 @@
           {% endif %}
         </div>
       </div>
-      <div class="p-6 space-y-4">
+      <div class="p-4 sm:p-6 space-y-3 sm:space-y-4">
         {% for alert in alerts %}
-        <div class="alert-card rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden" style="--accent: {{ get_category_color(alert['category']) }}">
-          <div class="p-4">
-            <div class="flex items-start gap-4 mb-4">
-              <div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-lg flex-shrink-0" style="background-color: {{ get_category_color(alert['category']) }}">{{ get_category_icon(alert['category']) }}</div>
+        <div class="alert-card rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden" style="--accent: {{ get_category_color(alert['category']) | safe }}">
+          <div class="p-3 sm:p-4">
+            <div class="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+              <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white text-base sm:text-lg flex-shrink-0" style="background-color: {{ get_category_color(alert['category']) | safe }}">{{ get_category_icon(alert['category']) }}</div>
               <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-3 mb-2">
-                  <span class="font-semibold text-gray-900 dark:text-gray-100 text-base">{{ alert['category'] }}</span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                  <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">{{ alert['category'] }}</span>
                   {% if alert['is_verified'] %}
                   <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300">
                     <span class="material-symbols-outlined text-sm">verified</span>
@@ -105,23 +116,23 @@
                 <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">{{ alert['description'] }}</p>
               </div>
             </div>
-            <div class="flex items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-700/50">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-700/50 gap-2 sm:gap-0">
               <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
                 <span class="material-symbols-outlined text-sm mr-2">person</span>
                 <span class="font-medium">{{ alert['author_name'] if alert['author_name'] else 'Anonymous' }}</span>
               </div>
               <div class="flex items-center gap-2">
                 {% if alert['user_id'] == current_user.id %}
-                <a href="{{ url_for('edit_alert', alert_id=alert['id']) }}" class="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 px-3 py-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-800/20 transition-all duration-200 flex items-center gap-1.5" title="Edit this alert">
+                <a href="{{ url_for('edit_alert', alert_id=alert['id']) }}" class="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 px-2 sm:px-3 py-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Edit this alert">
                   <span class="material-symbols-outlined text-sm">edit</span>
                   <span class="font-medium">Edit</span>
                 </a>
-                <button onclick="deleteAlert({{ alert['id'] }})" class="text-xs text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1.5" title="Delete this alert">
+                <button onclick="deleteAlert({{ alert['id'] }})" class="text-xs sm:text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Delete this alert">
                   <span class="material-symbols-outlined text-sm">delete</span>
                   <span class="font-medium">Delete</span>
                 </button>
                 {% else %}
-                <button onclick="reportAlert({{ alert['id'] }})" class="text-xs text-gray-500 dark:text-gray-400 hover:text-red-500 px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1.5" title="Report inappropriate content">
+                <button onclick="reportAlert({{ alert['id'] }})" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Report inappropriate content">
                   <span class="material-symbols-outlined text-sm">flag</span>
                   <span class="font-medium">Report</span>
                 </button>
@@ -147,8 +158,8 @@
 
 </main>
 
-<button onclick="showPostAlert()" class="fixed bottom-6 right-6 bg-primary text-white h-14 w-14 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-200 z-50 hover:scale-105">
-  <span class="material-symbols-outlined text-xl font-bold">add_alert</span>
+<button onclick="showPostAlert()" class="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 bg-primary text-white h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-200 z-50 hover:scale-105">
+  <span class="material-symbols-outlined text-lg sm:text-xl font-bold">add_alert</span>
 </button>
 
 <script type="application/json" id="alerts-data">{{ alerts|tojson }}</script>
