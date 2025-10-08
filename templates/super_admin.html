@@ -24,13 +24,14 @@
           <span class="material-symbols-outlined">settings</span>
           <span>Settings</span>
         </a>
-        <a href="/logout" class="inline-flex items-center gap-2 text-white/90 hover:text-white">
+        <a href="/logout" class="hidden lg:inline-flex items-center gap-2 text-white/90 hover:text-white">
           <span class="material-symbols-outlined">logout</span>
           <span>Logout</span>
         </a>
       </div>
     </div>
   </header>
+
 
   <main class="max-w-7xl mx-auto p-4 grid gap-4 grid-cols-1 lg:grid-cols-12">
     <aside class="lg:col-span-3 bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4 lg:sticky lg:top-4 lg:h-[calc(100vh-140px)] lg:overflow-y-auto">
@@ -85,7 +86,7 @@
               <input id="toggle-patrols" type="checkbox" class="rounded"/>
               <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Show Patrols</span>
             </label>
-            <a href="{{ url_for('super_admin_post_alert') }}{% if selected %}?community_id={{ selected.id }}{% endif %}" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-sm {% if not selected %}pointer-events-none opacity-50{% endif %}">
+            <a href="{{ url_for('super_admin_post_alert') }}{% if selected %}?community_id={{ selected.id }}{% endif %}" class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-sm {% if not selected %}pointer-events-none opacity-50{% endif %}">
               <span class="material-symbols-outlined">verified</span>
               <span class="hidden sm:inline">Post Alert</span>
               <span class="sm:hidden">Post Alert</span>
@@ -619,6 +620,13 @@
         .catch(()=>alert('Delete failed'));
     }
   </script>
+
+  <!-- Floating Post Alert Button (Mobile/Desktop) -->
+  <button onclick="window.location.href='{{ url_for('super_admin_post_alert') }}{% if selected %}?community_id={{ selected.id }}{% endif %}'"
+          class="fixed bottom-4 sm:bottom-6 right-4 sm:right-6 bg-emerald-600 text-white h-12 w-12 sm:h-14 sm:w-14 rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-200 z-50 hover:scale-105 hover:bg-emerald-700"
+          title="Post Verified Alert">
+    <span class="material-symbols-outlined text-lg sm:text-xl">verified</span>
+  </button>
 
 {% endblock %}
 

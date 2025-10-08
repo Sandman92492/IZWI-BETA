@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="utf-8"/>
-    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <meta content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" name="viewport"/>
     <title>{% block title %}iZwi{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
@@ -22,6 +22,9 @@
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/apple-touch-icon.png') }}">
     <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='icons/icon-192.png') }}">
     <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='icons/icon-512.png') }}">
+
+    <!-- CSRF Token for API calls -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <script>
         // Theme bootstrap: set initial theme before paint
@@ -81,7 +84,7 @@
   </style>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-background-light dark:bg-background-dark font-display">
+<body class="bg-background-light dark:bg-background-dark font-display" data-user-id="{{ current_user.id if current_user.is_authenticated else '' }}">
 <div id="flash-container" class="fixed top-4 inset-x-0 z-50 flex justify-center px-4">
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
@@ -138,7 +141,7 @@
           <span class="hidden xl:inline">Settings</span>
         </a>
         <div class="w-px h-6 bg-gray-300 dark:bg-gray-600"></div>
-        <a href="/logout" class="group inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200">
+        <a href="/logout" class="hidden lg:inline-flex group items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200">
           <span class="material-symbols-outlined text-lg">logout</span>
           <span class="hidden xl:inline">Logout</span>
         </a>

@@ -309,26 +309,43 @@ class PushNotifications {
     }
 
     getCurrentUserId() {
-        // Try to get user ID from various sources
+        // First try to get user ID from body data attribute
+        const body = document.body;
+        if (body && body.dataset.userId) {
+            const userId = parseInt(body.dataset.userId);
+            if (userId && userId > 0) {
+                return userId;
+            }
+        }
+
+        // Fallback: try to get user ID from data-user-id attribute on elements
         const userIdElement = document.querySelector('[data-user-id]');
-        if (userIdElement) {
-            return parseInt(userIdElement.dataset.userId);
+        if (userIdElement && userIdElement.dataset.userId) {
+            const userId = parseInt(userIdElement.dataset.userId);
+            if (userId && userId > 0) {
+                return userId;
+            }
         }
 
         // Fallback: try to extract from URL or other sources
         const pathParts = window.location.pathname.split('/');
         const dashboardIndex = pathParts.indexOf('dashboard');
         if (dashboardIndex >= 0 && pathParts.length > dashboardIndex) {
-            return parseInt(pathParts[dashboardIndex + 1]);
+            const userId = parseInt(pathParts[dashboardIndex + 1]);
+            if (userId && userId > 0) {
+                return userId;
+            }
         }
 
+        console.warn('[PushNotifications] Could not determine user ID');
         return null;
     }
 
     getCsrfToken() {
         // Get CSRF token from meta tag or cookie
         const tokenElement = document.querySelector('meta[name="csrf-token"]');
-        if (tokenElement) {
+        if (tokenElement && tokenElement.getAttribute('content')) {
+            console.log('[PushNotifications] Found CSRF token in meta tag');
             return tokenElement.getAttribute('content');
         }
 
@@ -337,10 +354,12 @@ class PushNotifications {
         for (let cookie of cookies) {
             const [name, value] = cookie.trim().split('=');
             if (name === 'csrf_token') {
+                console.log('[PushNotifications] Found CSRF token in cookie');
                 return value;
             }
         }
 
+        console.warn('[PushNotifications] CSRF token not found');
         return '';
     }
 
