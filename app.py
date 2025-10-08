@@ -153,19 +153,27 @@ def init_database():
             # Check for is_on_duty column in user table
             if 'is_on_duty' not in columns:
                 try:
-                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN is_on_duty BOOLEAN DEFAULT 0'))
+                    # Try with PostgreSQL boolean syntax first
+                    db.session.execute(text("ALTER TABLE \"user\" ADD COLUMN is_on_duty BOOLEAN DEFAULT false"))
                     db.session.commit()
                     app.logger.info("Added missing column 'is_on_duty' to user table")
                 except Exception as mig_e:
                     db.session.rollback()
                     app.logger.error(f"Failed to add 'is_on_duty' column: {mig_e}")
-                    # Try without quotes if first attempt fails
+                    # Try without quotes and different boolean syntax if first attempt fails
                     try:
-                        db.session.execute(text('ALTER TABLE user ADD COLUMN is_on_duty BOOLEAN DEFAULT 0'))
+                        db.session.execute(text("ALTER TABLE \"user\" ADD COLUMN is_on_duty BOOLEAN DEFAULT FALSE"))
                         db.session.commit()
                         app.logger.info("Added missing column 'is_on_duty' to user table (second attempt)")
                     except Exception as mig_e2:
                         app.logger.error(f"Failed to add 'is_on_duty' column on second attempt: {mig_e2}")
+                        # Try SQLite syntax for local development
+                        try:
+                            db.session.execute(text("ALTER TABLE \"user\" ADD COLUMN is_on_duty BOOLEAN DEFAULT 0"))
+                            db.session.commit()
+                            app.logger.info("Added missing column 'is_on_duty' to user table (third attempt)")
+                        except Exception as mig_e3:
+                            app.logger.error(f"Failed to add 'is_on_duty' column on third attempt: {mig_e3}")
 
             # Ensure new tables exist (e.g., AlertReport, GuardInvite, GuardLocation, PushSubscription)
             # Ensure invite_code table exists by creating all again (noop if exists)
