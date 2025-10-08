@@ -153,16 +153,32 @@ def init_database():
             # Check for is_on_duty column in user table
             if 'is_on_duty' not in columns:
                 try:
-                    db.session.execute(text('ALTER TABLE user ADD COLUMN is_on_duty BOOLEAN DEFAULT 0'))
+                    db.session.execute(text('ALTER TABLE "user" ADD COLUMN is_on_duty BOOLEAN DEFAULT 0'))
                     db.session.commit()
                     app.logger.info("Added missing column 'is_on_duty' to user table")
                 except Exception as mig_e:
                     db.session.rollback()
                     app.logger.error(f"Failed to add 'is_on_duty' column: {mig_e}")
+                    # Try without quotes if first attempt fails
+                    try:
+                        db.session.execute(text('ALTER TABLE user ADD COLUMN is_on_duty BOOLEAN DEFAULT 0'))
+                        db.session.commit()
+                        app.logger.info("Added missing column 'is_on_duty' to user table (second attempt)")
+                    except Exception as mig_e2:
+                        app.logger.error(f"Failed to add 'is_on_duty' column on second attempt: {mig_e2}")
 
-            # Ensure new tables exist (e.g., AlertReport, GuardInvite, GuardLocation)
+            # Ensure new tables exist (e.g., AlertReport, GuardInvite, GuardLocation, PushSubscription)
             # Ensure invite_code table exists by creating all again (noop if exists)
             db.create_all()
+
+            # Additional migration for PushSubscription table if it doesn't exist
+            try:
+                inspector = inspect(db.engine)
+                if 'push_subscription' not in inspector.get_table_names():
+                    app.logger.info("Creating PushSubscription table")
+                    db.create_all()  # This will create any missing tables
+            except Exception as e:
+                app.logger.error(f"Error ensuring PushSubscription table exists: {e}")
             
             app.logger.info("Database tables initialized successfully")
         except Exception as e:
