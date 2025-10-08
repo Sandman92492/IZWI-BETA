@@ -351,3 +351,27 @@ def unsubscribe_push():
     except Exception as e:
         app.logger.error(f'Error unsubscribing from push notifications: {e}')
         return jsonify({'error': 'Failed to unsubscribe from push notifications'}), 500
+
+
+# Health check endpoint for deployment monitoring
+@app.route('/health')
+def health_check():
+    """Health check endpoint for deployment monitoring"""
+    try:
+        # Check database connection
+        from models import User
+        db.session.execute(text('SELECT 1'))
+        db_status = 'healthy'
+
+        return jsonify({
+            'status': 'healthy',
+            'database': db_status,
+            'timestamp': time.time()
+        }), 200
+    except Exception as e:
+        app.logger.error(f'Health check failed: {e}')
+        return jsonify({
+            'status': 'unhealthy',
+            'error': str(e),
+            'timestamp': time.time()
+        }), 500
