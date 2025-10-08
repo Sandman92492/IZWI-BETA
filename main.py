@@ -692,6 +692,252 @@ def super_admin_guard_locations():
     return jsonify({'guards': locations_data})
 
 
+# SuperAdmin Member Management Routes
+@app.route('/super-admin/members')
+@login_required
+def super_admin_members():
+    """Get all members for a specific community"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    community_id = request.args.get('community_id', type=int)
+    if not community_id:
+        return jsonify({'error': 'community_id required'}), 400
+
+    # Validate that the community belongs to the current user's business
+    from models import Community
+    community = Community.query.get(community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    members = User.query.filter_by(community_id=community_id).all()
+    member_data = []
+    for member in members:
+        member_data.append({
+            'id': member.id,
+            'name': member.name,
+            'email': member.email,
+            'role': member.role,
+            'avatar_url': member.avatar_url
+        })
+
+    return jsonify({'members': member_data})
+
+
+@app.route('/super-admin/members/<int:user_id>/promote', methods=['POST'])
+@login_required
+def super_admin_promote_member(user_id: int):
+    """Promote a member (Member → Moderator → Admin)"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    target = db.session.get(User, user_id)
+    if not target:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Validate that the target belongs to a community in the SuperAdmin's business
+    if not target.community_id:
+        return jsonify({'error': 'User is not in any community'}), 400
+
+    community = Community.query.get(target.community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    # Promote: Member → Moderator → Admin
+    if target.role == 'Member':
+        target.role = 'Moderator'
+        message = 'Member promoted to Moderator'
+    elif target.role == 'Moderator':
+        target.role = 'Admin'
+        # Update community admin_user_id if this becomes the new admin
+        community.admin_user_id = target.id
+        message = 'Moderator promoted to Admin'
+    else:
+        return jsonify({'error': 'Cannot promote this user further'}), 400
+
+    db.session.commit()
+    app.logger.info(f"SuperAdmin {current_user.id} promoted user {user_id} to {target.role}")
+
+    return jsonify({'success': True, 'new_role': target.role, 'message': message})
+
+
+@app.route('/super-admin/members/<int:user_id>/demote', methods=['POST'])
+@login_required
+def super_admin_demote_member(user_id: int):
+    """Demote a member (Admin → Moderator → Member)"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    target = db.session.get(User, user_id)
+    if not target:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Validate that the target belongs to a community in the SuperAdmin's business
+    if not target.community_id:
+        return jsonify({'error': 'User is not in any community'}), 400
+
+    community = Community.query.get(target.community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    # Prevent demoting the only admin (would leave community without admin)
+    admin_count = User.query.filter_by(community_id=target.community_id, role='Admin').count()
+    if target.role == 'Admin' and admin_count <= 1:
+        return jsonify({'error': 'Cannot demote the only admin of this community'}), 400
+
+    # Demote: Admin → Moderator → Member
+    if target.role == 'Admin':
+        target.role = 'Moderator'
+        # If this was the admin, update community admin_user_id to another admin if available
+        if community.admin_user_id == target.id:
+            other_admin = User.query.filter_by(community_id=target.community_id, role='Admin').first()
+            if other_admin:
+                community.admin_user_id = other_admin.id
+        message = 'Admin demoted to Moderator'
+    elif target.role == 'Moderator':
+        target.role = 'Member'
+        message = 'Moderator demoted to Member'
+    else:
+        return jsonify({'error': 'Cannot demote this user further'}), 400
+
+    db.session.commit()
+    app.logger.info(f"SuperAdmin {current_user.id} demoted user {user_id} to {target.role}")
+
+    return jsonify({'success': True, 'new_role': target.role, 'message': message})
+
+
+@app.route('/super-admin/members/<int:user_id>/remove', methods=['POST'])
+@login_required
+def super_admin_remove_member(user_id: int):
+    """Remove a member from their community"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    target = db.session.get(User, user_id)
+    if not target:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Validate that the target belongs to a community in the SuperAdmin's business
+    if not target.community_id:
+        return jsonify({'error': 'User is not in any community'}), 400
+
+    community = Community.query.get(target.community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    # Prevent removing the only admin (would leave community without admin)
+    if target.role == 'Admin':
+        admin_count = User.query.filter_by(community_id=target.community_id, role='Admin').count()
+        if admin_count <= 1:
+            return jsonify({'error': 'Cannot remove the only admin of this community'}), 400
+
+    # Remove member from community
+    target.community_id = None
+
+    # If this was the admin, update community admin_user_id
+    if community.admin_user_id == target.id:
+        other_admin = User.query.filter_by(community_id=target.community_id, role='Admin').first()
+        if other_admin:
+            community.admin_user_id = other_admin.id
+
+    db.session.commit()
+    app.logger.info(f"SuperAdmin {current_user.id} removed user {user_id} from community {target.community_id}")
+
+    return jsonify({'success': True, 'message': 'Member removed from community'})
+
+
+@app.route('/super-admin/members/<int:user_id>/set-role', methods=['POST'])
+@login_required
+def super_admin_set_member_role(user_id: int):
+    """Directly set a member's role"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    target = db.session.get(User, user_id)
+    if not target:
+        return jsonify({'error': 'User not found'}), 404
+
+    # Validate that the target belongs to a community in the SuperAdmin's business
+    if not target.community_id:
+        return jsonify({'error': 'User is not in any community'}), 400
+
+    community = Community.query.get(target.community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    new_role = request.json.get('role')
+    if not new_role or new_role not in ['Member', 'Moderator', 'Admin']:
+        return jsonify({'error': 'Invalid role specified'}), 400
+
+    # Prevent setting the only admin role to something else
+    if target.role == 'Admin' and new_role != 'Admin':
+        admin_count = User.query.filter_by(community_id=target.community_id, role='Admin').count()
+        if admin_count <= 1:
+            return jsonify({'error': 'Cannot change the only admin of this community'}), 400
+
+    old_role = target.role
+    target.role = new_role
+
+    # Update community admin_user_id if this becomes/removes admin
+    if new_role == 'Admin' and old_role != 'Admin':
+        community.admin_user_id = target.id
+    elif old_role == 'Admin' and new_role != 'Admin':
+        other_admin = User.query.filter_by(community_id=target.community_id, role='Admin').first()
+        if other_admin:
+            community.admin_user_id = other_admin.id
+
+    db.session.commit()
+    app.logger.info(f"SuperAdmin {current_user.id} changed user {user_id} role from {old_role} to {new_role}")
+
+    return jsonify({'success': True, 'new_role': new_role, 'message': f'Role changed to {new_role}'})
+
+
+@app.route('/admin/set-member-role/<int:member_id>', methods=['POST'])
+@login_required
+def admin_set_member_role(member_id: int):
+    """Set a member's role (regular admin only)"""
+    # Only current Admin can change roles
+    if not current_user.community_id:
+        abort(403)
+    if not getattr(current_user, 'is_admin', lambda: False)():
+        abort(403)
+
+    target = db.session.get(User, member_id)
+    if not target or target.community_id != current_user.community_id:
+        abort(404)
+
+    new_role = request.form.get('role')
+    if not new_role or new_role not in ['Member', 'Moderator', 'Admin']:
+        abort(400)
+
+    # Prevent setting the only admin role to something else
+    if target.role == 'Admin' and new_role != 'Admin':
+        admin_count = User.query.filter_by(community_id=target.community_id, role='Admin').count()
+        if admin_count <= 1:
+            abort(400)  # Cannot change the only admin
+
+    old_role = target.role
+    target.role = new_role
+
+    # Update community admin_user_id if this becomes/removes admin
+    if new_role == 'Admin' and old_role != 'Admin':
+        community = db.session.get(Community, current_user.community_id)
+        if community:
+            community.admin_user_id = target.id
+    elif old_role == 'Admin' and new_role != 'Admin':
+        community = db.session.get(Community, current_user.community_id)
+        if community and community.admin_user_id == target.id:
+            other_admin = User.query.filter_by(community_id=target.community_id, role='Admin').first()
+            if other_admin:
+                community.admin_user_id = other_admin.id
+
+    db.session.commit()
+    app.logger.info(f"Admin {current_user.id} changed user {member_id} role from {old_role} to {new_role}")
+
+    flash(f'Role changed to {new_role} successfully', 'success')
+    return redirect(url_for('settings'))
+
+
 # Guard location tracking routes
 @app.route('/guard/toggle-duty', methods=['POST'])
 @login_required
@@ -1446,6 +1692,35 @@ def demote_member(user_id: int):
     return redirect(url_for('settings'))
 
 
+@app.route('/members/<int:user_id>/make-admin', methods=['POST'])
+@login_required
+def transfer_admin(user_id: int):
+    # Only current Admin can transfer
+    if not current_user.community_id:
+        abort(403)
+    if not getattr(current_user, 'is_admin', lambda: False)():
+        abort(403)
+
+    target = db.session.get(User, user_id)
+    if not target or target.community_id != current_user.community_id:
+        abort(404)
+    if target.id == current_user.id:
+        abort(400)  # Can't transfer to self
+
+    # Transfer: new user becomes Admin, old admin becomes Moderator
+    target.role = 'Admin'
+    current_user.role = 'Moderator'
+
+    # Update community admin_user_id
+    community = db.session.get(Community, current_user.community_id)
+    if community:
+        community.admin_user_id = target.id
+
+    db.session.commit()
+    flash('Admin role transferred successfully', 'success')
+    return redirect(url_for('settings'))
+
+
 # --- Alert deletion by Admin and Moderator ---
 @app.route('/admin/cleanup-expired-alerts', methods=['POST'])
 def cleanup_expired_alerts():
@@ -1591,13 +1866,15 @@ def delete_alert(alert_id: int):
         return jsonify({'error': 'Forbidden'}), 403
     author = db.session.get(User, alert.user_id)
     can_delete = False
-    if getattr(current_user, 'is_admin', lambda: False)():
+
+    # Check in this order:
+    if alert.user_id == current_user.id:
+        # Users can delete their own alerts (includes moderators)
+        can_delete = True
+    elif getattr(current_user, 'is_admin', lambda: False)():
         can_delete = True
     elif getattr(current_user, 'is_moderator', lambda: False)():
         can_delete = (author and author.role not in ['Admin', 'Moderator'])
-    elif alert.user_id == current_user.id:
-        # Users can delete their own alerts
-        can_delete = True
     if not can_delete:
         return jsonify({'error': 'Forbidden'}), 403
     try:

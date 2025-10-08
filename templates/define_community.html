@@ -63,6 +63,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
+    <script src="https://unpkg.com/leaflet-editable@latest/src/Leaflet.Editable.js"></script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -285,13 +286,27 @@
                 </div>
               </div>
 
-              <!-- Prominent CTA Button for Mobile -->
+              <!-- Prominent CTA Buttons for Mobile -->
               <div class="mt-3 lg:hidden" id="mobile-cta">
-                <button type="button" onclick="startDrawingMode()"
-                        class="w-full bg-primary text-white font-semibold py-3 px-4 rounded-lg hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-                  <span class="material-symbols-outlined">edit</span>
-                  Start Drawing Boundary
-                </button>
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Choose your drawing method:</p>
+                <div class="grid grid-cols-2 gap-2 mb-3">
+                  <button type="button" onclick="startCircleDraw()"
+                          class="bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 py-3 px-3 rounded-lg flex items-center justify-center gap-2 text-sm font-medium">
+                    <span class="material-symbols-outlined">radio_button_unchecked</span>
+                    <div class="text-center">
+                      <div>Circle</div>
+                      <div class="text-xs text-green-500">Quick</div>
+                    </div>
+                  </button>
+                  <button type="button" onclick="startDrawingMode()"
+                          class="bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 py-3 px-3 rounded-lg flex items-center justify-center gap-2 text-sm font-medium">
+                    <span class="material-symbols-outlined">edit</span>
+                    <div class="text-center">
+                      <div>Custom</div>
+                      <div class="text-xs text-blue-500">Shape</div>
+                    </div>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -551,15 +566,54 @@ function updateDrawingStatus(message) {
     }
 }
 
+// Mobile detection function
+function isMobileDevice() {
+    return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+}
+
+// Circle drawing function
+function startCircleDraw() {
+    if (!communityMap) return;
+
+    // Enable Leaflet-Editable for circle drawing
+    communityMap.editTools.startCircle(null, {
+        shapeOptions: {
+            color: '#10b981',
+            fillOpacity: 0.2,
+            weight: 2
+        }
+    });
+
+    updateDrawingStatus('Tap to set center point, then drag edge to adjust radius.');
+    hideMobileCta();
+}
+
+// Enhanced polygon drawing with mobile optimizations
 function startDrawingMode() {
-    // Trigger the draw control programmatically
-    const drawControl = document.querySelector('.leaflet-draw-draw-polygon');
-    if (drawControl) {
-        drawControl.click();
-        updateDrawingStatus('Great! Now tap on the map to add points for your community boundary.');
-    } else {
-        updateDrawingStatus('Draw tool not available. Please use the polygon tool from the map toolbar.');
-    }
+    if (!communityMap) return;
+
+    // Enhanced polygon drawing with mobile-friendly options
+    const polygonDraw = new L.Draw.Polygon(communityMap, {
+        allowIntersection: false,
+        shapeOptions: {
+            color: '#3b82f6',
+            fillOpacity: 0.2,
+            weight: 2
+        },
+        drawError: {
+            color: '#ef4444',
+            message: '<strong>Error:</strong> Shape edges cannot cross!'
+        },
+        // Mobile-friendly: larger touch targets and better feedback
+        icon: new L.DivIcon({
+            iconSize: isMobileDevice() ? [40, 40] : [20, 20],
+            className: 'custom-polygon-marker'
+        })
+    });
+
+    polygonDraw.enable();
+    updateDrawingStatus('Tap to add points (3+ needed). Large touch targets on mobile.');
+    hideMobileCta();
 }
 
 function skipBoundary() {
@@ -714,6 +768,24 @@ function setupEventListeners() {
             }
         });
     }
+}
+
+// Mobile-specific styling
+if (isMobileDevice()) {
+    // Add mobile-specific CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        .custom-polygon-marker {
+            background: #3b82f6 !important;
+            border: 3px solid white !important;
+            border-radius: 50% !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+        }
+        .leaflet-draw-toolbar {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
 }
 </script>
 

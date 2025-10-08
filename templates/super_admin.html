@@ -84,26 +84,72 @@
       </div>
     </aside>
 
-    <section class="lg:col-span-6 space-y-4">
-      <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 lg:sticky lg:top-4 lg:h-[calc(100vh-140px)] lg:flex lg:flex-col">
-        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-          <div class="flex items-center gap-2">
-            <span class="material-symbols-outlined">map</span>
-            <h3 class="font-semibold text-gray-900 dark:text-gray-100">{{ selected.name if selected else 'No community selected' }}</h3>
+    <section class="lg:col-span-6">
+      <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 lg:sticky lg:top-4 h-[500px] lg:h-[calc(100vh-140px)] flex flex-col">
+
+        <!-- Tab Navigation -->
+        <div class="flex border-b border-gray-200 dark:border-gray-700">
+          <button id="map-tab" class="map-tab-button active flex-1 px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100 border-b-2 border-primary">
+            <span class="material-symbols-outlined text-lg mr-2">map</span>
+            Map
+          </button>
+          <button id="members-tab" class="map-tab-button flex-1 px-4 py-3 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+            <span class="material-symbols-outlined text-lg mr-2">group</span>
+            Members
+          </button>
+        </div>
+
+        <!-- Map Tab Content -->
+        <div id="map-content" class="map-tab-content flex-1 flex flex-col">
+          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="material-symbols-outlined">map</span>
+              <h3 id="map-community-name" class="font-semibold text-gray-900 dark:text-gray-100">{{ selected.name if selected else 'No community selected' }}</h3>
+            </div>
+            <div class="flex items-center gap-3">
+              <label class="flex items-center gap-1 cursor-pointer select-none text-sm">
+                <input id="toggle-patrols" type="checkbox" class="rounded"/>
+                <span>Show Patrols</span>
+              </label>
+              <a id="post-alert-link" href="{{ url_for('super_admin_post_alert') }}{% if selected %}?community_id={{ selected.id }}{% endif %}" class="hidden inline-flex items-center gap-1 px-3 py-1.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors {% if not selected %}pointer-events-none opacity-50{% endif %}">
+                <span class="material-symbols-outlined text-base">add_alert</span>
+                Post Alert
+              </a>
+            </div>
           </div>
-          <div class="flex items-center gap-2">
-            <label class="flex items-center gap-2 cursor-pointer select-none">
-              <input id="toggle-patrols" type="checkbox" class="rounded"/>
-              <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Show Patrols</span>
-            </label>
-            <a href="{{ url_for('super_admin_post_alert') }}{% if selected %}?community_id={{ selected.id }}{% endif %}" class="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50 text-sm {% if not selected %}pointer-events-none opacity-50{% endif %}">
-              <span class="material-symbols-outlined">verified</span>
-              <span class="hidden sm:inline">Post Alert</span>
-              <span class="sm:hidden">Post Alert</span>
-            </a>
+          <div id="sa-map" class="flex-1 relative" style="z-index: 1;"></div>
+        </div>
+
+        <!-- Members Tab Content -->
+        <div id="members-content" class="map-tab-content hidden flex-1 flex flex-col">
+          <div class="p-4 flex-1 overflow-y-auto">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Community Members</h3>
+              <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                <input type="search"
+                       id="member-search"
+                       placeholder="Search members..."
+                       class="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-48">
+                <select id="role-filter" class="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-auto">
+                  <option value="">All Roles</option>
+                  <option value="Admin">Admins</option>
+                  <option value="Moderator">Moderators</option>
+                  <option value="Member">Members</option>
+                </select>
+                <select id="member-community-select" class="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-auto">
+                  <option value="">Select Community</option>
+                </select>
+              </div>
+            </div>
+            <div id="member-stats" class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              <!-- Member statistics will be populated here -->
+            </div>
+            <div id="sa-members" class="space-y-3">
+              <div class="text-gray-500 dark:text-gray-400 text-sm">Select a community to view members.</div>
+            </div>
           </div>
         </div>
-        <div id="sa-map" class="h-[380px] md:h-[420px] lg:grow relative" style="z-index: 1;"></div>
+
       </div>
     </section>
 
@@ -123,7 +169,28 @@
         <div id="sa-alerts" class="p-4 grid gap-3 grid-cols-1"></div>
       </div>
     </aside>
+
     </main>
+
+    <!-- Role Change Confirmation Modal -->
+    <div id="role-change-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Change Role?</h3>
+                <button onclick="closeRoleModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="modal-content"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeRoleModal()" class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+                <button onclick="confirmRoleChange()" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">Confirm Change</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 
     <!-- Guard Invitation Modal (moved outside main container to avoid stacking context issues) -->
     <div id="invite-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center" style="z-index: 2147483647 !important; position: fixed !important; top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important; width: 100vw !important; height: 100vh !important;">
@@ -173,6 +240,7 @@
   <script>
     let selectedCommunityId = {{ selected.id if selected else 'null' }};
     const csrf = '{{ csrf_token() }}';
+    let currentMarkerGroup = null;
 
     // Guard Management Functions
     function loadGuards() {
@@ -472,13 +540,22 @@
 
     function showMarkers(alerts) {
       if (!alerts) return;
+
+      console.log(`Showing ${alerts.length} alert markers for community ${selectedCommunityId}`);
+
+      // Clear previous markers before adding new ones
+      if (currentMarkerGroup) {
+        console.log('Removing previous marker group');
+        map.removeLayer(currentMarkerGroup);
+      }
+
       const markers = alerts.map(a => {
         const icon = L.divIcon({
           className: 'custom-alert-marker',
           html: `<div class="relative"><div class="w-10 h-10 rounded-full flex items-center justify-center text-white text-lg shadow border-2 border-white" style="background-color:${getColor(a.category)}">${getIcon(a.category)}</div>${a.is_verified?'<span class=\"absolute -top-2 -right-2 bg-green-600 text-white rounded-full text-[10px] px-1\">✔</span>':''}</div>`,
           iconSize: [40, 48], iconAnchor: [20, 40]
         });
-        const m = L.marker([a.latitude||a.lat||0, a.longitude||a.lng||0], { icon }).addTo(map);
+        const m = L.marker([a.latitude||a.lat||0, a.longitude||a.lng||0], { icon });
         const verifiedBadge = a.is_verified ? '<span style="display: inline-flex; align-items: center; gap: 2px; font-size: 10px; padding: 2px 6px; border-radius: 12px; background-color: #DCFCE7; color: #166534;"><span style="font-size: 10px;">✓</span>Verified</span>' : '';
         const timeAgo = formatTimeAgo(a.timestamp);
         const popupContent = `
@@ -509,13 +586,32 @@
         m.bindPopup(popupContent);
         return m;
       });
+
+      // Create new feature group for current community's markers
+      currentMarkerGroup = L.featureGroup(markers);
+
+      // Add to map and fit bounds
+      currentMarkerGroup.addTo(map);
       try {
-        const group = L.featureGroup(markers);
-        map.fitBounds(group.getBounds(), { padding:[16,16], maxZoom:15 });
+        map.fitBounds(currentMarkerGroup.getBounds(), { padding:[16,16], maxZoom:15 });
       } catch(_) {}
     }
 
     function loadCommunity(communityId) {
+      console.log(`Loading community ${communityId} (previous: ${selectedCommunityId})`);
+
+      // **NEW: Clear map immediately before loading new community**
+      if (currentMarkerGroup) {
+        console.log('Clearing previous community markers');
+        map.removeLayer(currentMarkerGroup);
+        currentMarkerGroup = null;
+      }
+      if (boundaryLayer) {
+        console.log('Clearing previous community boundary');
+        map.removeLayer(boundaryLayer);
+        boundaryLayer = null;
+      }
+
       // Update selected community ID variable
       selectedCommunityId = communityId;
 
@@ -554,6 +650,9 @@
 
       // Load guards for this community
       loadGuards();
+
+      // Update member community dropdown
+      updateMemberCommunityDropdown();
 
       // Update map header and post alert buttons with selected community name
       updateUIForCommunity(communityId);
@@ -667,7 +766,441 @@
         const id = (new URLSearchParams(location.search)).get('community_id') || selectedCommunityId;
         if (id) loadCommunity(id);
       });
+
+      // Map tab switching
+      document.getElementById('map-tab').addEventListener('click', function() {
+        switchMapTab('map');
+      });
+      document.getElementById('members-tab').addEventListener('click', function() {
+        switchMapTab('members');
+        if (selectedCommunityId) loadMembers(selectedCommunityId);
+      });
+
+      // Community selection for members
+      document.getElementById('member-community-select').addEventListener('change', function() {
+        const communityId = this.value;
+        if (communityId) {
+          loadMembers(communityId);
+        } else {
+          document.getElementById('sa-members').innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">Select a community to view members.</div>';
+        }
+      });
+
+      // Search and filter functionality
+      document.getElementById('member-search').addEventListener('input', filterMembers);
+      document.getElementById('role-filter').addEventListener('change', filterMembers);
     });
+
+    function switchMapTab(tabName) {
+      // Update tab buttons
+      document.querySelectorAll('.map-tab-button').forEach(btn => {
+        btn.classList.remove('active', 'border-b-2', 'border-primary', 'text-gray-900', 'dark:text-gray-100');
+        btn.classList.add('text-gray-600', 'dark:text-gray-400');
+      });
+
+      const activeTab = document.getElementById(tabName + '-tab');
+      activeTab.classList.add('active', 'border-b-2', 'border-primary', 'text-gray-900', 'dark:text-gray-100');
+      activeTab.classList.remove('text-gray-600', 'dark:text-gray-400');
+
+      // Update tab content
+      document.querySelectorAll('.map-tab-content').forEach(content => {
+        content.classList.add('hidden');
+      });
+
+      document.getElementById(tabName + '-content').classList.remove('hidden');
+    }
+
+    // Global variable to store all members for filtering
+    let allMembers = [];
+
+    function loadMembers(communityId) {
+      fetch(`/super-admin/members?community_id=${communityId}`, { credentials: 'same-origin' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) {
+            document.getElementById('sa-members').innerHTML = `<div class="text-red-500 dark:text-red-400 text-sm">${data.error}</div>`;
+            return;
+          }
+
+          allMembers = data.members || [];
+          renderMembers(allMembers);
+          updateMemberStats(allMembers);
+        })
+        .catch(err => {
+          console.error('Failed to load members:', err);
+          document.getElementById('sa-members').innerHTML = '<div class="text-red-500 dark:text-red-400 text-sm">Failed to load members.</div>';
+        });
+    }
+
+    function renderMembers(members) {
+      const container = document.getElementById('sa-members');
+      if (!members || members.length === 0) {
+        container.innerHTML = '<div class="text-gray-500 dark:text-gray-400 text-sm">No members in this community.</div>';
+        return;
+      }
+
+      container.innerHTML = members.map(member => `
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-medium flex-shrink-0">
+              ${member.name ? member.name[0].toUpperCase() : member.email[0].toUpperCase()}
+            </div>
+            <div class="min-w-0 flex-1">
+              <p class="text-gray-900 dark:text-white font-medium truncate">${member.name || member.email}</p>
+              <div class="flex items-center gap-2 mt-1">
+                ${getRoleBadge(member.role)}
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 sm:justify-end">
+            ${getMemberActions(member)}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function getRoleBadge(role) {
+      const badges = {
+        'Admin': '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"><span class="material-symbols-outlined text-xs">admin_panel_settings</span>Admin</span>',
+        'Moderator': '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"><span class="material-symbols-outlined text-xs">security</span>Moderator</span>',
+        'Member': '<span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300"><span class="material-symbols-outlined text-xs">person</span>Member</span>'
+      };
+      return badges[role] || badges['Member'];
+    }
+
+    function getMemberActions(member) {
+      const currentRole = member.role;
+      const memberName = member.name || member.email;
+
+      return `
+        <div class="flex items-center gap-2">
+          <select class="member-role-dropdown text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-auto"
+                  data-member-id="${member.id}"
+                  data-member-name="${memberName}"
+                  data-original-role="${currentRole}"
+                  onchange="changeRole(${member.id}, this.value, '${memberName}', this)">
+            <option value="Member" ${currentRole === 'Member' ? 'selected' : ''}>Member</option>
+            <option value="Moderator" ${currentRole === 'Moderator' ? 'selected' : ''}>Moderator</option>
+            <option value="Admin" ${currentRole === 'Admin' ? 'selected' : ''}>Admin</option>
+          </select>
+          <button onclick="removeMember(${member.id}, '${memberName}')" class="text-red-600 hover:text-red-700 text-sm px-2 py-1 rounded flex-shrink-0" title="Remove member">×</button>
+        </div>
+      `;
+    }
+
+    function promoteMember(memberId) {
+      fetch(`/super-admin/members/${memberId}/promote`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        if (data.success) {
+          // Reload members
+          const communityId = document.getElementById('member-community-select').value;
+          if (communityId) loadMembers(communityId);
+          window.showToast(data.message || 'Member promoted successfully', 'success');
+        }
+      })
+      .catch(err => {
+        console.error('Failed to promote member:', err);
+        alert('Failed to promote member.');
+      });
+    }
+
+    function demoteMember(memberId) {
+      fetch(`/super-admin/members/${memberId}/demote`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        if (data.success) {
+          // Reload members
+          const communityId = document.getElementById('member-community-select').value;
+          if (communityId) loadMembers(communityId);
+          window.showToast(data.message || 'Member demoted successfully', 'success');
+        }
+      })
+      .catch(err => {
+        console.error('Failed to demote member:', err);
+        alert('Failed to demote member.');
+      });
+    }
+
+    function removeMember(memberId, memberName) {
+      if (!confirm(`Remove ${memberName} from the community?`)) return;
+
+      fetch(`/super-admin/members/${memberId}/remove`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          alert(data.error);
+          return;
+        }
+        if (data.success) {
+          // Reload members
+          const communityId = document.getElementById('member-community-select').value;
+          if (communityId) loadMembers(communityId);
+          window.showToast(data.message || 'Member removed successfully', 'success');
+        }
+      })
+      .catch(err => {
+        console.error('Failed to remove member:', err);
+        alert('Failed to remove member.');
+      });
+    }
+
+    function changeRole(memberId, newRole, memberName, dropdown) {
+      // Don't show modal if role hasn't changed
+      const currentRole = dropdown.getAttribute('data-original-role');
+      if (newRole === currentRole) return;
+
+      // Show enhanced confirmation modal instead of simple confirm
+      showEnhancedRoleModal(memberId, newRole, memberName);
+    }
+
+    // Enhanced role change modal
+    let currentRoleChange = {};
+
+    function showEnhancedRoleModal(memberId, newRole, memberName) {
+        const dropdown = document.querySelector(`select[data-member-id="${memberId}"]`);
+        const currentRole = dropdown ? dropdown.value : 'Member';
+
+        showRoleChangeModal(memberId, memberName, currentRole, newRole);
+    }
+
+    function showRoleChangeModal(memberId, memberName, currentRole, newRole) {
+        currentRoleChange = { memberId, memberName, currentRole, newRole };
+
+        const modal = document.getElementById('role-change-modal');
+        const modalContent = document.getElementById('modal-content');
+
+        const roleDescriptions = {
+            'Member': 'Can view and post alerts in the community',
+            'Moderator': 'Can delete member alerts and view reports',
+            'Admin': 'Has full community management access including member management'
+        };
+
+        modalContent.innerHTML = `
+            <p class="text-gray-700 dark:text-gray-300 mb-3">
+                Change <strong>${memberName}</strong>'s role?
+            </p>
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Current Role:</span>
+                    <span class="font-medium">${currentRole}</span>
+                </div>
+                <div class="flex items-center justify-center mb-2">
+                    <span class="text-2xl">↓</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">New Role:</span>
+                    <span class="font-medium text-primary">${newRole}</span>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4">
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    <strong>${newRole} permissions:</strong><br>
+                    ${roleDescriptions[newRole] || 'Standard community access'}
+                </p>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeRoleModal() {
+        const modal = document.getElementById('role-change-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        currentRoleChange = {};
+    }
+
+    function confirmRoleChange() {
+        if (currentRoleChange.memberId) {
+            // Use the existing changeRole function
+            const { memberId, newRole, memberName } = currentRoleChange;
+            performRoleChange(memberId, newRole, memberName);
+            closeRoleModal();
+        }
+    }
+
+    function performRoleChange(memberId, newRole, memberName) {
+      // Show loading state
+      const dropdown = document.querySelector(`select[data-member-id="${memberId}"]`);
+      if (dropdown) {
+        dropdown.disabled = true;
+        dropdown.innerHTML = '<option>Loading...</option>';
+      }
+
+      fetch(`/super-admin/members/${memberId}/set-role`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({role: newRole})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) {
+          showToast(data.error, 'error');
+          // Reset dropdown
+          if (dropdown) {
+            dropdown.disabled = false;
+            dropdown.innerHTML = `
+              <option value="Member" ${newRole === 'Member' ? 'selected' : ''}>Member</option>
+              <option value="Moderator" ${newRole === 'Moderator' ? 'selected' : ''}>Moderator</option>
+              <option value="Admin" ${newRole === 'Admin' ? 'selected' : ''}>Admin</option>
+            `;
+          }
+          return;
+        }
+        if (data.success) {
+          // Reload members
+          const communityId = document.getElementById('member-community-select').value;
+          if (communityId) loadMembers(communityId);
+          showToast(data.message || 'Role changed successfully', 'success');
+        }
+      })
+      .catch(err => {
+        console.error('Failed to change role:', err);
+        showToast('Failed to change role. Please try again.', 'error');
+        // Reset dropdown
+        if (dropdown) {
+          dropdown.disabled = false;
+          dropdown.innerHTML = `
+            <option value="Member" ${newRole === 'Member' ? 'selected' : ''}>Member</option>
+            <option value="Moderator" ${newRole === 'Moderator' ? 'selected' : ''}>Moderator</option>
+            <option value="Admin" ${newRole === 'Admin' ? 'selected' : ''}>Admin</option>
+          `;
+        }
+      });
+    }
+
+    // Toast notification system
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+
+      const colors = {
+        success: 'bg-green-500 text-white',
+        error: 'bg-red-500 text-white',
+        info: 'bg-blue-500 text-white'
+      };
+
+      toast.className = `px-4 py-2 rounded-lg shadow-lg ${colors[type] || colors.info} flex items-center gap-2`;
+      toast.innerHTML = `
+        <span class="material-symbols-outlined text-sm">
+          ${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info'}
+        </span>
+        <span class="text-sm font-medium">${message}</span>
+      `;
+
+      container.appendChild(toast);
+
+      // Auto remove after 4 seconds
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.remove();
+        }
+      }, 4000);
+    }
+
+    // Make showToast available globally
+    window.showToast = showToast;
+
+    // Close modal when clicking outside
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('role-change-modal');
+        if (modal) {
+            modal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    closeRoleModal();
+                }
+            });
+        }
+
+        // Close modal with Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeRoleModal();
+            }
+        });
+    });
+
+    function filterMembers() {
+      const searchTerm = document.getElementById('member-search').value.toLowerCase();
+      const roleFilter = document.getElementById('role-filter').value;
+
+      // Filter members
+      const filtered = allMembers.filter(m => {
+        const matchesSearch = m.name.toLowerCase().includes(searchTerm) ||
+                             m.email.toLowerCase().includes(searchTerm);
+        const matchesRole = !roleFilter || m.role === roleFilter;
+        return matchesSearch && matchesRole;
+      });
+
+      renderMembers(filtered);
+      updateMemberStats(filtered);
+    }
+
+    function updateMemberStats(members) {
+      const statsElement = document.getElementById('member-stats');
+      if (!statsElement) return;
+
+      const stats = {
+        total: members.length,
+        admins: members.filter(m => m.role === 'Admin').length,
+        moderators: members.filter(m => m.role === 'Moderator').length,
+        members: members.filter(m => m.role === 'Member').length
+      };
+
+      statsElement.innerHTML = `
+        <div class="flex flex-wrap gap-2 sm:gap-4 text-sm justify-center sm:justify-start">
+          <span>👥 Total: ${stats.total}</span>
+          <span>🔴 Admins: ${stats.admins}</span>
+          <span>🟡 Moderators: ${stats.moderators}</span>
+          <span>⚪ Members: ${stats.members}</span>
+        </div>
+      `;
+    }
+
+    function updateMemberCommunityDropdown() {
+      // Populate the member community dropdown with available communities
+      const dropdown = document.getElementById('member-community-select');
+      const communityButtons = document.querySelectorAll('#community-list button[data-id]');
+
+      // Clear existing options (except the default)
+      while (dropdown.children.length > 1) {
+        dropdown.removeChild(dropdown.lastChild);
+      }
+
+      // Add communities from the community list
+      communityButtons.forEach(button => {
+        const id = button.getAttribute('data-id');
+        const name = button.textContent.trim();
+        const option = document.createElement('option');
+        option.value = id;
+        option.textContent = name;
+        dropdown.appendChild(option);
+      });
+
+      // Set the currently selected community
+      if (selectedCommunityId) {
+        dropdown.value = selectedCommunityId;
+      }
+    }
 
     function lockPageScroll(){ try { document.documentElement.style.overflow = 'hidden'; } catch(_) {} }
     function unlockPageScroll(){ try { document.documentElement.style.overflow = ''; } catch(_) {} }

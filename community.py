@@ -96,17 +96,25 @@ def get_community_boundary_data(community_id):
 
 def remove_member(member_id, admin_user):
     """Remove a member from the community (admin only)"""
-    if not (admin_user.role in ['Admin', 'Business'] or admin_user.is_business_user()):
+    if not (admin_user.role in ['Admin', 'Business', 'SuperAdmin'] or admin_user.is_business_user()):
         return False, 'You do not have permission to remove members'
-    
-    # Use SQLAlchemy ORM instead of raw database operations
+
     user = User.query.get(member_id)
-    if user:
-        user.community_id = None
-        db.session.commit()
-        return True, 'Member removed successfully'
-    else:
+    if not user:
         return False, 'Member not found'
+
+    # NEW: Validate same community (unless SuperAdmin managing their business communities)
+    if admin_user.role == 'SuperAdmin':
+        # SuperAdmin can only remove from communities in their business
+        member_community = Community.query.get(user.community_id)
+        if not member_community or member_community.business_id != admin_user.business_id:
+            return False, 'You do not have permission to remove this member'
+    elif admin_user.community_id != user.community_id:
+        return False, 'You can only remove members from your own community'
+
+    user.community_id = None
+    db.session.commit()
+    return True, 'Member removed successfully'
 
 def update_community_name(new_name, community_id, admin_user):
     """Update community name (admin or business user only)"""

@@ -12,6 +12,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
+<script src="https://unpkg.com/leaflet-editable@latest/src/Leaflet.Editable.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -145,38 +146,60 @@
                         Copy Link
                     </button>
                     <hr class="my-6 border-gray-200 dark:border-gray-700">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="material-symbols-outlined text-primary text-xl">group</span>
-                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Members</h2>
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-primary text-xl">group</span>
+                            <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Members</h2>
+                        </div>
+                        <div class="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                            <input type="search"
+                                   id="member-search"
+                                   placeholder="Search members..."
+                                   class="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-48">
+                            <select id="role-filter" class="text-sm border border-gray-300 dark:border-gray-600 rounded px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-auto">
+                                <option value="">All Roles</option>
+                                <option value="Admin">Admins</option>
+                                <option value="Moderator">Moderators</option>
+                                <option value="Member">Members</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="member-stats" class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+                        <!-- Member statistics will be populated here -->
                     </div>
                     <div class="space-y-3 mb-4">
                         {% for member in members %}
-                        <div class="flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg">
+                        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 dark:bg-gray-700/50 p-3 rounded-lg gap-3">
                             <div class="flex items-center gap-3">
-                                <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-medium">
+                                <div class="w-8 h-8 bg-primary/20 text-primary rounded-full flex items-center justify-center font-medium flex-shrink-0">
                                     {{ member.name[:1] if member.name else member.email[:1] }}
                                 </div>
-                                <div>
-                                    <p class="text-gray-900 dark:text-white font-medium">{{ member.name if member.name else member.email }}</p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ member.role }}</p>
+                                <div class="min-w-0 flex-1">
+                                    <p class="text-gray-900 dark:text-white font-medium truncate">{{ member.name if member.name else member.email }}</p>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        {% if member.role == 'Admin' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"><span class="material-symbols-outlined text-xs">admin_panel_settings</span>Admin</span>
+                                        {% elif member.role == 'Moderator' %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300"><span class="material-symbols-outlined text-xs">security</span>Moderator</span>
+                                        {% else %}
+                                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800 dark:bg-gray-900/50 dark:text-gray-300"><span class="material-symbols-outlined text-xs">person</span>Member</span>
+                                        {% endif %}
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flex items-center gap-3">
-                                {% if current_user.role == 'Admin' and member.id != current_user.id %}
-                                    {% if member.role == 'Member' %}
-                                    <form method="POST" action="/members/{{ member.id }}/promote">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="text-primary hover:text-primary/80" title="Promote to Moderator">Promote</button>
-                                    </form>
-                                    {% elif member.role == 'Moderator' %}
-                                    <form method="POST" action="/members/{{ member.id }}/demote">
-                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                        <button class="text-amber-600 hover:text-amber-700" title="Demote to Member">Demote</button>
-                                    </form>
-                                    {% endif %}
-                                    <button onclick="removeMember(this.getAttribute('data-member-id'))" data-member-id="{{ member.id }}" class="text-red-600 hover:text-red-700">Remove</button>
-                                {% endif %}
+                            {% if current_user.role == 'Admin' and member.id != current_user.id %}
+                            <div class="flex items-center gap-2 sm:justify-end">
+                                <select class="member-role-dropdown text-xs border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 w-full sm:w-auto"
+                                        data-member-id="{{ member.id }}"
+                                        data-member-name="{{ member.name if member.name else member.email }}"
+                                        onchange="changeMemberRole({{ member.id }}, this.value, '{{ member.name if member.name else member.email }}')">
+                                    <option value="Member" {% if member.role == 'Member' %}selected{% endif %}>Member</option>
+                                    <option value="Moderator" {% if member.role == 'Moderator' %}selected{% endif %}>Moderator</option>
+                                    <option value="Admin" {% if member.role == 'Admin' %}selected{% endif %}>Admin</option>
+                                </select>
+                                <button onclick="removeMember({{ member.id }}, '{{ member.name if member.name else member.email }}')" class="text-red-600 hover:text-red-700 text-sm px-2 py-1 rounded flex-shrink-0" title="Remove member">×</button>
                             </div>
+                            {% endif %}
                         </div>
                         {% endfor %}
                         {% if not members %}
@@ -311,10 +334,32 @@
                     <label for="boundarySearch" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
                     <input type="text" id="boundarySearch" class="w-full bg-gray-50 dark:bg-gray-700/50 border border-gray-200 dark:border-gray-700 rounded-lg p-2">
                 </div>
-                <div class="mt-3 flex flex-wrap gap-2">
-                    <button type="button" onclick="startBoundaryDraw()" class="px-3 py-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20">Draw Boundary</button>
-                    <button type="button" onclick="enableBoundaryEdit()" class="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700">Edit Shape</button>
-                    <button type="button" onclick="clearBoundary()" class="px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">Clear</button>
+                <div class="mt-3">
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Choose your drawing method:</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                        <button type="button" onclick="startCircleDraw()" class="px-3 py-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 flex items-center gap-2">
+                            <span class="material-symbols-outlined">radio_button_unchecked</span>
+                            <div class="text-left">
+                                <div class="font-medium">Draw Circle Area</div>
+                                <div class="text-xs text-green-500">Quick & Easy</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="startBoundaryDraw()" class="px-3 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 flex items-center gap-2">
+                            <span class="material-symbols-outlined">edit</span>
+                            <div class="text-left">
+                                <div class="font-medium">Draw Custom Shape</div>
+                                <div class="text-xs text-blue-500">For irregular areas</div>
+                            </div>
+                        </button>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" onclick="enableBoundaryEdit()" class="px-3 py-2 rounded-lg bg-gray-100 dark:bg-gray-700/50 hover:bg-gray-200 dark:hover:bg-gray-700">Edit Shape</button>
+                        <button type="button" onclick="clearBoundary()" class="px-3 py-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100">Clear</button>
+                    </div>
+                    <div id="drawingControls" class="mt-2 hidden">
+                        <button type="button" onclick="undoLastPoint()" class="px-3 py-2 rounded-lg bg-orange-50 text-orange-600 hover:bg-orange-100 mr-2">Undo Last Point</button>
+                        <button type="button" onclick="finishDrawing()" class="px-3 py-2 rounded-lg bg-primary text-white hover:bg-primary/90">Finish Drawing</button>
+                    </div>
                 </div>
                 <button onclick="useCurrentLocationForBoundary()" class="mt-2 flex items-center gap-2 text-primary">
                     <span class="material-symbols-outlined">my_location</span>
@@ -484,6 +529,122 @@
         hideDrawHint();
     }
 
+    // Mobile detection function
+    function isMobileDevice() {
+        return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+    }
+
+    // Circle drawing function
+    function startCircleDraw() {
+        if (!boundaryMapInstance) return;
+        try { if (editHandler) editHandler.disable(); } catch(_) {}
+        try { if (polygonDrawHandler) polygonDrawHandler.disable(); } catch(_) {}
+
+        // Enable Leaflet-Editable for circle drawing
+        boundaryMapInstance.editTools.startCircle(null, {
+            shapeOptions: {
+                color: '#10b981',
+                fillOpacity: 0.2,
+                weight: 2
+            }
+        });
+
+        showDrawHint('Tap to set center point, then drag edge to adjust radius.');
+        document.getElementById('drawingControls').classList.remove('hidden');
+    }
+
+    // Enhanced polygon drawing with mobile optimizations
+    function startBoundaryDraw() {
+        if (!boundaryMapInstance) return;
+        try { if (editHandler) editHandler.disable(); } catch(_) {}
+        try { if (polygonDrawHandler) polygonDrawHandler.disable(); } catch(_) {}
+
+        // Enhanced polygon drawing with mobile-friendly options
+        polygonDrawHandler = new L.Draw.Polygon(boundaryMapInstance, {
+            allowIntersection: false,
+            shapeOptions: {
+                color: '#3b82f6',
+                fillOpacity: 0.2,
+                weight: 2
+            },
+            drawError: {
+                color: '#ef4444',
+                message: '<strong>Error:</strong> Shape edges cannot cross!'
+            },
+            // Mobile-friendly: larger touch targets and better feedback
+            icon: new L.DivIcon({
+                iconSize: isMobileDevice() ? [40, 40] : [20, 20],
+                className: 'custom-polygon-marker'
+            })
+        });
+
+        polygonDrawHandler.enable();
+        showDrawHint('Tap to add points (3+ needed). Large touch targets on mobile.');
+        document.getElementById('drawingControls').classList.remove('hidden');
+    }
+
+    // Undo last point for polygon drawing
+    function undoLastPoint() {
+        if (polygonDrawHandler && polygonDrawHandler._markers && polygonDrawHandler._markers.length > 0) {
+            const markers = polygonDrawHandler._markers;
+            const lastMarker = markers[markers.length - 1];
+            if (lastMarker) {
+                boundaryMapInstance.removeLayer(lastMarker);
+                markers.pop();
+                showDrawHint(`Points: ${markers.length}. ${markers.length < 3 ? 'Need 3+ points' : 'Double-tap map to finish'}`);
+            }
+        }
+    }
+
+    // Finish drawing polygon
+    function finishDrawing() {
+        if (polygonDrawHandler) {
+            try { polygonDrawHandler.disable(); } catch(_) {}
+            hideDrawHint();
+            document.getElementById('drawingControls').classList.add('hidden');
+        }
+    }
+
+    // Enhanced drawing hint function
+    function showDrawHint(message) {
+        let hintEl = document.getElementById('drawHint');
+        if (!hintEl) {
+            hintEl = document.createElement('div');
+            hintEl.id = 'drawHint';
+            hintEl.className = 'absolute bottom-2 left-2 right-2 bg-white/90 dark:bg-gray-800/90 text-gray-800 dark:text-gray-200 text-sm p-2 rounded-lg shadow-lg z-10 pointer-events-none';
+            document.getElementById('boundaryMap').parentNode.appendChild(hintEl);
+        }
+        hintEl.textContent = message;
+        hintEl.classList.remove('hidden');
+    }
+
+    function hideDrawHint() {
+        const hintEl = document.getElementById('drawHint');
+        if (hintEl) {
+            hintEl.classList.add('hidden');
+        }
+    }
+
+    // Mobile-specific styling
+    if (isMobileDevice()) {
+        // Add mobile-specific CSS
+        const style = document.createElement('style');
+        style.textContent = `
+            .custom-polygon-marker {
+                background: #3b82f6 !important;
+                border: 3px solid white !important;
+                border-radius: 50% !important;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+            }
+            .leaflet-draw-toolbar {
+                display: none !important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    }
+
+    // Existing showDrawHint function (keeping the original)
     function showDrawHint(text) {
         let el = document.getElementById('draw-hint');
         if (!el) {
@@ -677,10 +838,171 @@
     }
 
     // Remove member
-    function removeMember(memberId) {
-        if (!confirm('Remove this member from the community?')) return;
+    function removeMember(memberId, memberName) {
+        if (!confirm(`Remove ${memberName || 'this member'} from the community?`)) return;
         window.location.href = `/remove-member/${memberId}`;
     }
+
+    function transferAdmin(memberId, memberName) {
+        if (!confirm(`Transfer admin role to ${memberName}? You will become a Moderator.`)) return;
+        // Use form submission for CSRF protection
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/members/${memberId}/make-admin`;
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = document.querySelector('input[name="csrf_token"]').value;
+
+        form.appendChild(csrfInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    function changeMemberRole(memberId, newRole, memberName) {
+        // Show enhanced confirmation modal instead of simple confirm
+        showEnhancedRoleModal(memberId, newRole, memberName);
+    }
+
+    function performSettingsRoleChange(memberId, newRole, memberName) {
+        // Show loading state
+        const dropdown = document.querySelector(`select[data-member-id="${memberId}"]`);
+        if (dropdown) {
+            dropdown.disabled = true;
+            dropdown.innerHTML = '<option>Loading...</option>';
+        }
+
+        // Use form submission for CSRF protection - we'll submit to set-role endpoint
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = `/admin/set-member-role/${memberId}`;
+
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'csrf_token';
+        csrfInput.value = document.querySelector('input[name="csrf_token"]').value;
+
+        const roleInput = document.createElement('input');
+        roleInput.type = 'hidden';
+        roleInput.name = 'role';
+        roleInput.value = newRole;
+
+        form.appendChild(csrfInput);
+        form.appendChild(roleInput);
+        document.body.appendChild(form);
+        form.submit();
+    }
+
+    // Toast notification system
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+
+        const colors = {
+            success: 'bg-green-500 text-white',
+            error: 'bg-red-500 text-white',
+            info: 'bg-blue-500 text-white'
+        };
+
+        toast.className = `px-4 py-2 rounded-lg shadow-lg ${colors[type] || colors.info} flex items-center gap-2`;
+        toast.innerHTML = `
+            <span class="material-symbols-outlined text-sm">
+                ${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info'}
+            </span>
+            <span class="text-sm font-medium">${message}</span>
+        `;
+
+        container.appendChild(toast);
+
+        // Auto remove after 4 seconds
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.remove();
+            }
+        }, 4000);
+    }
+
+    // Make showToast available globally
+    window.showToast = showToast;
+
+    function filterMembers() {
+        const searchTerm = document.getElementById('member-search').value.toLowerCase();
+        const roleFilter = document.getElementById('role-filter').value;
+
+        // Filter member cards in the DOM
+        const memberCards = document.querySelectorAll('.space-y-3 > div');
+        let visibleCount = 0;
+        let roleCounts = { total: 0, Admin: 0, Moderator: 0, Member: 0 };
+
+        memberCards.forEach(card => {
+            // Skip the "No members" message if it exists
+            if (card.textContent.includes('No members')) return;
+
+            const nameElement = card.querySelector('.font-medium');
+            const roleBadge = card.querySelector('.rounded-full');
+
+            if (nameElement && roleBadge) {
+                const name = nameElement.textContent.toLowerCase();
+                const role = roleBadge.textContent.trim();
+
+                const matchesSearch = name.includes(searchTerm);
+                const matchesRole = !roleFilter || role === roleFilter;
+
+                if (matchesSearch && matchesRole) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                    roleCounts.total++;
+                    if (roleCounts.hasOwnProperty(role)) {
+                        roleCounts[role]++;
+                    }
+                } else {
+                    card.style.display = 'none';
+                }
+            }
+        });
+
+        // Update statistics - use visibleCount for total, not roleCounts.total
+        const statsElement = document.getElementById('member-stats');
+        if (statsElement) {
+            statsElement.innerHTML = `
+                <div class="flex flex-wrap gap-2 sm:gap-4 text-sm justify-center sm:justify-start">
+                    <span>👥 Total: ${visibleCount}</span>
+                    <span>🔴 Admins: ${roleCounts.Admin}</span>
+                    <span>🟡 Moderators: ${roleCounts.Moderator}</span>
+                    <span>⚪ Members: ${roleCounts.Member}</span>
+                </div>
+            `;
+        }
+
+        // Show/hide "No members" message if needed
+        const noMembersMsg = document.querySelector('.space-y-3 > p');
+        if (noMembersMsg && visibleCount === 0) {
+            noMembersMsg.style.display = 'block';
+        } else if (noMembersMsg) {
+            noMembersMsg.style.display = 'none';
+        }
+    }
+
+    function updateMemberStats(counts) {
+        const statsElement = document.getElementById('member-stats');
+        if (!statsElement) return;
+
+        const { total, Admin, Moderator, Member } = counts;
+
+        statsElement.innerHTML = `
+            <div class="flex gap-4 text-sm">
+                <span>👥 Total: ${total}</span>
+                <span>🔴 Admins: ${Admin}</span>
+                <span>🟡 Moderators: ${Moderator}</span>
+                <span>⚪ Members: ${Member}</span>
+            </div>
+        `;
+    }
+
+    // Search and filter functionality for members
+    document.getElementById('member-search').addEventListener('input', filterMembers);
+    document.getElementById('role-filter').addEventListener('change', filterMembers);
 
     // Expose functions to global scope for inline handlers
     window.openBoundaryModal = openBoundaryModal;
@@ -693,6 +1015,89 @@
     window.saveCommunityName = saveCommunityName;
     window.copyInviteLink = copyInviteLink;
     window.removeMember = removeMember;
+    window.transferAdmin = transferAdmin;
+    window.changeMemberRole = changeMemberRole;
+
+    // Enhanced role change modal
+    function showEnhancedRoleModal(memberId, newRole, memberName) {
+        const dropdown = document.querySelector(`select[data-member-id="${memberId}"]`);
+        const currentRole = dropdown ? dropdown.value : 'Member';
+
+        showRoleChangeModal(memberId, memberName, currentRole, newRole);
+    }
+
+    // Role change confirmation modal
+    let currentRoleChange = {};
+
+    function showRoleChangeModal(memberId, memberName, currentRole, newRole) {
+        currentRoleChange = { memberId, memberName, currentRole, newRole };
+
+        const modal = document.getElementById('role-change-modal');
+        const modalContent = document.getElementById('modal-content');
+
+        const roleDescriptions = {
+            'Member': 'Can view and post alerts in the community',
+            'Moderator': 'Can delete member alerts and view reports',
+            'Admin': 'Has full community management access including member management'
+        };
+
+        modalContent.innerHTML = `
+            <p class="text-gray-700 dark:text-gray-300 mb-3">
+                Change <strong>${memberName}</strong>'s role?
+            </p>
+            <div class="mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">Current Role:</span>
+                    <span class="font-medium">${currentRole}</span>
+                </div>
+                <div class="flex items-center justify-center mb-2">
+                    <span class="text-2xl">↓</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-gray-600 dark:text-gray-400">New Role:</span>
+                    <span class="font-medium text-primary">${newRole}</span>
+                </div>
+            </div>
+            <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-3 mb-4">
+                <p class="text-sm text-gray-700 dark:text-gray-300">
+                    <strong>${newRole} permissions:</strong><br>
+                    ${roleDescriptions[newRole] || 'Standard community access'}
+                </p>
+            </div>
+        `;
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    function closeRoleModal() {
+        const modal = document.getElementById('role-change-modal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+        currentRoleChange = {};
+    }
+
+    function confirmRoleChange() {
+        if (currentRoleChange.memberId) {
+            // Use the new performSettingsRoleChange function
+            performSettingsRoleChange(currentRoleChange.memberId, currentRoleChange.newRole, currentRoleChange.memberName);
+            closeRoleModal();
+        }
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('role-change-modal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeRoleModal();
+        }
+    });
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            closeRoleModal();
+        }
+    });
     </script>
     <script>
     // Theme selector logic
@@ -761,4 +1166,24 @@
         });
     })();
     </script>
+
+    <!-- Role Change Confirmation Modal -->
+    <div id="role-change-modal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Change Role?</h3>
+                <button onclick="closeRoleModal()" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+            <div id="modal-content"></div>
+            <div class="flex gap-3 mt-6">
+                <button onclick="closeRoleModal()" class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">Cancel</button>
+                <button onclick="confirmRoleChange()" class="flex-1 px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary/90">Confirm Change</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2"></div>
 {% endblock %}
