@@ -1,0 +1,88 @@
+{% extends 'base.html' %}
+
+{% block title %}iZwi - Select Community{% endblock %}
+
+{% block content %}
+<main class="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 sm:px-6 lg:px-8">
+  <div class="max-w-md w-full space-y-8">
+    <!-- Header -->
+    <div class="text-center">
+      <img class="mx-auto h-12 w-auto" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB_pOQD51q3I4utHDxslkN1ZBiEl-4EUWUU_FQqCvGSavCkVmN-lbf04w7_Qh8qmxlpIxQojb1JpWBbWB1eiNFCNbgo9wGtZYgh8ApxzdC9NzEOlxHQUWlFF8metjKlTZAyDzSD4QMrQxzEdtnsbwKGkDUezK7Ll1FoufX6C2r39f4Mjp59oBfDyVtQB7yHBri-X5_zV2ASI6UP7U117eycls3T2YarZGCWiS_EwxzQMbhIKeFZw-2DLoO3ygX6j-W3d_i-i1TEpoU" alt="iZwi">
+      <h2 class="mt-6 text-3xl font-bold text-gray-900 dark:text-gray-100">
+        Select Community
+      </h2>
+      <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+        Choose which community you'd like to access
+      </p>
+    </div>
+
+    <!-- Community Selection Cards -->
+    <div class="mt-8 space-y-4">
+      {% for community, role in communities %}
+      <div class="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+        <div class="flex items-center justify-between">
+          <div class="flex-1">
+            <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">
+              {{ community.name }}
+            </h3>
+            <div class="mt-2 flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+              <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">group</span>
+                <span>Community</span>
+              </span>
+              <span class="inline-flex items-center gap-1">
+                <span class="material-symbols-outlined text-sm">badge</span>
+                <span class="capitalize">{{ role }}</span>
+              </span>
+            </div>
+          </div>
+          <div class="ml-4">
+            <form method="POST" action="{{ url_for('switch_community', community_id=community.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
+                Access
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Create New Community Link -->
+    <div class="mt-8 text-center">
+      <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+        Don't see your community?
+      </p>
+      <a href="{{ url_for('define_community') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 text-sm font-medium rounded-md text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors">
+        <span class="material-symbols-outlined text-sm mr-2">add</span>
+        Create New Community
+      </a>
+    </div>
+
+    <!-- Back to Login -->
+    <div class="mt-8 text-center">
+      <a href="{{ url_for('logout') }}" class="text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100">
+        Back to login
+      </a>
+    </div>
+  </div>
+</main>
+
+<!-- Loading overlay for community switching -->
+<div id="loading-overlay" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+  <div class="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center gap-3">
+    <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+    <span class="text-gray-900 dark:text-gray-100">Switching community...</span>
+  </div>
+</div>
+
+<script>
+  // Show loading overlay when switching communities
+  document.querySelectorAll('form[action*="switch-community"]').forEach(form => {
+    form.addEventListener('submit', function() {
+      document.getElementById('loading-overlay').classList.remove('hidden');
+    });
+  });
+</script>
+{% endblock %}

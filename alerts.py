@@ -157,10 +157,12 @@ def resolve_alert(alert_id, user):
     """Mark an alert as resolved (admin only)"""
     if user.role != 'Admin':
         return False, 'Admin access required'
-    
+
     alert = Alert.query.get(alert_id)
     if alert:
         alert.is_resolved = True
+        alert.status = 'Resolved'
+        alert.resolved_at = datetime.now()
         db.session.commit()
         return True, 'Alert marked as resolved'
     else:

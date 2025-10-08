@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% block title %}Analytics Dashboard - {{ branding.business_name if branding else 'iZwi' }}{% endblock %}
+
+{% block extra_head %}
+<!-- Chart.js for interactive charts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+
+<!-- Leaflet and heatmap plugin for interactive map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+<!-- Fix for heatmap canvas performance warning -->
+<style>
+    canvas.leaflet-heatmap-layer {
+        will-read-frequently: true;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Analytics Dashboard Header -->
+<header class="bg-white dark:bg-gray-800/50 px-4 py-4 mb-6 border-b border-gray-200 dark:border-gray-700">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <span class="material-symbols-outlined text-3xl text-emerald-600">analytics</span>
+            <div>
+                <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Analytics Dashboard</h1>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Transform your alert data into actionable business intelligence</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="/super-admin" class="p-2 -ml-2">
+                <span class="material-symbols-outlined text-gray-900 dark:text-gray-100">arrow_back</span>
+            </a>
+            <button onclick="exportPDF()" id="export-btn" class="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors">
+                <span class="material-symbols-outlined text-base">download</span>
+                Export PDF
+            </button>
+        </div>
+    </div>
+</header>
+
+<!-- Main Analytics Dashboard -->
+<main class="max-w-7xl mx-auto p-4 grid gap-6 grid-cols-1 lg:grid-cols-12">
+    <!-- Left Sidebar - Communities & Filters -->
+    <aside class="lg:col-span-3 space-y-6">
+        <!-- Communities Section -->
+        <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <div class="flex items-center justify-between mb-3">
+                <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Communities</h2>
+                <span class="text-xs text-gray-500 dark:text-gray-400">{{ communities|length }}</span>
+            </div>
+            <div class="space-y-1 max-h-48 overflow-y-auto" id="community-list">
+                {% for community in communities %}
+                <label class="flex items-center gap-2 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700/40 cursor-pointer">
+                    <input type="checkbox" class="community-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="{{ community.id }}" checked>
+                    <span class="material-symbols-outlined text-emerald-600 text-sm">location_city</span>
+                    <span class="text-sm text-gray-900 dark:text-gray-100 truncate">{{ community.name }}</span>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-3">Filters</h2>
+
+            <!-- Date Range Filter -->
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">Date Range</label>
+                <select id="date-range" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                    <option value="last_7_days">Last 7 Days</option>
+                    <option value="last_30_days" selected>Last 30 Days</option>
+                    <option value="this_month">This Month</option>
+                    <option value="last_90_days">Last 90 Days</option>
+                    <option value="custom">Custom Range</option>
+                </select>
+            </div>
+
+            <!-- Custom Date Range -->
+            <div id="custom-date-range" class="hidden space-y-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">From Date</label>
+                    <input type="date" id="date-from" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">To Date</label>
+                    <input type="date" id="date-to" class="w-full text-sm border border-gray-300 dark:border-gray-600 rounded-md px-3 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                </div>
+            </div>
+
+            <!-- Categories Filter -->
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2">Categories</label>
+                <div class="space-y-1 max-h-32 overflow-y-auto" id="category-list">
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="category-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="Emergency" checked>
+                        <span>Emergency</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="category-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="Fire" checked>
+                        <span>Fire</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="category-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="Traffic" checked>
+                        <span>Traffic</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="category-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="Weather" checked>
+                        <span>Weather</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="category-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="Community" checked>
+                        <span>Community</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="category-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="Crime & Security" checked>
+                        <span>Crime & Security</span>
+                    </label>
+                    <label class="flex items-center gap-2 text-sm">
+                        <input type="checkbox" class="category-filter rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" value="Other" checked>
+                        <span>Other</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Filter Actions -->
+            <div class="flex gap-2">
+                <button onclick="resetFilters()" class="flex-1 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition-colors">
+                    Reset
+                </button>
+                <button onclick="applyFilters()" class="flex-1 px-3 py-2 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-md transition-colors">
+                    Apply
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <section class="lg:col-span-6 space-y-6">
+        <!-- KPI Cards -->
+        <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Key Performance Indicators</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-emerald-600 mb-1" id="total-alerts">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Total Alerts</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-blue-600 mb-1" id="new-alerts">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">New Alerts</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-green-600 mb-1" id="resolved-alerts">0</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Resolved Alerts</div>
+                </div>
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                    <div class="text-2xl font-bold text-purple-600 mb-1" id="avg-resolution-time">0h</div>
+                    <div class="text-sm text-gray-600 dark:text-gray-400">Avg. Resolution Time</div>
+                </div>
+            </div>
+            <div class="mt-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 text-center">
+                <div class="text-lg font-medium text-gray-900 dark:text-gray-100" id="busiest-day-time">No data</div>
+                <div class="text-sm text-gray-600 dark:text-gray-400">Busiest Day & Time</div>
+            </div>
+        </div>
+
+        <!-- Charts Section -->
+        <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Data Visualizations</h2>
+            <div class="grid grid-cols-1 gap-6">
+                <!-- Time Series Chart -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-3">Alerts Over Time</h3>
+                    <div class="h-64">
+                        <canvas id="time-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Category Distribution Chart -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-3">Alerts by Category</h3>
+                    <div class="h-64">
+                        <canvas id="category-chart"></canvas>
+                    </div>
+                </div>
+
+                <!-- Status Distribution Chart -->
+                <div class="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <h3 class="text-base font-medium text-gray-900 dark:text-gray-100 mb-3">Alert Status Distribution</h3>
+                    <div class="h-64">
+                        <canvas id="status-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Right Sidebar - Map & Controls -->
+    <aside class="lg:col-span-3">
+        <div class="bg-white dark:bg-gray-800/50 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 lg:sticky lg:top-4 h-[600px] flex flex-col">
+            <!-- Map Header -->
+            <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="material-symbols-outlined text-emerald-600">map</span>
+                    <h3 class="font-semibold text-gray-900 dark:text-gray-100">Alert Heatmap</h3>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer select-none text-sm">
+                    <input id="heatmap-toggle" type="checkbox" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" checked>
+                    <span class="text-gray-700 dark:text-gray-300">Heatmap</span>
+                </label>
+            </div>
+
+            <!-- Map Container -->
+            <div class="flex-1 relative" id="map-container">
+                <div id="analytics-map" class="w-full h-full"></div>
+
+                <!-- Loading Overlay -->
+                <div id="map-loading" class="absolute inset-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-2"></div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">Loading map...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </aside>
+</main>
+
+<!-- Load Analytics Dashboard JavaScript -->
+<script src="{{ url_for('static', filename='js/analytics.js') }}?v={{ config['ASSET_VERSION'] }}"></script>
+
+{% endblock %}

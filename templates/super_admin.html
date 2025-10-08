@@ -654,6 +654,12 @@
       // Update member community dropdown
       updateMemberCommunityDropdown();
 
+      // Load members if Members tab is currently active
+      const membersContent = document.getElementById('members-content');
+      if (membersContent && !membersContent.classList.contains('hidden')) {
+        loadMembers(communityId);
+      }
+
       // Update map header and post alert buttons with selected community name
       updateUIForCommunity(communityId);
     }

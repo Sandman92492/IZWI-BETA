@@ -88,11 +88,11 @@ def login():
             flash('Welcome back! You have been successfully logged in.',
                   'success')
 
-            # Redirect based on role
+            # Redirect based on role and community membership
             if hasattr(user, 'is_super_admin') and user.is_super_admin():
                 return redirect(url_for('super_admin_dashboard'))
-            elif user.community_id:
-                return redirect(url_for('dashboard'))
+            elif user.get_communities():
+                return redirect(url_for('select_community'))
             else:
                 return redirect(url_for('define_community'))
         else:
@@ -101,6 +101,31 @@ def login():
                 flash(error)
 
     return render_template('login.html')
+
+
+@app.route('/select-community')
+@login_required
+def select_community():
+    # SuperAdmins bypass this
+    if current_user.is_super_admin():
+        return redirect(url_for('super_admin_dashboard'))
+
+    # Get user's communities
+    memberships = current_user.get_active_memberships()
+    communities_with_roles = [(m.community, m.role) for m in memberships]
+
+    return render_template('select_community.html', communities=communities_with_roles)
+
+
+@app.route('/switch-community/<int:community_id>')
+@login_required
+def switch_community(community_id):
+    if not current_user.is_member_of(community_id):
+        flash('Access denied', 'error')
+        return redirect(url_for('select_community'))
+
+    session['current_community_id'] = community_id
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/signup/guard')
@@ -169,19 +194,38 @@ def guard_signup_submit():
         subscription_tier='Premium'  # Guards get premium access
     )
 
-    # Mark invitation as used
+    # Add and commit the guard user first to get a valid ID
+    db.session.add(guard_user)
+    db.session.commit()
+
+    # Create community membership record for the guard
+    try:
+        from models import UserCommunityMembership
+        membership = UserCommunityMembership(
+            user_id=guard_user.id,
+            community_id=invite.community_id,
+            role='Guard'
+        )
+        db.session.add(membership)
+        db.session.commit()
+        app.logger.info(f"Created guard membership for user {guard_user.id} in community {invite.community_id}")
+
+        # Set current community in session
+        session['current_community_id'] = invite.community_id
+    except Exception as e:
+        app.logger.error(f"Failed to create guard membership record: {e}")
+
+    # Now mark invitation as used with valid user ID
     invite.used = True
     invite.used_by_user_id = guard_user.id
     invite.used_at = datetime.now()
-
-    db.session.add(guard_user)
     db.session.commit()
 
     # Auto-login the new guard
     login_user(guard_user)
 
     flash('Welcome! You have been successfully registered as a guard.', 'success')
-    return redirect(url_for('guard_dashboard'))
+    return redirect(url_for('dashboard'))
 
 
 @app.route('/signup', methods=['POST'])
@@ -208,6 +252,27 @@ def signup_submit():
 
     if user:
         app.logger.info(f"Signup successful for {email}, user ID: {user.id}")
+
+        # Create community membership record if user joined via invite
+        if community_id:
+            from models import UserCommunityMembership, Community
+            try:
+                community = Community.query.get(community_id)
+                if community:
+                    membership = UserCommunityMembership(
+                        user_id=user.id,
+                        community_id=community_id,
+                        role=user.role  # Use the role that was set in create_user
+                    )
+                    db.session.add(membership)
+                    db.session.commit()
+                    app.logger.info(f"Created membership for user {user.id} in community {community_id}")
+
+                    # Set current community in session
+                    session['current_community_id'] = community_id
+            except Exception as e:
+                app.logger.error(f"Failed to create membership record: {e}")
+
         # Log in the new user
         login_user(user)
 
@@ -221,7 +286,7 @@ def signup_submit():
             # Store user info for welcome screen
             session['new_user_welcome'] = True
             session['user_name'] = (name or email.split('@')[0]).title()
-            return redirect(url_for('welcome'))
+            return redirect(url_for('dashboard'))  # Go to dashboard since they have a community
         else:
             flash(
                 'Welcome! Your account has been created. Let\'s set up your community.',
@@ -247,19 +312,23 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # Redirect guards to their dedicated dashboard
-    if current_user.is_guard():
-        return redirect(url_for('guard_dashboard'))
+    # SuperAdmins bypass this
+    if current_user.is_super_admin():
+        return redirect(url_for('super_admin_dashboard'))
 
-    if not current_user.community_id:
-        return redirect(url_for('define_community'))
+    # Get current community from session
+    current_community_id = session.get('current_community_id')
+
+    # Validate user is member of the community
+    if not current_community_id or not current_user.is_member_of(current_community_id):
+        return redirect(url_for('select_community'))
 
     # Get community alerts
-    alerts = get_community_alerts(current_user.community_id)
-    app.logger.info(f"Dashboard: Found {len(alerts)} alerts for community {current_user.community_id}")
-    community = get_community_info(current_user.community_id)
+    alerts = get_community_alerts(current_community_id)
+    app.logger.info(f"Dashboard: Found {len(alerts)} alerts for community {current_community_id}")
+    community = get_community_info(current_community_id)
     # Normalize boundary JSON so the frontend always receives a clean JSON object/feature
-    raw_boundary = get_community_boundary_data(current_user.community_id)
+    raw_boundary = get_community_boundary_data(current_community_id)
     boundary_data = None
     try:
         if raw_boundary:
@@ -274,7 +343,7 @@ def dashboard():
                 boundary_data = json.dumps(obj)
     except Exception:
         boundary_data = None
-    members = get_community_members(current_user.community_id)
+    members = get_community_members(current_community_id)
     member_count = len(members) if members else 0
 
     # Determine Plus access for UI controls via cumulative entitlement
@@ -1902,6 +1971,423 @@ def forbidden(error):
 @app.errorhandler(404)
 def not_found(error):
     return render_template('errors/404.html'), 404
+
+
+# Analytics Dashboard Routes - B2B Premium Feature
+@app.route('/super-admin/analytics')
+@login_required
+def super_admin_analytics():
+    """Render the analytics dashboard for super admins"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    if not current_user.business_id:
+        return jsonify({'error': 'No business associated with this account'}), 403
+
+    # Get business communities for the logged-in super admin
+    communities = get_business_communities(current_user.business_id)
+
+    # Get business branding information
+    from utils import get_community_branding
+    # For super admin, we can get branding from the business directly
+    # Since this is a business-level view, we'll use a default branding
+    branding = {
+        'business_name': 'iZwi Analytics',
+        'logo_url': None,
+        'primary_color': '#1F2937',
+        'is_white_labeled': False
+    }
+
+    # Try to get business-specific branding if available
+    try:
+        business = get_community_business_info(current_user.business_id)
+        if business:
+            branding = {
+                'business_name': business.name,
+                'logo_url': business.logo_url,
+                'primary_color': business.primary_color,
+                'is_white_labeled': True
+            }
+    except:
+        pass  # Use default branding if business lookup fails
+
+    return render_template('super_admin_analytics.html', communities=communities, branding=branding)
+
+
+@app.route('/super-admin/analytics/data')
+@login_required
+def analytics_data():
+    """Get aggregated analytics data for KPI widgets"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    if not current_user.business_id:
+        return jsonify({'error': 'No business associated with this account'}), 403
+
+    # Parse query parameters
+    community_ids = request.args.getlist('community_ids[]')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    categories = request.args.getlist('categories[]')
+
+    # Validate business access
+    if community_ids:
+        for community_id in community_ids:
+            community = Community.query.get(community_id)
+            if not community or community.business_id != current_user.business_id:
+                return jsonify({'error': 'Forbidden'}), 403
+
+    # Build base query
+    from models import Alert
+    query = Alert.query.join(Community, Alert.community_id == Community.id).filter(
+        Community.business_id == current_user.business_id
+    )
+
+    # Apply filters
+    if community_ids:
+        query = query.filter(Alert.community_id.in_(community_ids))
+
+    if date_from:
+        try:
+            from datetime import datetime
+            date_from_dt = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            query = query.filter(Alert.timestamp >= date_from_dt)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            from datetime import datetime
+            date_to_dt = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            query = query.filter(Alert.timestamp <= date_to_dt)
+        except ValueError:
+            pass
+
+    if categories:
+        query = query.filter(Alert.category.in_(categories))
+
+    # Filter out expired alerts
+    from datetime import datetime
+    from sqlalchemy import or_
+    now = datetime.now()
+    query = query.filter(
+        or_(
+            Alert.expires_at.is_(None),
+            Alert.expires_at > now
+        )
+    )
+
+    alerts = query.all()
+
+    # Calculate KPIs
+    total_alerts = len(alerts)
+    new_alerts = len([a for a in alerts if a.status == 'New'])
+    resolved_alerts = len([a for a in alerts if a.status == 'Resolved'])
+
+    # Calculate average time to resolution
+    resolved_alerts_with_time = [a for a in alerts if a.status in ['Resolved', 'False Alarm'] and a.resolved_at]
+    avg_resolution_time = 0
+    if resolved_alerts_with_time:
+        total_resolution_time = sum(
+            (a.resolved_at - a.timestamp).total_seconds() / 3600  # hours
+            for a in resolved_alerts_with_time
+        )
+        avg_resolution_time = total_resolution_time / len(resolved_alerts_with_time)
+
+    # Find busiest day/time
+    from collections import defaultdict
+    day_hour_counts = defaultdict(int)
+    for alert in alerts:
+        day_of_week = alert.timestamp.strftime('%A')
+        hour = alert.timestamp.hour
+        day_hour_counts[f"{day_of_week} {hour}"] += 1
+
+    busiest_day_time = max(day_hour_counts.items(), key=lambda x: x[1])[0] if day_hour_counts else 'No data'
+
+    return jsonify({
+        'total_alerts': total_alerts,
+        'new_alerts': new_alerts,
+        'resolved_alerts': resolved_alerts,
+        'avg_resolution_time': round(avg_resolution_time, 1),
+        'busiest_day_time': busiest_day_time
+    })
+
+
+@app.route('/super-admin/analytics/charts')
+@login_required
+def analytics_charts():
+    """Get data for analytics charts"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    if not current_user.business_id:
+        return jsonify({'error': 'No business associated with this account'}), 403
+
+    # Parse query parameters (same as analytics_data)
+    community_ids = request.args.getlist('community_ids[]')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    categories = request.args.getlist('categories[]')
+
+    # Build base query
+    from models import Alert
+    query = Alert.query.join(Community, Alert.community_id == Community.id).filter(
+        Community.business_id == current_user.business_id
+    )
+
+    # Apply same filters as analytics_data
+    if community_ids:
+        query = query.filter(Alert.community_id.in_(community_ids))
+
+    if date_from:
+        try:
+            from datetime import datetime
+            date_from_dt = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            query = query.filter(Alert.timestamp >= date_from_dt)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            from datetime import datetime
+            date_to_dt = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            query = query.filter(Alert.timestamp <= date_to_dt)
+        except ValueError:
+            pass
+
+    if categories:
+        query = query.filter(Alert.category.in_(categories))
+
+    # Filter out expired alerts
+    from datetime import datetime
+    from sqlalchemy import or_
+    now = datetime.now()
+    query = query.filter(
+        or_(
+            Alert.expires_at.is_(None),
+            Alert.expires_at > now
+        )
+    )
+
+    alerts = query.all()
+
+    # Prepare data for charts
+    from collections import defaultdict, Counter
+
+    # Alerts over time (grouped by day)
+    time_series = defaultdict(int)
+    for alert in alerts:
+        day = alert.timestamp.strftime('%Y-%m-%d')
+        time_series[day] += 1
+
+    alerts_over_time = [{'date': date, 'count': count} for date, count in sorted(time_series.items())]
+
+    # Alerts by category
+    category_counts = Counter(alert.category for alert in alerts)
+    alerts_by_category = [{'category': cat, 'count': count} for cat, count in category_counts.most_common()]
+
+    # Alerts by status
+    status_counts = Counter(alert.status for alert in alerts)
+    alerts_by_status = [
+        {'status': status, 'count': count}
+        for status, count in status_counts.items()
+    ]
+
+    return jsonify({
+        'alerts_over_time': alerts_over_time,
+        'alerts_by_category': alerts_by_category,
+        'alerts_by_status': alerts_by_status
+    })
+
+
+@app.route('/super-admin/analytics/heatmap')
+@login_required
+def analytics_heatmap():
+    """Get heatmap data for alert density visualization"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    if not current_user.business_id:
+        return jsonify({'error': 'No business associated with this account'}), 403
+
+    # Parse query parameters (same as analytics_data)
+    community_ids = request.args.getlist('community_ids[]')
+    date_from = request.args.get('date_from')
+    date_to = request.args.get('date_to')
+    categories = request.args.getlist('categories[]')
+
+    # Build base query
+    from models import Alert
+    query = Alert.query.join(Community, Alert.community_id == Community.id).filter(
+        Community.business_id == current_user.business_id
+    )
+
+    # Apply same filters as analytics_data
+    if community_ids:
+        query = query.filter(Alert.community_id.in_(community_ids))
+
+    if date_from:
+        try:
+            from datetime import datetime
+            date_from_dt = datetime.fromisoformat(date_from.replace('Z', '+00:00'))
+            query = query.filter(Alert.timestamp >= date_from_dt)
+        except ValueError:
+            pass
+
+    if date_to:
+        try:
+            from datetime import datetime
+            date_to_dt = datetime.fromisoformat(date_to.replace('Z', '+00:00'))
+            query = query.filter(Alert.timestamp <= date_to_dt)
+        except ValueError:
+            pass
+
+    if categories:
+        query = query.filter(Alert.category.in_(categories))
+
+    # Filter out expired alerts
+    from datetime import datetime
+    from sqlalchemy import or_
+    now = datetime.now()
+    query = query.filter(
+        or_(
+            Alert.expires_at.is_(None),
+            Alert.expires_at > now
+        )
+    )
+
+    # Only include alerts with valid coordinates
+    query = query.filter(
+        Alert.latitude != 0,
+        Alert.longitude != 0
+    )
+
+    alerts = query.all()
+
+    # Convert to heatmap data format [lat, lng, intensity]
+    heatmap_data = []
+    for alert in alerts:
+        # Use intensity based on alert category/severity (you can customize this)
+        intensity = 1.0  # Default intensity
+        if alert.category.lower() in ['emergency', 'fire']:
+            intensity = 2.0
+        elif alert.category.lower() in ['crime & security']:
+            intensity = 1.5
+
+        heatmap_data.append([
+            float(alert.latitude),
+            float(alert.longitude),
+            intensity
+        ])
+
+    return jsonify(heatmap_data)
+
+
+@app.route('/super-admin/analytics/export-pdf', methods=['POST'])
+@login_required
+def export_analytics_pdf():
+    """Export analytics dashboard as PDF report"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    if not current_user.business_id:
+        return jsonify({'error': 'No business associated with this account'}), 403
+
+    try:
+        # Parse request data
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No data provided'}), 400
+
+        filters = data.get('filters', {})
+        kpis = data.get('kpis', {})
+        charts_data = data.get('charts', {})
+
+        # Get business info for branding
+        business = get_community_business_info(current_user.business_id)
+        if not business:
+            # Create a default business object for branding
+            from models import Business
+            business = Business(
+                name='iZwi Analytics',
+                logo_url=None,
+                primary_color='#1F2937',
+                contact_email=None,
+                subscription_tier='Free',
+                is_active=True
+            )
+
+        # Generate PDF using ReportLab (implemented in utils.py)
+        from utils import generate_analytics_pdf
+        pdf_bytes = generate_analytics_pdf(
+            business_id=current_user.business_id,
+            business=business,
+            filters=filters,
+            kpis=kpis,
+            charts_data=charts_data
+        )
+
+        # Return PDF as download
+        from flask import Response
+        return Response(
+            pdf_bytes,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': 'attachment; filename=analytics_report.pdf'}
+        )
+
+    except Exception as e:
+        app.logger.error(f'PDF export error: {e}')
+        return jsonify({'error': 'Failed to generate PDF report'}), 500
+
+
+@app.route('/super-admin/alerts/<int:alert_id>/update-status', methods=['POST'])
+@login_required
+def update_alert_status(alert_id):
+    """Update alert status (for B2B super admins)"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    try:
+        data = request.get_json()
+        if not data or 'status' not in data:
+            return jsonify({'error': 'Status is required'}), 400
+
+        new_status = data['status']
+
+        # Validate status
+        valid_statuses = ['New', 'Investigating', 'Resolved', 'False Alarm']
+        if new_status not in valid_statuses:
+            return jsonify({'error': f'Invalid status. Must be one of: {", ".join(valid_statuses)}'}), 400
+
+        # Get alert and validate business access
+        from models import Alert, Community
+        alert = Alert.query.get(alert_id)
+        if not alert:
+            return jsonify({'error': 'Alert not found'}), 404
+
+        community = Community.query.get(alert.community_id)
+        if not community or community.business_id != current_user.business_id:
+            return jsonify({'error': 'Forbidden'}), 403
+
+        # Update alert status
+        alert.status = new_status
+
+        # Set resolved_at if status is terminal
+        if new_status in ['Resolved', 'False Alarm']:
+            from datetime import datetime
+            alert.resolved_at = datetime.now()
+        elif new_status in ['New', 'Investigating']:
+            # Clear resolved_at for non-terminal statuses
+            alert.resolved_at = None
+
+        from app import db
+        db.session.commit()
+
+        return jsonify({'success': True, 'message': f'Alert status updated to {new_status}'})
+
+    except Exception as e:
+        app.logger.error(f'Error updating alert status: {e}')
+        return jsonify({'error': 'Failed to update alert status'}), 500
 
 
 @app.errorhandler(429)

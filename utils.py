@@ -347,3 +347,175 @@ def get_upgrade_prompt(feature_name=None):
         'action_text': 'Upgrade Now',
         'action_url': '/upgrade'
     }
+
+
+# Analytics PDF Report Generation
+def generate_analytics_pdf(business_id, business, filters, kpis, charts_data):
+    """Generate a PDF analytics report using ReportLab"""
+    try:
+        from reportlab.lib.pagesizes import A4, letter
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+        from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+        from reportlab.lib.units import inch
+        from reportlab.lib import colors
+        from reportlab.lib.enums import TA_CENTER, TA_LEFT
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.ttfonts import TTFont
+        import io
+
+        # Get business branding
+        business_name = business.name if business else 'iZwi'
+        primary_color = business.primary_color if business else '#1F2937'
+
+        # Format filter information
+        filter_text = []
+        if filters.get('date_from') and filters.get('date_to'):
+            filter_text.append(f"Date Range: {filters['date_from']} to {filters['date_to']}")
+        if filters.get('communities'):
+            filter_text.append(f"Communities: {', '.join(filters['communities'])}")
+        if filters.get('categories'):
+            filter_text.append(f"Categories: {', '.join(filters['categories'])}")
+
+        filters_text = ' | '.join(filter_text) if filter_text else 'All data'
+
+        # Generate timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # Create PDF document
+        buffer = io.BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4, rightMargin=72, leftMargin=72, topMargin=72, bottomMargin=18)
+        styles = getSampleStyleSheet()
+
+        # Custom styles
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Title'],
+            fontSize=24,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor(primary_color)
+        )
+
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=12,
+            textColor=colors.HexColor(primary_color)
+        )
+
+        normal_style = styles['Normal']
+        normal_center_style = ParagraphStyle(
+            'NormalCenter',
+            parent=normal_style,
+            alignment=TA_CENTER
+        )
+
+        # Build PDF content
+        story = []
+
+        # Header
+        story.append(Paragraph(business_name, title_style))
+        story.append(Paragraph("Security Analytics Report", styles['Heading1']))
+        story.append(Paragraph("Comprehensive security insights and performance metrics", normal_center_style))
+        story.append(Spacer(1, 20))
+
+        # Filters section
+        story.append(Paragraph("Report Filters", heading_style))
+        story.append(Paragraph(f"<strong>Report Period:</strong> {filters_text}", normal_style))
+        story.append(Paragraph(f"<strong>Generated:</strong> {timestamp}", normal_style))
+        story.append(Spacer(1, 20))
+
+        # KPI section
+        story.append(Paragraph("Key Performance Indicators", heading_style))
+
+        # KPI data
+        kpi_data = [
+            ['Total Alerts', f"{kpis.get('total_alerts', 0):,}"],
+            ['New Alerts', f"{kpis.get('new_alerts', 0):,}"],
+            ['Resolved Alerts', f"{kpis.get('resolved_alerts', 0):,}"],
+            ['Avg. Resolution Time (hrs)', f"{kpis.get('avg_resolution_time', 0):.1f}"],
+            ['Busiest Day & Time', kpis.get('busiest_day_time', 'No data')]
+        ]
+
+        # Create KPI table
+        kpi_table = Table(kpi_data, colWidths=[2.5*inch, 2.5*inch])
+        kpi_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.lightgrey),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+            ('BACKGROUND', (1, 0), (1, -1), colors.whitesmoke),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+
+        story.append(kpi_table)
+        story.append(Spacer(1, 30))
+
+        # Charts section
+        story.append(Paragraph("Data Visualizations", heading_style))
+
+        # Placeholder for charts (in a real implementation, you'd generate actual chart images)
+        story.append(Paragraph("Alert Trends Over Time", styles['Heading2']))
+        story.append(Paragraph("This chart shows alert trends over the selected time period.", normal_style))
+        story.append(Spacer(1, 20))
+
+        story.append(Paragraph("Alerts by Category", styles['Heading2']))
+        story.append(Paragraph("This chart breaks down alerts by category type.", normal_style))
+        story.append(Spacer(1, 20))
+
+        story.append(Paragraph("Alert Status Distribution", styles['Heading2']))
+        story.append(Paragraph("This chart shows the distribution of alert statuses.", normal_style))
+        story.append(Spacer(1, 30))
+
+        # Footer
+        story.append(Paragraph("This report was generated by " + business_name + " Analytics Dashboard", normal_center_style))
+        story.append(Paragraph("For questions or support, please contact your administrator", normal_center_style))
+
+        # Build PDF
+        doc.build(story)
+
+        # Get PDF bytes
+        pdf_bytes = buffer.getvalue()
+        buffer.close()
+
+        return pdf_bytes
+
+    except Exception as e:
+        # If PDF generation fails, return a simple error PDF or raise the error
+        raise Exception(f"Failed to generate PDF: {str(e)}")
+
+
+# Multi-community access control decorators
+from functools import wraps
+from flask import session, flash, redirect, url_for, abort
+from flask_login import current_user
+
+
+def require_community_access(f):
+    """Decorator to ensure user is member of current community"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        community_id = session.get('current_community_id')
+        if not community_id or not current_user.is_member_of(community_id):
+            flash('Access denied: You are not a member of this community', 'error')
+            return redirect(url_for('select_community'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+def require_role_in_community(roles):
+    """Decorator to ensure user has specific role in current community"""
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            community_id = session.get('current_community_id')
+            role = current_user.get_role_in_community(community_id)
+            if role not in roles:
+                abort(403)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator

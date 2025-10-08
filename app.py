@@ -151,6 +151,40 @@ def init_database():
                 except Exception as mig_e:
                     db.session.rollback()
                     app.logger.error(f"Failed to add 'duration_minutes' column: {mig_e}")
+
+            # Check for status column
+            if 'status' not in columns:
+                try:
+                    db.session.execute(text("ALTER TABLE alert ADD COLUMN status VARCHAR(20) DEFAULT 'New'"))
+                    db.session.commit()
+                    app.logger.info("Added missing column 'status' to alert table")
+                except Exception as mig_e:
+                    db.session.rollback()
+                    app.logger.error(f"Failed to add 'status' column: {mig_e}")
+
+            # Check for resolved_at column
+            if 'resolved_at' not in columns:
+                try:
+                    db.session.execute(text('ALTER TABLE alert ADD COLUMN resolved_at TIMESTAMP'))
+                    db.session.commit()
+                    app.logger.info("Added missing column 'resolved_at' to alert table")
+                except Exception as mig_e:
+                    db.session.rollback()
+                    app.logger.error(f"Failed to add 'resolved_at' column: {mig_e}")
+
+            # Migrate existing data to new status field
+            try:
+                # Update resolved alerts to have status='Resolved'
+                db.session.execute(text("UPDATE alert SET status = 'Resolved' WHERE is_resolved = true"))
+                # Update unresolved alerts to have status='New'
+                db.session.execute(text("UPDATE alert SET status = 'New' WHERE is_resolved = false"))
+                # Set resolved_at for already resolved alerts
+                db.session.execute(text("UPDATE alert SET resolved_at = timestamp WHERE is_resolved = true AND resolved_at IS NULL"))
+                db.session.commit()
+                app.logger.info("Migrated existing alert data to new status and resolved_at fields")
+            except Exception as mig_e:
+                db.session.rollback()
+                app.logger.error(f"Failed to migrate existing alert data: {mig_e}")
             # Check for is_on_duty column in user table
             user_columns = [c['name'] for c in inspector.get_columns('user')]
             if 'is_on_duty' not in user_columns:
@@ -165,6 +199,15 @@ def init_database():
             # Ensure new tables exist (e.g., AlertReport, GuardInvite, GuardLocation, PushSubscription)
             # Ensure invite_code table exists by creating all again (noop if exists)
             db.create_all()
+
+            # Check for user_community_membership table
+            if 'user_community_membership' not in inspector.get_table_names():
+                try:
+                    db.create_all()  # This will create the new UserCommunityMembership table
+                    app.logger.info("Created user_community_membership table")
+                except Exception as mig_e:
+                    db.session.rollback()
+                    app.logger.error(f"Failed to create user_community_membership table: {mig_e}")
 
             # Additional migration for PushSubscription table if it doesn't exist
             try:

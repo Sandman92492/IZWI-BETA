@@ -42,6 +42,42 @@ class User(UserMixin, db.Model):
         """Check if user is a guard"""
         return self.role == 'Guard'
 
+    def get_communities(self):
+        """Get all communities user is a member of"""
+        return [m.community for m in self.community_memberships.filter_by(is_active=True)]
+
+    def get_role_in_community(self, community_id):
+        """Get user's role in a specific community"""
+        membership = self.community_memberships.filter_by(
+            community_id=community_id,
+            is_active=True
+        ).first()
+        return membership.role if membership else None
+
+    def is_member_of(self, community_id):
+        """Check if user is a member of a specific community"""
+        return self.community_memberships.filter_by(
+            community_id=community_id,
+            is_active=True
+        ).first() is not None
+
+    def get_active_memberships(self):
+        """Get active memberships"""
+        return self.community_memberships.filter_by(is_active=True).all()
+
+
+class UserCommunityMembership(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=False)
+    role = db.Column(db.String(20), default='Member')
+    joined_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    is_active = db.Column(db.Boolean, default=True)
+
+    __table_args__ = (
+        db.UniqueConstraint('user_id', 'community_id', name='unique_user_community'),
+    )
+
 
 class Community(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -69,6 +105,8 @@ class Alert(db.Model):
     is_verified = db.Column(db.Boolean, default=False)
     expires_at = db.Column(db.DateTime, nullable=True)
     duration_minutes = db.Column(db.Integer, nullable=True)
+    status = db.Column(db.String(20), default='New')
+    resolved_at = db.Column(db.DateTime, nullable=True)
 
 
 class Business(db.Model):
