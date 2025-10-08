@@ -4,11 +4,11 @@ from datetime import timedelta
 import time
 from logging.config import dictConfig
 
-from flask import Flask, request, redirect, url_for, flash
+from flask import Flask, request, redirect, url_for, flash, send_from_directory, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_login import LoginManager
+from flask_login import LoginManager, login_required
 from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
 
 
@@ -150,7 +150,17 @@ def init_database():
                 except Exception as mig_e:
                     db.session.rollback()
                     app.logger.error(f"Failed to add 'duration_minutes' column: {mig_e}")
-            # Ensure new tables exist (e.g., AlertReport)
+            # Check for is_on_duty column in user table
+            if 'is_on_duty' not in columns:
+                try:
+                    db.session.execute(text('ALTER TABLE user ADD COLUMN is_on_duty BOOLEAN DEFAULT 0'))
+                    db.session.commit()
+                    app.logger.info("Added missing column 'is_on_duty' to user table")
+                except Exception as mig_e:
+                    db.session.rollback()
+                    app.logger.error(f"Failed to add 'is_on_duty' column: {mig_e}")
+
+            # Ensure new tables exist (e.g., AlertReport, GuardInvite, GuardLocation)
             # Ensure invite_code table exists by creating all again (noop if exists)
             db.create_all()
             
@@ -175,6 +185,7 @@ csrf = CSRFProtect(app)
 # Import after app context
 from auth import load_user, check_session_activity
 from utils import get_category_color, get_category_icon, format_time_ago, format_time_left
+import push_notifications
 
 # Set up user loader for Flask-Login
 login_manager.user_loader(load_user)
@@ -202,3 +213,83 @@ def handle_csrf_error(e):
         pass
     # Use 303 to ensure the browser performs a GET after POST failure
     return redirect(request.referrer or url_for('index')), 303
+
+
+# PWA Routes
+@app.route('/offline')
+def offline():
+    """Serve offline fallback page"""
+    return render_template('offline.html')
+
+
+@app.route('/static/service-worker.js')
+def service_worker():
+    """Serve service worker with proper headers"""
+    response = send_from_directory('static', 'service-worker.js',
+                                   mimetype='application/javascript')
+    response.headers['Service-Worker-Allowed'] = '/'
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
+@app.route('/static/manifest.json')
+def manifest():
+    """Serve web app manifest"""
+    response = send_from_directory('static', 'manifest.json',
+                                   mimetype='application/manifest+json')
+    response.headers['Cache-Control'] = 'no-cache'
+    return response
+
+
+# Push Notification API Routes
+@app.route('/api/push/vapid-public-key', methods=['GET'])
+def get_vapid_public_key():
+    """Get VAPID public key for push notification subscription"""
+    try:
+        vapid_public_key = push_notifications.get_vapid_public_key()
+        return jsonify({'vapid_public_key': vapid_public_key})
+    except Exception as e:
+        app.logger.error(f'Error getting VAPID public key: {e}')
+        return jsonify({'error': 'Failed to get VAPID public key'}), 500
+
+
+@app.route('/api/push/subscribe', methods=['POST'])
+@login_required
+def subscribe_push():
+    """Subscribe user to push notifications"""
+    try:
+        subscription_data = request.get_json()
+        if not subscription_data:
+            return jsonify({'error': 'No subscription data provided'}), 400
+
+        subscription_data['user_id'] = current_user.id
+        result = push_notifications.subscribe_user(subscription_data)
+
+        if 'error' in result:
+            return jsonify(result), 400
+
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f'Error subscribing to push notifications: {e}')
+        return jsonify({'error': 'Failed to subscribe to push notifications'}), 500
+
+
+@app.route('/api/push/unsubscribe', methods=['POST'])
+@login_required
+def unsubscribe_push():
+    """Unsubscribe user from push notifications"""
+    try:
+        subscription_data = request.get_json()
+        if not subscription_data:
+            return jsonify({'error': 'No subscription data provided'}), 400
+
+        subscription_data['user_id'] = current_user.id
+        result = push_notifications.unsubscribe_user(subscription_data)
+
+        if 'error' in result:
+            return jsonify(result), 400
+
+        return jsonify(result)
+    except Exception as e:
+        app.logger.error(f'Error unsubscribing from push notifications: {e}')
+        return jsonify({'error': 'Failed to unsubscribe from push notifications'}), 500

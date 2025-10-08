@@ -12,6 +12,7 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), default='Member')
     business_id = db.Column(db.Integer, db.ForeignKey('business.id'))
     subscription_tier = db.Column(db.String(20), default='Free')
+    is_on_duty = db.Column(db.Boolean, default=False)
     
     def is_business_user(self):
         """Check if user is a business-level user"""
@@ -36,6 +37,10 @@ class User(UserMixin, db.Model):
     def has_premium_access(self):
         """Check if user has premium access"""
         return self.subscription_tier == 'Premium' or self.role == 'Business'
+
+    def is_guard(self):
+        """Check if user is a guard"""
+        return self.role == 'Guard'
 
 
 class Community(db.Model):
@@ -95,3 +100,56 @@ class InviteCode(db.Model):
     revoked = db.Column(db.Boolean, default=False)
     created_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+
+
+class GuardInvite(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    invite_token = db.Column(db.String(255), unique=True, nullable=False)
+    business_id = db.Column(db.Integer, db.ForeignKey('business.id'), nullable=False)
+    created_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    used = db.Column(db.Boolean, default=False)
+    used_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    used_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    expires_at = db.Column(db.DateTime, nullable=True)
+
+    def is_valid(self):
+        """Check if invitation is still valid (not used, not expired)"""
+        if self.used:
+            return False
+        if self.expires_at and self.expires_at < db.func.current_timestamp():
+            return False
+        return True
+
+
+class GuardLocation(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    guard_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    latitude = db.Column(db.Float, nullable=False)
+    longitude = db.Column(db.Float, nullable=False)
+    timestamp = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    # Index for performance when querying latest locations for guards
+    __table_args__ = (
+        db.Index('idx_guard_location_user_timestamp', 'guard_user_id', 'timestamp'),
+    )
+
+
+class PushSubscription(db.Model):
+    """Model for storing web push notification subscriptions"""
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    endpoint = db.Column(db.Text, nullable=False)  # Push service endpoint URL
+    p256dh = db.Column(db.Text, nullable=False)    # Public key for encryption
+    auth = db.Column(db.Text, nullable=False)      # Authentication secret
+    created_at = db.Column(db.DateTime, default=db.func.current_timestamp())
+    updated_at = db.Column(db.DateTime, default=db.func.current_timestamp(), onupdate=db.func.current_timestamp())
+
+    # Ensure one subscription per user per endpoint
+    __table_args__ = (
+        db.Index('idx_push_subscription_user_endpoint', 'user_id', 'endpoint'),
+        db.UniqueConstraint('user_id', 'endpoint', name='unique_user_endpoint')
+    )
+
+    def __repr__(self):
+        return f'<PushSubscription {self.id} for user {self.user_id}>'

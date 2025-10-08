@@ -5,6 +5,7 @@ from app import db
 from sqlalchemy import or_
 from models import Alert, User, AlertReport
 from utils import sanitize_plain_text, sanitize_text_input
+import push_notifications
 
 def get_community_alerts(community_id, include_resolved=False):
     """Get all alerts for a community"""
@@ -99,6 +100,25 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
 
     db.session.add(alert)
     db.session.commit()
+
+    # Send push notifications to all subscribed users
+    try:
+        notification_title = f'New {category.title()} Alert'
+        notification_body = description[:100] + '...' if len(description) > 100 else description
+
+        push_notifications.send_notification_to_all_users(
+            title=notification_title,
+            body=notification_body,
+            data={
+                'alert_id': alert.id,
+                'category': category,
+                'community_id': community_id,
+                'url': f'/dashboard'
+            }
+        )
+    except Exception as e:
+        # Log error but don't fail the alert creation
+        current_app.logger.error(f'Failed to send push notifications for alert {alert.id}: {e}')
 
     return alert.id, None
 

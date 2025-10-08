@@ -1,0 +1,392 @@
+{% extends 'base.html' %}
+
+{% block title %}Guard Dashboard - iZwi{% endblock %}
+
+{% block extra_head %}
+<style>
+.duty-toggle {
+  transition: all 0.3s ease;
+}
+.duty-toggle.on {
+  background-color: #10b981;
+  border-color: #10b981;
+}
+.duty-toggle.off {
+  background-color: #6b7280;
+  border-color: #6b7280;
+}
+.duty-status-banner {
+  transition: all 0.3s ease;
+}
+.duty-status-banner.on-duty {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+.duty-status-banner.off-duty {
+  background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <!-- Header with duty status -->
+  <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center py-4">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-xl text-emerald-600 dark:text-emerald-400">security</span>
+          </div>
+          <div>
+            <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Guard Dashboard</h1>
+            <p class="text-sm text-gray-500 dark:text-gray-400">Security Operations Center</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <a href="/settings" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+            <span class="material-symbols-outlined">settings</span>
+          </a>
+          <a href="/logout" class="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300">
+            <span class="material-symbols-outlined">logout</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Duty Status Banner -->
+    <div id="duty-status-banner" class="mb-8 p-6 rounded-lg shadow-sm duty-status-banner {% if is_on_duty %}on-duty{% else %}off-duty{% endif %}">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="w-12 h-12 rounded-full {% if is_on_duty %}bg-white/20{% else %}bg-white/10{% endif %} flex items-center justify-center">
+            <span class="material-symbols-outlined text-2xl {% if is_on_duty %}text-white{% else %}text-white/80{% endif %}">
+              {% if is_on_duty %}security{% else %}security{% endif %}
+            </span>
+          </div>
+          <div>
+            <h2 id="duty-status-text" class="text-xl font-semibold {% if is_on_duty %}text-white{% else %}text-white/90{% endif %}">
+              {% if is_on_duty %}You are ON DUTY{% else %}You are OFF DUTY{% endif %}
+            </h2>
+            <p id="duty-status-desc" class="text-sm {% if is_on_duty %}text-white/90{% else %}text-white/70{% endif %}">
+              {% if is_on_duty %}Your location is being shared with your security team{% else %}Your location is not being tracked{% endif %}
+            </p>
+          </div>
+        </div>
+        <button id="duty-toggle-btn"
+                class="relative inline-flex h-6 w-11 items-center rounded-full duty-toggle {% if is_on_duty %}on{% else %}off{% endif %}"
+                onclick="toggleDuty()">
+          <span class="inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform {% if is_on_duty %}translate-x-6{% else %}translate-x-1{% endif %}"></span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Location Permission Notice (when off duty) -->
+    <div id="location-notice" class="{% if is_on_duty %}hidden{% else %}block{% endif %} mb-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 mt-0.5">info</span>
+        <div>
+          <h3 class="font-medium text-blue-900 dark:text-blue-100">Location Permissions</h3>
+          <p class="text-sm text-blue-700 dark:text-blue-300 mt-1">
+            When you go on duty, we'll request permission to access your location for security monitoring.
+            Your location will only be shared while you're on duty.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-emerald-600 dark:text-emerald-400">add_alert</span>
+          </div>
+          <h3 class="font-semibold text-gray-900 dark:text-gray-100">Post Alert</h3>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Report incidents or security events in your community
+        </p>
+        <a href="/post-alert" class="inline-flex items-center gap-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300">
+          Create Alert <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </a>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-blue-600 dark:text-blue-400">map</span>
+          </div>
+          <h3 class="font-semibold text-gray-900 dark:text-gray-100">Community Map</h3>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          View alerts and patrol routes in your community
+        </p>
+        <a href="/dashboard" class="inline-flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+          View Map <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </a>
+      </div>
+
+      <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="w-10 h-10 rounded-full bg-purple-100 dark:bg-purple-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-purple-600 dark:text-purple-400">history</span>
+          </div>
+          <h3 class="font-semibold text-gray-900 dark:text-gray-100">Alert History</h3>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mb-4">
+          Review past alerts and security events
+        </p>
+        <a href="/alerts/history" class="inline-flex items-center gap-2 text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300">
+          View History <span class="material-symbols-outlined text-sm">arrow_forward</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Status Information -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Your Status</h3>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+          <h4 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Current Status</h4>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium {% if is_on_duty %}bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300{% else %}bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300{% endif %}">
+              {% if is_on_duty %}🟢 On Duty{% else %}⚪ Off Duty{% endif %}
+            </span>
+          </div>
+        </div>
+        <div>
+          <h4 class="font-medium text-gray-700 dark:text-gray-300 mb-2">Location Sharing</h4>
+          <p class="text-sm text-gray-600 dark:text-gray-400">
+            {% if is_on_duty %}Your location is being shared with your security team for monitoring purposes.{% else %}Location sharing is disabled when off duty.{% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+const csrf = '{{ csrf_token() }}';
+let locationWatchId = null;
+let locationInterval = null;
+
+function updateDutyUI(isOnDuty) {
+  const banner = document.getElementById('duty-status-banner');
+  const statusText = document.getElementById('duty-status-text');
+  const statusDesc = document.getElementById('duty-status-desc');
+  const toggleBtn = document.getElementById('duty-toggle-btn');
+  const notice = document.getElementById('location-notice');
+
+  if (isOnDuty) {
+    banner.className = 'mb-8 p-6 rounded-lg shadow-sm duty-status-banner on-duty';
+    statusText.textContent = 'You are ON DUTY';
+    statusDesc.textContent = 'Your location is being shared with your security team';
+    toggleBtn.className = 'relative inline-flex h-6 w-11 items-center rounded-full duty-toggle on';
+    notice.classList.add('hidden');
+  } else {
+    banner.className = 'mb-8 p-6 rounded-lg shadow-sm duty-status-banner off-duty';
+    statusText.textContent = 'You are OFF DUTY';
+    statusDesc.textContent = 'Your location is not being tracked';
+    toggleBtn.className = 'relative inline-flex h-6 w-11 items-center rounded-full duty-toggle off';
+    notice.classList.remove('hidden');
+
+    // Stop location tracking
+    if (locationWatchId) {
+      navigator.geolocation.clearWatch(locationWatchId);
+      locationWatchId = null;
+    }
+    if (locationInterval) {
+      clearInterval(locationInterval);
+      locationInterval = null;
+    }
+  }
+}
+
+function requestLocationPermission() {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocation is not supported by this browser'));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => resolve(position),
+      (error) => {
+        let message = 'Location access denied';
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            message = 'Location permission denied. Please enable location access in your browser settings.';
+            break;
+          case error.POSITION_UNAVAILABLE:
+            message = 'Location information unavailable';
+            break;
+          case error.TIMEOUT:
+            message = 'Location request timed out';
+            break;
+        }
+        reject(new Error(message));
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
+      }
+    );
+  });
+}
+
+function startLocationTracking() {
+  return new Promise((resolve, reject) => {
+    requestLocationPermission()
+      .then(() => {
+        // Start watching position
+        locationWatchId = navigator.geolocation.watchPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+
+            // Send location update to server
+            fetch('/guard/update-location', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrf
+              },
+              body: JSON.stringify({ latitude, longitude })
+            }).catch(err => {
+              console.error('Failed to update location:', err);
+            });
+          },
+          (error) => {
+            console.error('Location tracking error:', error);
+            // Don't reject here, just log the error and continue
+          },
+          {
+            enableHighAccuracy: false,
+            timeout: 10000,
+            maximumAge: 60000 // 1 minute
+          }
+        );
+
+        // Also send location every 30 seconds as backup
+        locationInterval = setInterval(() => {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              fetch('/guard/update-location', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRFToken': csrf
+                },
+                body: JSON.stringify({ latitude, longitude })
+              }).catch(err => console.error('Failed to update location:', err));
+            },
+            (error) => console.error('Backup location error:', error)
+          );
+        }, 30000);
+
+        resolve();
+      })
+      .catch(reject);
+  });
+}
+
+function toggleDuty() {
+  const isCurrentlyOnDuty = document.getElementById('duty-status-text').textContent.includes('ON DUTY');
+
+  fetch('/guard/toggle-duty', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': csrf }
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      const isOnDuty = data.is_on_duty;
+
+      if (isOnDuty && !isCurrentlyOnDuty) {
+        // Going on duty - request location permission and start tracking
+        return startLocationTracking().then(() => {
+          updateDutyUI(true);
+          showToast('You are now on duty! Location sharing started.', 'success');
+        }).catch(error => {
+          // Revert the toggle if location permission fails
+          fetch('/guard/toggle-duty', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrf }
+          });
+          showToast(error.message, 'error');
+        });
+      } else {
+        // Going off duty - just update UI
+        updateDutyUI(isOnDuty);
+        showToast(data.message, 'success');
+      }
+    } else {
+      showToast('Failed to toggle duty status', 'error');
+    }
+  })
+  .catch(err => {
+    console.error('Toggle duty error:', err);
+    showToast('Failed to toggle duty status', 'error');
+  });
+}
+
+function showToast(message, type = 'info') {
+  // Create toast element
+  const toast = document.createElement('div');
+  toast.className = `fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg transition-all duration-300 ${
+    type === 'success' ? 'bg-green-50 border border-green-200 text-green-800 dark:bg-green-900/20 dark:border-green-800 dark:text-green-200' :
+    type === 'error' ? 'bg-red-50 border border-red-200 text-red-800 dark:bg-red-900/20 dark:border-red-800 dark:text-red-200' :
+    'bg-blue-50 border border-blue-200 text-blue-800 dark:bg-blue-900/20 dark:border-blue-800 dark:text-blue-200'
+  }`;
+
+  toast.innerHTML = `
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-sm">
+        ${type === 'success' ? 'check_circle' : type === 'error' ? 'error' : 'info'}
+      </span>
+      <span class="text-sm font-medium">${message}</span>
+    </div>
+  `;
+
+  document.body.appendChild(toast);
+
+  // Auto remove after 4 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    toast.style.transform = 'translateX(100%)';
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+}
+
+// Handle page visibility changes
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    // Page became visible, refresh location if on duty
+    const isOnDuty = document.getElementById('duty-status-text').textContent.includes('ON DUTY');
+    if (isOnDuty) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          fetch('/guard/update-location', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': csrf
+            },
+            body: JSON.stringify({ latitude, longitude })
+          }).catch(err => console.error('Failed to update location:', err));
+        },
+        (error) => console.error('Location refresh error:', error)
+      );
+    }
+  }
+});
+
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', function() {
+  updateDutyUI({{ 'true' if is_on_duty else 'false' }});
+});
+</script>
+{% endblock %}

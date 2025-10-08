@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>iZwi - Offline</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link crossorigin="" href="https://fonts.gstatic.com/" rel="preconnect"/>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100dvh;
+            font-family: 'Inter', sans-serif;
+        }
+        .offline-bg {
+            background: linear-gradient(135deg, #17a899 0%, #142522 100%);
+        }
+    </style>
+</head>
+<body class="offline-bg text-white">
+    <div class="min-h-screen flex items-center justify-center px-4">
+        <div class="max-w-md w-full text-center">
+            <!-- Logo -->
+            <div class="mb-8">
+                <div class="w-20 h-20 mx-auto mb-4 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                    <span class="material-symbols-outlined text-3xl text-white">wifi_off</span>
+                </div>
+                <h1 class="text-3xl font-bold mb-2">You're Offline</h1>
+                <p class="text-white/80">No internet connection detected</p>
+            </div>
+
+            <!-- Offline message -->
+            <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 mb-6 border border-white/20">
+                <div class="flex items-center justify-center mb-4">
+                    <span class="material-symbols-outlined text-2xl mr-3">info</span>
+                    <span class="text-sm font-medium">Connection Status</span>
+                </div>
+                <p class="text-white/90 mb-4">
+                    iZwi requires an internet connection to function properly. Some features may not work while offline.
+                </p>
+                <div class="flex items-center justify-center text-sm text-white/70">
+                    <span class="material-symbols-outlined text-lg mr-2">schedule</span>
+                    <span>Check your connection and try again</span>
+                </div>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="space-y-3">
+                <button onclick="window.location.reload()"
+                        class="w-full bg-white text-primary font-medium py-3 px-6 rounded-lg hover:bg-white/90 transition-colors flex items-center justify-center">
+                    <span class="material-symbols-outlined mr-2">refresh</span>
+                    Try Again
+                </button>
+
+                <button onclick="window.history.back()"
+                        class="w-full bg-white/20 text-white font-medium py-3 px-6 rounded-lg hover:bg-white/30 transition-colors backdrop-blur-sm border border-white/30">
+                    Go Back
+                </button>
+            </div>
+
+            <!-- Footer info -->
+            <div class="mt-8 text-white/60 text-sm">
+                <p>iZwi will automatically reconnect when your internet connection is restored.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Check for connection periodically
+        function checkConnection() {
+            if (navigator.onLine) {
+                window.location.reload();
+            }
+        }
+
+        // Check every 5 seconds
+        setInterval(checkConnection, 5000);
+
+        // Listen for online event
+        window.addEventListener('online', function() {
+            window.location.reload();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+
+{% block title %}Join Security Team - iZwi{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white dark:bg-gray-800 py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <div class="sm:mx-auto sm:w-full sm:max-w-md">
+        <div class="flex justify-center">
+          <div class="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/20 flex items-center justify-center">
+            <span class="material-symbols-outlined text-2xl text-emerald-600 dark:text-emerald-400">security</span>
+          </div>
+        </div>
+        <h2 class="mt-6 text-center text-3xl font-bold text-gray-900 dark:text-gray-100">
+          Join Security Team
+        </h2>
+        <p class="mt-2 text-center text-sm text-gray-600 dark:text-gray-400">
+          Create your guard account to start monitoring and protecting your community
+        </p>
+      </div>
+
+      <form class="mt-8 space-y-6" method="POST">
+        <input type="hidden" name="token" value="{{ token }}">
+
+        <div>
+          <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Full Name
+          </label>
+          <div class="mt-1">
+            <input id="name" name="name" type="text" required
+                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                   placeholder="Enter your full name">
+          </div>
+        </div>
+
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Email Address
+          </label>
+          <div class="mt-1">
+            <input id="email" name="email" type="email" autocomplete="email" required
+                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                   placeholder="Enter your email address">
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Password
+          </label>
+          <div class="mt-1">
+            <input id="password" name="password" type="password" autocomplete="new-password" required
+                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                   placeholder="Create a password (min 8 characters)">
+          </div>
+        </div>
+
+        <div>
+          <label for="password_confirm" class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+            Confirm Password
+          </label>
+          <div class="mt-1">
+            <input id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" required
+                   class="appearance-none block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm placeholder-gray-400 dark:placeholder-gray-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm"
+                   placeholder="Confirm your password">
+          </div>
+        </div>
+
+        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <span class="material-symbols-outlined text-blue-400">info</span>
+            </div>
+            <div class="ml-3">
+              <h3 class="text-sm font-medium text-blue-800 dark:text-blue-200">
+                Location Permissions Required
+              </h3>
+              <div class="mt-2 text-sm text-blue-700 dark:text-blue-300">
+                <p>As a guard, you'll need to share your location when on duty. Make sure to allow location access when prompted.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <button type="submit"
+                  class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-emerald-600 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-emerald-500 transition-colors">
+            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+              <span class="material-symbols-outlined text-emerald-500 group-hover:text-emerald-400">security</span>
+            </span>
+            Create Guard Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

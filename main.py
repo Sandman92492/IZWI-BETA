@@ -26,7 +26,7 @@ from utils import hash_code_plaintext, is_invite_valid
 from alerts import get_community_alerts, create_alert, report_alert, create_verified_alert
 from community import get_business_communities, get_community_business_info
 from models import Community
-from models import Alert, User
+from models import Alert, User, GuardInvite, GuardLocation
 from app import db
 
 
@@ -100,6 +100,86 @@ def login():
     return render_template('login.html')
 
 
+@app.route('/signup/guard')
+def guard_signup():
+    """Guard signup page with invitation token"""
+    token = request.args.get('token')
+    if not token:
+        flash('Invalid invitation link.', 'error')
+        return redirect(url_for('index'))
+
+    # Validate the invitation token
+    invite = GuardInvite.query.filter_by(invite_token=token).first()
+    if not invite or not invite.is_valid():
+        flash('This invitation link is invalid or has expired.', 'error')
+        return redirect(url_for('index'))
+
+    return render_template('guard_signup.html', token=token, business_name='Security Company')
+
+
+@app.route('/signup/guard', methods=['POST'])
+def guard_signup_submit():
+    """Process guard signup form"""
+    token = request.form.get('token')
+    if not token:
+        flash('Invalid invitation link.', 'error')
+        return redirect(url_for('index'))
+
+    # Validate the invitation token
+    invite = GuardInvite.query.filter_by(invite_token=token).first()
+    if not invite or not invite.is_valid():
+        flash('This invitation link is invalid or has expired.', 'error')
+        return redirect(url_for('index'))
+
+    name = request.form.get('name', '').strip()
+    email = request.form.get('email', '').strip()
+    password = request.form.get('password', '')
+    password_confirm = request.form.get('password_confirm', '')
+
+    # Validate form data
+    if not name or not email or not password:
+        flash('All fields are required.', 'error')
+        return redirect(url_for('guard_signup', token=token))
+
+    if password != password_confirm:
+        flash('Passwords do not match.', 'error')
+        return redirect(url_for('guard_signup', token=token))
+
+    if len(password) < 8:
+        flash('Password must be at least 8 characters long.', 'error')
+        return redirect(url_for('guard_signup', token=token))
+
+    # Check if email already exists
+    existing_user = User.query.filter_by(email=email).first()
+    if existing_user:
+        flash('Email already registered.', 'error')
+        return redirect(url_for('guard_signup', token=token))
+
+    # Create the guard user
+    guard_user = User(
+        email=email,
+        password_hash=generate_password_hash(password),
+        name=name,
+        role='Guard',
+        business_id=invite.business_id,
+        subscription_tier='Premium'  # Guards get premium access
+    )
+
+    # Mark invitation as used
+    invite.used = True
+    invite.used_by_user_id = guard_user.id
+    invite.used_at = datetime.now()
+
+    db.session.add(guard_user)
+    db.session.commit()
+
+    # Auto-login the new guard
+    login_user(guard_user)
+
+    flash('Welcome! You have been successfully registered as a guard.', 'success')
+    return redirect(url_for('guard_dashboard'))
+
+
 @app.route('/signup', methods=['POST'])
 def signup_submit():
     name = request.form.get('name', '').strip()
@@ -163,6 +243,10 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
+    # Redirect guards to their dedicated dashboard
+    if current_user.is_guard():
+        return redirect(url_for('guard_dashboard'))
+
     if not current_user.community_id:
         return redirect(url_for('define_community'))
 
@@ -385,6 +469,211 @@ def super_admin_delete_alert(alert_id: int):
         db.session.rollback()
         app.logger.error(f'Failed to delete alert {alert_id}: {e}')
         return jsonify({'success': False, 'error': 'Delete failed'}), 500
+
+
+# Guard invitation and management routes
+@app.route('/super-admin/invite-guard', methods=['POST'])
+@login_required
+def super_admin_invite_guard():
+    """Generate a unique guard invitation link"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    invite_token = secrets.token_urlsafe(32)
+    expires_at = datetime.now() + timedelta(days=7)  # Invites expire in 7 days
+
+    invite = GuardInvite(
+        invite_token=invite_token,
+        business_id=current_user.business_id,
+        created_by_user_id=current_user.id,
+        expires_at=expires_at
+    )
+
+    db.session.add(invite)
+    db.session.commit()
+
+    invitation_url = url_for('guard_signup', token=invite_token, _external=True)
+    return jsonify({
+        'success': True,
+        'invitation_url': invitation_url,
+        'expires_at': expires_at.isoformat()
+    })
+
+
+@app.route('/super-admin/guards')
+@login_required
+def super_admin_guards():
+    """Get all guards for the current business"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    guards = User.query.filter_by(
+        role='Guard',
+        business_id=current_user.business_id
+    ).all()
+
+    guard_data = []
+    for guard in guards:
+        # Get latest location if available
+        latest_location = GuardLocation.query.filter_by(
+            guard_user_id=guard.id
+        ).order_by(GuardLocation.timestamp.desc()).first()
+
+        guard_data.append({
+            'id': guard.id,
+            'name': guard.name,
+            'email': guard.email,
+            'is_on_duty': guard.is_on_duty,
+            'last_location_timestamp': latest_location.timestamp.isoformat() if latest_location else None,
+            'latitude': latest_location.latitude if latest_location else None,
+            'longitude': latest_location.longitude if latest_location else None
+        })
+
+    return jsonify({'guards': guard_data})
+
+
+@app.route('/super-admin/guards/<int:guard_id>/revoke', methods=['POST'])
+@login_required
+def super_admin_revoke_guard(guard_id: int):
+    """Revoke guard access"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    guard = User.query.get(guard_id)
+    if not guard or guard.business_id != current_user.business_id:
+        return jsonify({'error': 'Guard not found'}), 404
+
+    if guard.role != 'Guard':
+        return jsonify({'error': 'User is not a guard'}), 400
+
+    # Change role back to Member and turn off duty status
+    guard.role = 'Member'
+    guard.is_on_duty = False
+
+    # Clear any existing locations
+    GuardLocation.query.filter_by(guard_user_id=guard.id).delete()
+
+    db.session.commit()
+    app.logger.info(f"Guard {guard_id} access revoked by SA {current_user.id}")
+
+    return jsonify({'success': True})
+
+
+@app.route('/super-admin/guard-locations')
+@login_required
+def super_admin_guard_locations():
+    """Get all on-duty guard locations for the business"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    # Get guards who are currently on duty
+    on_duty_guards = User.query.filter_by(
+        role='Guard',
+        business_id=current_user.business_id,
+        is_on_duty=True
+    ).all()
+
+    locations_data = []
+    for guard in on_duty_guards:
+        # Get latest location for each guard
+        latest_location = GuardLocation.query.filter_by(
+            guard_user_id=guard.id
+        ).order_by(GuardLocation.timestamp.desc()).first()
+
+        if latest_location:
+            locations_data.append({
+                'guard_id': guard.id,
+                'name': guard.name,
+                'latitude': latest_location.latitude,
+                'longitude': latest_location.longitude,
+                'last_update': latest_location.timestamp.isoformat()
+            })
+
+    return jsonify({'guards': locations_data})
+
+
+# Guard location tracking routes
+@app.route('/guard/toggle-duty', methods=['POST'])
+@login_required
+def guard_toggle_duty():
+    """Toggle guard on-duty status"""
+    if not current_user.is_guard():
+        return jsonify({'error': 'Only guards can toggle duty status'}), 403
+
+    current_status = current_user.is_on_duty
+    new_status = not current_status
+
+    # Update user status
+    current_user.is_on_duty = new_status
+    db.session.commit()
+
+    # If going off-duty, clear location data
+    if not new_status:
+        GuardLocation.query.filter_by(guard_user_id=current_user.id).delete()
+        db.session.commit()
+
+    app.logger.info(f"Guard {current_user.id} toggled duty status to {new_status}")
+
+    return jsonify({
+        'success': True,
+        'is_on_duty': new_status,
+        'message': 'You are now ON DUTY' if new_status else 'You are now OFF DUTY'
+    })
+
+
+@app.route('/guard/update-location', methods=['POST'])
+@login_required
+def guard_update_location():
+    """Receive location updates from guard"""
+    if not current_user.is_guard():
+        return jsonify({'error': 'Only guards can update location'}), 403
+
+    if not current_user.is_on_duty:
+        return jsonify({'error': 'You must be on duty to share location'}), 403
+
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No location data provided'}), 400
+
+    latitude = data.get('latitude')
+    longitude = data.get('longitude')
+
+    if latitude is None or longitude is None:
+        return jsonify({'error': 'Latitude and longitude are required'}), 400
+
+    # Validate coordinates are reasonable
+    if not (-90 <= latitude <= 90) or not (-180 <= longitude <= 180):
+        return jsonify({'error': 'Invalid coordinates'}), 400
+
+    # Upsert location record (update if exists, insert if not)
+    location = GuardLocation.query.filter_by(guard_user_id=current_user.id).first()
+    if location:
+        location.latitude = latitude
+        location.longitude = longitude
+        location.timestamp = datetime.now()
+    else:
+        location = GuardLocation(
+            guard_user_id=current_user.id,
+            latitude=latitude,
+            longitude=longitude
+        )
+        db.session.add(location)
+
+    db.session.commit()
+
+    app.logger.info(f"Location updated for guard {current_user.id}: ({latitude}, {longitude})")
+
+    return jsonify({'success': True})
+
+
+@app.route('/guard/dashboard')
+@login_required
+def guard_dashboard():
+    """Guard dashboard showing duty status and location sharing"""
+    if not current_user.is_guard():
+        return redirect(url_for('dashboard'))
+
+    return render_template('guard_dashboard.html', is_on_duty=current_user.is_on_duty)
 
 
 @app.route('/super-admin/post-alert')

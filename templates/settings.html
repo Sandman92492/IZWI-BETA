@@ -50,6 +50,37 @@
                     <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">Your choice is saved on this device.</p>
                 </div>
             </div>
+
+            <!-- Push Notifications Section -->
+            <div class="mb-6">
+                <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-primary text-xl">notifications</span>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Push Notifications</h2>
+                    </div>
+                    <hr class="my-4 border-gray-200 dark:border-gray-700">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Alert Notifications</span>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Receive push notifications when new alerts are posted in your community.</p>
+                            <div class="flex gap-3">
+                                <button data-push-action="subscribe"
+                                        class="bg-primary text-white font-medium py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-base">notifications_active</span>
+                                    Enable
+                                </button>
+                                <button data-push-action="unsubscribe"
+                                        class="bg-gray-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-gray-600 transition-colors flex items-center gap-2 hidden">
+                                    <span class="material-symbols-outlined text-base">notifications_off</span>
+                                    Disable
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 dark:text-gray-400 mt-3">Notifications require browser permission and will only work when the app is installed as a PWA.</p>
+                </div>
+            </div>
+
             <div class="mb-6">
                 <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
                     {% if current_user.role == 'Admin' %}
