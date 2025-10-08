@@ -9,7 +9,7 @@ class PushNotifications {
         this.vapidPublicKey = null;
         this.isSubscribed = false;
         this.subscription = null;
-        this.userId = this.getCurrentUserId();
+        this.userId = null;
 
         // Initialize when DOM is ready
         if (document.readyState === 'loading') {
@@ -23,6 +23,10 @@ class PushNotifications {
         console.log('[PushNotifications] Initializing...');
 
         try {
+            // Get user ID first (DOM should be ready now)
+            this.userId = this.getCurrentUserId();
+            console.log('[PushNotifications] User ID for initialization:', this.userId);
+
             // Check if push notifications are supported
             if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
                 console.log('[PushNotifications] Push notifications not supported');
@@ -116,15 +120,27 @@ class PushNotifications {
         console.log('[PushNotifications] Subscribing to push notifications...');
 
         try {
+            // Get current user ID (DOM should be fully loaded now)
+            this.userId = this.getCurrentUserId();
+            console.log('[PushNotifications] User ID for subscription:', this.userId);
+
+            if (!this.userId) {
+                this.showToast('You must be logged in to enable push notifications.', 'error');
+                return;
+            }
+
             // Check if notifications are permitted
             if (Notification.permission === 'denied') {
+                console.log('[PushNotifications] Notifications denied');
                 this.showPermissionDeniedMessage();
                 return;
             }
 
             // Request notification permission if not granted
             if (Notification.permission === 'default') {
+                console.log('[PushNotifications] Requesting notification permission...');
                 const permission = await Notification.requestPermission();
+                console.log('[PushNotifications] Permission result:', permission);
                 if (permission !== 'granted') {
                     this.showPermissionDeniedMessage();
                     return;
@@ -132,18 +148,24 @@ class PushNotifications {
             }
 
             // Get service worker registration
+            console.log('[PushNotifications] Getting service worker registration...');
             const registration = await navigator.serviceWorker.ready;
+            console.log('[PushNotifications] Service worker ready:', registration);
 
             // Convert VAPID key to Uint8Array
+            console.log('[PushNotifications] VAPID public key length:', this.vapidPublicKey ? this.vapidPublicKey.length : 'No key');
             const vapidKeyUint8Array = this.urlBase64ToUint8Array(this.vapidPublicKey);
 
             // Subscribe to push notifications
+            console.log('[PushNotifications] Creating push subscription...');
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: vapidKeyUint8Array
             });
+            console.log('[PushNotifications] Push subscription created:', subscription ? 'Success' : 'Failed');
 
             // Send subscription to server
+            console.log('[PushNotifications] Sending subscription to server...');
             await this.sendSubscriptionToServer(subscription);
 
             this.subscription = subscription;
@@ -184,6 +206,7 @@ class PushNotifications {
 
     async sendSubscriptionToServer(subscription) {
         try {
+            console.log('[PushNotifications] Preparing subscription data...');
             const subscriptionData = {
                 user_id: this.userId,
                 endpoint: subscription.endpoint,
@@ -192,6 +215,9 @@ class PushNotifications {
                     auth: arrayBufferToBase64(subscription.getKey('auth'))
                 }
             };
+
+            console.log('[PushNotifications] Subscription data prepared:', subscriptionData);
+            console.log('[PushNotifications] CSRF token:', this.getCsrfToken());
 
             const response = await fetch('/api/push/subscribe', {
                 method: 'POST',
@@ -202,8 +228,11 @@ class PushNotifications {
                 body: JSON.stringify(subscriptionData)
             });
 
+            console.log('[PushNotifications] Server response status:', response.status);
+
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('[PushNotifications] Server error response:', errorData);
                 throw new Error(errorData.error || 'Failed to save subscription');
             }
 
@@ -309,10 +338,13 @@ class PushNotifications {
     }
 
     getCurrentUserId() {
+        console.log('[PushNotifications] Getting current user ID...');
+
         // First try to get user ID from body data attribute
         const body = document.body;
         if (body && body.dataset.userId) {
             const userId = parseInt(body.dataset.userId);
+            console.log('[PushNotifications] Found user ID in body data:', userId);
             if (userId && userId > 0) {
                 return userId;
             }
@@ -322,6 +354,7 @@ class PushNotifications {
         const userIdElement = document.querySelector('[data-user-id]');
         if (userIdElement && userIdElement.dataset.userId) {
             const userId = parseInt(userIdElement.dataset.userId);
+            console.log('[PushNotifications] Found user ID in element data:', userId);
             if (userId && userId > 0) {
                 return userId;
             }
@@ -332,21 +365,27 @@ class PushNotifications {
         const dashboardIndex = pathParts.indexOf('dashboard');
         if (dashboardIndex >= 0 && pathParts.length > dashboardIndex) {
             const userId = parseInt(pathParts[dashboardIndex + 1]);
+            console.log('[PushNotifications] Found user ID in URL path:', userId);
             if (userId && userId > 0) {
                 return userId;
             }
         }
 
         console.warn('[PushNotifications] Could not determine user ID');
+        console.log('[PushNotifications] Body dataset:', body ? body.dataset : 'No body element');
+        console.log('[PushNotifications] Current URL:', window.location.href);
         return null;
     }
 
     getCsrfToken() {
+        console.log('[PushNotifications] Getting CSRF token...');
+
         // Get CSRF token from meta tag or cookie
         const tokenElement = document.querySelector('meta[name="csrf-token"]');
         if (tokenElement && tokenElement.getAttribute('content')) {
-            console.log('[PushNotifications] Found CSRF token in meta tag');
-            return tokenElement.getAttribute('content');
+            const token = tokenElement.getAttribute('content');
+            console.log('[PushNotifications] Found CSRF token in meta tag:', token ? 'Token found' : 'No token');
+            return token;
         }
 
         // Fallback: try to get from cookie
@@ -360,6 +399,8 @@ class PushNotifications {
         }
 
         console.warn('[PushNotifications] CSRF token not found');
+        console.log('[PushNotifications] Available cookies:', document.cookie);
+        console.log('[PushNotifications] Meta elements:', document.querySelectorAll('meta[name="csrf-token"]'));
         return '';
     }
 

@@ -231,8 +231,18 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
         // Add markers for each alert
-        var alertMarkers = [];
         console.log('Adding markers for', alerts.length, 'alerts');
+
+        // Clear any existing markers first
+        if (window.alertMarkers) {
+            window.alertMarkers.forEach(marker => {
+                map.removeLayer(marker);
+            });
+        }
+
+        // Initialize the global markers array
+        window.alertMarkers = [];
+
         alerts.forEach(function(alert) {
             console.log('Processing alert:', alert);
             var categoryColor = getCategoryColor(alert.category);
@@ -284,7 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
               </div>
             `);
-            alertMarkers.push(marker);
+            window.alertMarkers.push(marker);
         });
 
         // Final viewport fit: prioritize showing both boundary and alerts
@@ -607,8 +617,334 @@ function reportAlert(alertId) {
     }
 }
 
-// Auto-hide flash messages after 5 seconds
+// Alert filtering functionality
+function filterAlerts(filterState) {
+    console.log('Filtering alerts with state:', filterState);
+
+    // Show loading state
+    const alertsContainer = document.getElementById('alerts-container');
+    if (!alertsContainer) return;
+
+    // Show loading indicator
+    alertsContainer.innerHTML = `
+        <div class="p-8 text-center">
+            <div class="inline-flex items-center gap-3 text-gray-600 dark:text-gray-400">
+                <div class="animate-spin w-5 h-5 border-2 border-primary border-t-transparent rounded-full"></div>
+                <span>Filtering alerts...</span>
+            </div>
+        </div>
+    `;
+
+    // Build query parameters
+    const params = new URLSearchParams();
+    if (filterState.category) params.append('category', filterState.category);
+    if (filterState.status) params.append('status', filterState.status);
+    if (filterState.verification) params.append('verification', filterState.verification);
+    if (filterState.date) params.append('date_range', filterState.date);
+    if (filterState.search) params.append('search', filterState.search);
+
+    // Fetch filtered alerts
+    fetch(`/api/alerts/filter?${params.toString()}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            updateAlertsDisplay(data.alerts);
+            updateMapMarkers(data.alerts);
+        } else {
+            console.error('Filter request failed:', data.error);
+            showLocationMessage('Failed to filter alerts', 'warning');
+            // Fallback to original alerts if filter fails
+            updateAlertsDisplay(window.originalAlerts || []);
+            updateMapMarkers(window.originalAlerts || []);
+        }
+    })
+    .catch(error => {
+        console.error('Error filtering alerts:', error);
+        showLocationMessage('Error filtering alerts', 'warning');
+        // Fallback to original alerts if filter fails
+        updateAlertsDisplay(window.originalAlerts || []);
+        updateMapMarkers(window.originalAlerts || []);
+    });
+}
+
+// Update alerts display in the alerts container
+function updateAlertsDisplay(alerts) {
+    const alertsContainer = document.getElementById('alerts-container');
+    if (!alertsContainer) return;
+
+    if (!alerts || alerts.length === 0) {
+        alertsContainer.innerHTML = `
+            <div class="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                <div class="text-center py-12">
+                    <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-100 dark:bg-gray-700/50 flex items-center justify-center">
+                        <span class="material-symbols-outlined text-2xl text-gray-400 dark:text-gray-300">filter_list_off</span>
+                    </div>
+                    <p class="text-gray-500 dark:text-gray-300 mb-2">No alerts match your filters.</p>
+                    <p class="text-sm text-gray-400 dark:text-gray-400">Try adjusting your filter criteria.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    const alertsHtml = alerts.map(alert => `
+        <div class="alert-card rounded-lg border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden" style="--accent: ${getCategoryColor(alert.category)}">
+            <div class="p-3 sm:p-4">
+                <div class="flex items-start gap-3 sm:gap-4 mb-3 sm:mb-4">
+                    <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center text-white text-base sm:text-lg flex-shrink-0" style="background-color: ${getCategoryColor(alert.category)}">${getCategoryIcon(alert.category)}</div>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
+                            <span class="font-semibold text-gray-900 dark:text-gray-100 text-sm sm:text-base">${alert.category}</span>
+                            ${alert.is_verified ? `
+                                <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-green-100 text-green-800 dark:bg-green-800/20 dark:text-green-300">
+                                    <span class="material-symbols-outlined text-sm">verified</span>
+                                    Verified
+                                </span>
+                            ` : ''}
+                            <span class="category-chip text-xs px-2 py-1 rounded-full font-medium">${formatTimeAgo(alert.timestamp)}</span>
+                            ${alert.expires_at ? `
+                                ${(() => {
+                                    const time_left = formatTimeLeft(alert.expires_at);
+                                    return time_left && time_left != "No expiration" ? `
+                                        <span class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium bg-orange-100 text-orange-800 dark:bg-orange-800/20 dark:text-orange-300">
+                                            <span class="material-symbols-outlined text-sm">schedule</span>
+                                            ${time_left}
+                                        </span>
+                                    ` : '';
+                                })()}
+                            ` : ''}
+                        </div>
+                        <p class="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">${alert.description}</p>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pt-3 border-t border-gray-50 dark:border-gray-700/50 gap-2 sm:gap-0">
+                    <div class="flex items-center text-xs text-gray-500 dark:text-gray-400">
+                        <span class="material-symbols-outlined text-sm mr-2">person</span>
+                        <span class="font-medium">${alert.author_name || 'Anonymous'}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        ${alert.user_id == window.currentUserId ? `
+                            <a href="/edit-alert/${alert.id}" class="text-xs sm:text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 px-2 sm:px-3 py-1.5 rounded-md hover:bg-blue-50 dark:hover:bg-blue-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Edit this alert">
+                                <span class="material-symbols-outlined text-sm">edit</span>
+                                <span class="font-medium">Edit</span>
+                            </a>
+                            <button onclick="deleteAlert(${alert.id})" class="text-xs sm:text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Delete this alert">
+                                <span class="material-symbols-outlined text-sm">delete</span>
+                                <span class="font-medium">Delete</span>
+                            </button>
+                        ` : `
+                            <button onclick="reportAlert(${alert.id})" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Report inappropriate content">
+                                <span class="material-symbols-outlined text-sm">flag</span>
+                                <span class="font-medium">Report</span>
+                            </button>
+                        `}
+                    </div>
+                </div>
+            </div>
+        </div>
+    `).join('');
+
+    alertsContainer.innerHTML = `<div class="p-4 sm:p-6 space-y-3 sm:space-y-4">${alertsHtml}</div>`;
+}
+
+// Update map markers based on filtered alerts
+function updateMapMarkers(alerts) {
+    if (!window.dashboardMap) return;
+
+    console.log('Updating map markers for', alerts.length, 'alerts');
+
+    // Clear existing markers
+    if (window.alertMarkers) {
+        window.alertMarkers.forEach(marker => {
+            window.dashboardMap.removeLayer(marker);
+        });
+    }
+
+    // Add new markers for filtered alerts
+    window.alertMarkers = [];
+
+    if (!alerts || alerts.length === 0) {
+        console.log('No alerts to display on map');
+        return;
+    }
+
+    alerts.forEach(function(alert) {
+        var categoryColor = getCategoryColor(alert.category);
+        var categoryIcon = getCategoryIcon(alert.category);
+        var markerVerifiedBadge = alert.is_verified ? '<span class="absolute -top-2 -right-2 bg-green-600 text-white rounded-full text-[10px] px-1.5 py-0.5 shadow">✔</span>' : '';
+
+        var lat = alert.latitude || -26.2041;
+        var lng = alert.longitude || 28.0473;
+
+        // Skip alerts without valid coordinates
+        if (lat === -26.2041 && lng === 28.0473) {
+            console.log('Skipping alert without valid coordinates:', alert.id);
+            return;
+        }
+
+        var icon = L.divIcon({
+            className: 'custom-alert-marker',
+            html: '<div class="relative">' +
+                  '<div class="w-12 h-12 rounded-full flex items-center justify-center text-white text-xl font-bold shadow-lg border-4 border-white" style="background-color: ' + categoryColor + ';">' +
+                  categoryIcon +
+                  '</div>' + markerVerifiedBadge +
+                  '<div class="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-8 border-transparent" style="border-top-color: ' + categoryColor + ';"></div>' +
+                  '</div>',
+            iconSize: [48, 56],
+            iconAnchor: [24, 48]
+        });
+
+        var marker = L.marker([lat, lng], {icon: icon}).addTo(window.dashboardMap);
+
+        // Enhanced popup with better styling and more information
+        const popupVerifiedBadge = alert.is_verified ? '<span style="display: inline-flex; align-items: center; gap: 2px; font-size: 10px; padding: 2px 6px; border-radius: 12px; background-color: #DCFCE7; color: #166534;"><span style="font-size: 10px;">✓</span>Verified</span>' : '';
+        const timeAgo = formatTimeAgo(alert.timestamp);
+
+        marker.bindPopup(`
+            <div style="min-width: 280px; max-width: 320px; font-family: inherit;">
+                <div style="display: flex; align-items: flex-start; gap: 12px; padding: 12px;">
+                    <div style="width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 18px; flex-shrink: 0; background-color: ${getCategoryColor(alert.category)};">
+                        ${categoryIcon}
+                    </div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                            <h3 style="font-weight: 600; color: #111827; font-size: 14px; margin: 0;">${alert.category}</h3>
+                            ${popupVerifiedBadge}
+                        </div>
+                        <p style="color: #374151; font-size: 14px; line-height: 1.5; margin: 0 0 8px 0;">${alert.description}</p>
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 12px; color: #6B7280;">
+                            <span>By: ${alert.author_name || 'Anonymous'}</span>
+                            <span>${timeAgo}</span>
+                        </div>
+                    </div>
+                </div>
+                <div style="border-top: 1px solid #E5E7EB; padding: 12px; background-color: #F9FAFB;">
+                    <button onclick="reportAlert(${alert.id})" style="width: 100%; background-color: #DC2626; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-size: 14px; font-weight: 500; cursor: pointer;" onmouseover="this.style.backgroundColor='#B91C1C'" onmouseout="this.style.backgroundColor='#DC2626'">
+                        Report Alert
+                    </button>
+                </div>
+            </div>
+        `);
+
+        window.alertMarkers.push(marker);
+    });
+
+    // Update map view to show filtered alerts
+    if (window.alertMarkers.length > 0) {
+        console.log('Fitting map to', window.alertMarkers.length, 'markers');
+        var group = L.featureGroup(window.alertMarkers);
+        window.dashboardMap.fitBounds(group.getBounds(), { padding: [20, 20], maxZoom: 16 });
+    } else {
+        console.log('No markers to display, keeping current map view');
+    }
+}
+
+// Helper function for time left formatting (if not already available)
+function formatTimeLeft(timestamp) {
+    if (!timestamp) return null;
+
+    try {
+        const date = new Date(timestamp);
+        const now = new Date();
+        const diffInSeconds = Math.floor((date - now) / 1000);
+
+        if (diffInSeconds <= 0) return "Expired";
+
+        if (diffInSeconds < 60) return `${diffInSeconds}s left`;
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m left`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h left`;
+        if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)}d left`;
+
+        return null; // More than 30 days
+    } catch (e) {
+        return null;
+    }
+}
+
+// Mobile scroll behavior for dashboard
+function initMobileScrollBehavior() {
+    // Only apply on mobile/tablet (not lg and up)
+    if (window.innerWidth >= 1024) return; // lg breakpoint
+
+    const mapContainer = document.querySelector('.map-container');
+    const alertsContainer = document.getElementById('alerts-container-wrapper');
+    const alertsScrollContainer = document.getElementById('alerts-container'); // The actual scrollable element
+    const alertsColumn = document.querySelector('.lg\\:col-span-5');
+
+    if (!mapContainer || !alertsContainer || !alertsScrollContainer || !alertsColumn) return;
+
+    // Initial state - map at 40vh
+    mapContainer.style.height = '40vh';
+
+    // Function to handle scroll in alerts container
+    function handleAlertsScroll() {
+        const scrollTop = alertsScrollContainer.scrollTop;
+        const mapContainer = document.querySelector('.map-container');
+
+        if (scrollTop > 10) {
+            // Scrolling down - shrink map to 20vh
+            mapContainer.style.height = '20vh';
+        } else {
+            // At top - expand map to 40vh
+            mapContainer.style.height = '40vh';
+        }
+    }
+
+    // Add scroll listener to the actual scrolling element (inner container)
+    alertsScrollContainer.addEventListener('scroll', handleAlertsScroll);
+
+    // Handle window resize
+    window.addEventListener('resize', function() {
+        if (window.innerWidth >= 1024) {
+            // Desktop view - remove scroll listener and reset styles
+            alertsScrollContainer.removeEventListener('scroll', handleAlertsScroll);
+            mapContainer.style.height = '';
+        } else {
+            // Mobile view - re-add scroll listener
+            alertsScrollContainer.addEventListener('scroll', handleAlertsScroll);
+        }
+    });
+
+    // Prevent layout shifts by ensuring proper positioning constraints
+    function ensureStableLayout() {
+        // Ensure alerts column maintains proper flex constraints
+        if (alertsColumn) {
+            alertsColumn.style.willChange = 'auto';
+        }
+
+        // Ensure scroll container maintains stable positioning (but don't interfere with wrapper height)
+        alertsScrollContainer.style.transform = 'translateZ(0)'; // Hardware acceleration for smooth scrolling
+    }
+
+    // Apply layout stability immediately and after transitions
+    ensureStableLayout();
+    setTimeout(ensureStableLayout, 100);
+    setTimeout(ensureStableLayout, 300);
+}
+
+// Store original alerts for fallback and initialize filtering
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize mobile scroll behavior
+    initMobileScrollBehavior();
+
+    // Store original alerts for fallback
+    const alertsData = document.getElementById('alerts-data');
+    window.originalAlerts = alertsData ? (function(){ try { return JSON.parse(alertsData.textContent); } catch(_) { return []; } })() : [];
+
+    // Current user ID is set in the template, but provide fallback
+    if (typeof window.currentUserId === 'undefined') {
+        window.currentUserId = null;
+    }
+
+    // Store current markers for filtering
+    window.alertMarkers = [];
+
+    // Auto-hide flash messages after 5 seconds
     const alertMessages = document.querySelectorAll('.alert-message');
     const flashContainer = document.getElementById('flash-container');
     alertMessages.forEach(function(message) {

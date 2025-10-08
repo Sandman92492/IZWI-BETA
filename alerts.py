@@ -50,6 +50,9 @@ def get_community_alerts(community_id, include_resolved=False):
 
 def create_alert(community_id, user_id, category, description, latitude=0.0, longitude=0.0, is_verified=False, duration_minutes=None):
     """Create a new alert"""
+    # Log alert creation attempt
+    current_app.logger.info(f'Creating alert for community {community_id} by user {user_id}, category: {category}, verified: {is_verified}')
+
     # Validate input
     if not category or not description:
         return None, 'Category and description are required'
@@ -101,12 +104,15 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
     db.session.add(alert)
     db.session.commit()
 
-    # Send push notifications to all subscribed users
+    # Send push notifications to users in this community only
     try:
         notification_title = f'New {category.title()} Alert'
         notification_body = description[:100] + '...' if len(description) > 100 else description
 
-        push_notifications.send_notification_to_all_users(
+        current_app.logger.info(f'Sending notification for alert {alert.id} in community {community_id}')
+
+        push_notifications.send_notification_to_community_users(
+            community_id=community_id,
             title=notification_title,
             body=notification_body,
             data={
@@ -118,12 +124,13 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
         )
     except Exception as e:
         # Log error but don't fail the alert creation
-        current_app.logger.error(f'Failed to send push notifications for alert {alert.id}: {e}')
+        current_app.logger.error(f'Failed to send push notifications for alert {alert.id} in community {community_id}: {e}')
 
     return alert.id, None
 
 def create_verified_alert(community_id, user_id, category, description, latitude=0.0, longitude=0.0, duration_minutes=None):
     """Create a verified alert shortcut"""
+    current_app.logger.info(f'Creating verified alert for community {community_id} by user {user_id}')
     return create_alert(community_id, user_id, category, description, latitude, longitude, is_verified=True, duration_minutes=duration_minutes)
 
 def report_alert(alert_id, reporter_user):

@@ -1,0 +1,173 @@
+<!-- Alert Filter Component -->
+<div class="bg-white dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm mb-4">
+  <div class="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200 dark:border-gray-700">
+    <div class="flex items-center justify-between">
+      <h3 class="font-display font-semibold text-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
+        <span class="material-symbols-outlined text-primary">filter_list</span>
+        Filter Alerts
+      </h3>
+      <button onclick="toggleFilters()" class="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors">
+        <span class="material-symbols-outlined text-base" id="filter-toggle-icon">expand_less</span>
+        <span id="filter-toggle-text">Hide Filters</span>
+      </button>
+    </div>
+  </div>
+
+  <div id="filter-controls" class="px-4 sm:px-6 py-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+      <!-- Category Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Category
+        </label>
+        <select id="category-filter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-primary">
+          <option value="">All Categories</option>
+          <option value="Emergency">Emergency</option>
+          <option value="Fire">Fire</option>
+          <option value="Traffic">Traffic</option>
+          <option value="Weather">Weather</option>
+          <option value="Community">Community</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <!-- Status Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Status
+        </label>
+        <select id="status-filter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-primary">
+          <option value="">All Status</option>
+          <option value="active">Active</option>
+          <option value="resolved">Resolved</option>
+        </select>
+      </div>
+
+      <!-- Verification Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Verification
+        </label>
+        <select id="verification-filter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-primary">
+          <option value="">All Alerts</option>
+          <option value="verified">Verified Only</option>
+          <option value="unverified">Unverified Only</option>
+        </select>
+      </div>
+
+      <!-- Date Range Filter -->
+      <div>
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Date Range
+        </label>
+        <select id="date-filter" class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-primary">
+          <option value="">All Time</option>
+          <option value="today">Today</option>
+          <option value="week">This Week</option>
+          <option value="month">This Month</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Search and Filter Actions -->
+    <div class="flex flex-col sm:flex-row gap-3">
+      <div class="flex-1">
+        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Search Alerts
+        </label>
+        <input type="text" id="search-filter" placeholder="Search by description..." class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary focus:border-primary">
+      </div>
+
+      <div class="flex gap-2">
+        <button onclick="applyFilters()" class="px-4 py-2 bg-primary text-white rounded-md hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2 transition-colors flex items-center gap-2">
+          <span class="material-symbols-outlined text-sm">search</span>
+          Apply Filters
+        </button>
+        <button onclick="clearFilters()" class="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-colors">
+          Clear
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Filter state management
+let filterState = {
+  category: '',
+  status: '',
+  verification: '',
+  date: '',
+  search: ''
+};
+
+// Toggle filter visibility
+function toggleFilters() {
+  const controls = document.getElementById('filter-controls');
+  const icon = document.getElementById('filter-toggle-icon');
+  const text = document.getElementById('filter-toggle-text');
+
+  if (controls.classList.contains('hidden')) {
+    controls.classList.remove('hidden');
+    icon.textContent = 'expand_less';
+    text.textContent = 'Hide Filters';
+  } else {
+    controls.classList.add('hidden');
+    icon.textContent = 'expand_more';
+    text.textContent = 'Show Filters';
+  }
+}
+
+// Apply filters
+function applyFilters() {
+  // Update filter state
+  filterState.category = document.getElementById('category-filter').value;
+  filterState.status = document.getElementById('status-filter').value;
+  filterState.verification = document.getElementById('verification-filter').value;
+  filterState.date = document.getElementById('date-filter').value;
+  filterState.search = document.getElementById('search-filter').value;
+
+  // Call the filtering function (to be implemented by parent page)
+  if (typeof filterAlerts === 'function') {
+    filterAlerts(filterState);
+  } else if (typeof loadGuardAlerts === 'function') {
+    // For guard dashboard, reload with filters
+    loadGuardAlertsWithFilters(filterState);
+  }
+}
+
+// Clear all filters
+function clearFilters() {
+  document.getElementById('category-filter').value = '';
+  document.getElementById('status-filter').value = '';
+  document.getElementById('verification-filter').value = '';
+  document.getElementById('date-filter').value = '';
+  document.getElementById('search-filter').value = '';
+
+  // Reset filter state
+  filterState = {
+    category: '',
+    status: '',
+    verification: '',
+    date: '',
+    search: ''
+  };
+
+  // Apply cleared filters
+  if (typeof filterAlerts === 'function') {
+    filterAlerts(filterState);
+  } else if (typeof loadGuardAlerts === 'function') {
+    // For guard dashboard, reload with cleared filters
+    loadGuardAlertsWithFilters(filterState);
+  }
+}
+
+// Initialize filters as collapsed on mobile
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.innerWidth < 640) {
+    document.getElementById('filter-controls').classList.add('hidden');
+    document.getElementById('filter-toggle-icon').textContent = 'expand_more';
+    document.getElementById('filter-toggle-text').textContent = 'Show Filters';
+  }
+});
+</script>

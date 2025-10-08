@@ -261,4 +261,45 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   box-shadow: 0 8px 32px rgba(42, 157, 143, 0.2);
 }
 
+/* Mobile dashboard layout stability */
+@media (max-width: 1023px) {
+  /* Force viewport height constraint on dashboard page */
+  body:has(.dashboard-main) {
+    min-height: 100vh !important;
+    max-height: 100vh !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  /* Prevent page-level scrolling on mobile dashboard */
+  .dashboard-main {
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow: hidden !important;
+  }
+
+  main {
+    overflow: hidden;
+    height: 100%;
+  }
+
+  /* Prevent alerts column from shifting vertically */
+  .lg\\:col-span-5 {
+    transform: translateZ(0);
+    will-change: auto;
+  }
+
+  /* Prevent map container from causing layout shifts */
+  .map-container {
+    transform: translateZ(0);
+    will-change: auto;
+  }
+
+  /* Ensure proper scrolling behavior */
+  #alerts-container {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 

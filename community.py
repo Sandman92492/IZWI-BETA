@@ -5,34 +5,44 @@ from app import db
 from models import Community, User, Business
 from utils import sanitize_plain_text, validate_json_data, generate_invite_slug
 
-def create_community(community_name, boundary_data='', business_id=None):
+def create_community(community_name, boundary_data='', business_id=None, admin_user_id=None):
     """Create a new community"""
     # Validate input
     if not community_name:
         return None, 'Community name is required'
-    
+
     if len(community_name) > 100:
         return None, 'Community name must be less than 100 characters'
-    
+
     # Sanitize input
     community_name = sanitize_plain_text(community_name.strip())
     boundary_data = validate_json_data(boundary_data)
-    
-    # Check if community name already exists
-    existing_community = Community.query.filter_by(name=community_name).first()
+
+    # Check if community name already exists within the business scope
+    query = Community.query.filter_by(name=community_name)
+    if business_id:
+        query = query.filter_by(business_id=business_id)
+
+    existing_community = query.first()
     if existing_community:
         return None, 'A community with this name already exists. Please choose a different name.'
-    
+
     # Generate unique invite slug
     invite_slug = generate_invite_slug()
-    
+
     # Determine subscription plan based on business association
     subscription_plan = 'Premium' if business_id else 'Free'
-    
+
+    # Validate admin_user_id if provided
+    if admin_user_id:
+        admin_user = User.query.get(admin_user_id)
+        if not admin_user:
+            return None, 'Invalid admin user specified'
+
     # Create community
     community = Community(
         name=community_name,
-        admin_user_id=current_user.id,
+        admin_user_id=admin_user_id if admin_user_id else current_user.id,
         invite_link_slug=invite_slug,
         subscription_plan=subscription_plan,
         boundary_data=boundary_data,
@@ -196,5 +206,115 @@ def create_business(name, logo_url=None, primary_color='#1F2937', contact_email=
     
     db.session.add(business)
     db.session.commit()
-    
+
     return business.id
+
+
+def create_community_for_business(community_name, boundary_data='', business_id=None, admin_user_id=None):
+    """Create a new community for a business (super admin function)"""
+    # Validate input
+    if not community_name:
+        return None, 'Community name is required'
+
+    if len(community_name) > 100:
+        return None, 'Community name must be less than 100 characters'
+
+    # Sanitize input
+    community_name = sanitize_plain_text(community_name.strip())
+    boundary_data = validate_json_data(boundary_data)
+
+    # Check if community name already exists within the business scope
+    query = Community.query.filter_by(name=community_name)
+    if business_id:
+        query = query.filter_by(business_id=business_id)
+
+    existing_community = query.first()
+    if existing_community:
+        return None, 'A community with this name already exists in this business. Please choose a different name.'
+
+    # Generate unique invite slug
+    invite_slug = generate_invite_slug()
+
+    # Determine subscription plan based on business association
+    subscription_plan = 'Premium' if business_id else 'Free'
+
+    # Validate admin_user_id if provided
+    if admin_user_id:
+        admin_user = User.query.get(admin_user_id)
+        if not admin_user:
+            return None, 'Invalid admin user specified'
+
+    # Create community
+    community = Community(
+        name=community_name,
+        admin_user_id=admin_user_id if admin_user_id else current_user.id,
+        invite_link_slug=invite_slug,
+        subscription_plan=subscription_plan,
+        boundary_data=boundary_data,
+        business_id=business_id
+    )
+
+    db.session.add(community)
+    db.session.flush()  # Get the ID
+
+    from flask import current_app
+    current_app.logger.info(f"Community created for business with ID: {community.id}")
+
+    # Update admin user with community_id and admin role if they don't already have a community
+    if admin_user_id:
+        admin_user = db.session.get(User, admin_user_id)
+        if admin_user and not admin_user.community_id:
+            admin_user.community_id = community.id
+            admin_user.role = 'Admin'
+            current_app.logger.info(f"Updated admin user {admin_user.id} with community_id: {community.id}")
+
+    db.session.commit()
+    current_app.logger.info(f"Database committed, returning community ID: {community.id}")
+
+    return community.id, None
+
+
+def attach_community_to_business(community_id, business_id):
+    """Attach an unattached community to a business"""
+    community = Community.query.get(community_id)
+    if not community:
+        return False, 'Community not found'
+
+    if community.business_id is not None:
+        return False, 'Community is already attached to a business'
+
+    # Validate that the business exists and is active
+    business = Business.query.filter_by(id=business_id, is_active=True).first()
+    if not business:
+        return False, 'Business not found or inactive'
+
+    # Attach community to business
+    community.business_id = business_id
+    db.session.commit()
+
+    from flask import current_app
+    current_app.logger.info(f"Community {community_id} attached to business {business_id}")
+
+    return True, 'Community attached successfully'
+
+
+def get_unattached_communities():
+    """Get all communities that are not attached to any business"""
+    communities = Community.query.filter_by(business_id=None).all()
+    return communities
+
+
+def get_community_member_count(community_id):
+    """Get the number of members in a community"""
+    count = User.query.filter_by(community_id=community_id).count()
+    return count
+
+
+def get_community_admin_info(community_id):
+    """Get the admin user information for a community"""
+    community = Community.query.get(community_id)
+    if not community or not community.admin_user_id:
+        return None
+
+    admin = User.query.get(community.admin_user_id)
+    return admin

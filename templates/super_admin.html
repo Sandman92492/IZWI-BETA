@@ -55,7 +55,17 @@
       <!-- Communities Section -->
       <div class="flex items-center justify-between mb-3">
         <h2 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Managed Communities</h2>
-        <span class="text-xs text-gray-500 dark:text-gray-400">{{ communities|length }}</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-gray-500 dark:text-gray-400">{{ communities|length }}</span>
+          <a href="{{ url_for('super_admin_create_community') }}" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-emerald-700 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 dark:text-emerald-300 rounded-md transition-colors">
+            <span class="material-symbols-outlined text-sm">add</span>
+            Create
+          </a>
+          <a href="{{ url_for('super_admin_attach_community') }}" class="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40 dark:text-blue-300 rounded-md transition-colors">
+            <span class="material-symbols-outlined text-sm">link</span>
+            Attach
+          </a>
+        </div>
       </div>
       <div class="space-y-1 max-h-[30vh] overflow-y-auto" id="community-list">
         {% for c in communities %}
@@ -161,12 +171,17 @@
     </div>
 
   <script>
-    const selectedCommunityId = {{ selected.id if selected else 'null' }};
+    let selectedCommunityId = {{ selected.id if selected else 'null' }};
     const csrf = '{{ csrf_token() }}';
 
     // Guard Management Functions
     function loadGuards() {
-      fetch('/super-admin/guards')
+      if (!selectedCommunityId) {
+        document.getElementById('guard-list').innerHTML = '<div class="text-sm text-gray-500 dark:text-gray-400 text-center py-4">No community selected.</div>';
+        return;
+      }
+
+      fetch(`/super-admin/guards?community_id=${selectedCommunityId}`)
         .then(r => r.json())
         .then(data => {
           const container = document.getElementById('guard-list');
@@ -211,9 +226,18 @@
     }
 
     function generateInviteLink() {
+      if (!selectedCommunityId) {
+        document.getElementById('invite-error').classList.remove('hidden');
+        return;
+      }
+
       fetch('/super-admin/invite-guard', {
         method: 'POST',
-        headers: { 'X-CSRFToken': csrf }
+        headers: {
+          'X-CSRFToken': csrf,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ community_id: selectedCommunityId })
       })
       .then(r => r.json())
       .then(data => {
@@ -367,7 +391,9 @@
     }
 
     function fetchAndUpdateGuards() {
-      fetch('/super-admin/guard-locations')
+      if (!selectedCommunityId) return;
+
+      fetch(`/super-admin/guard-locations?community_id=${selectedCommunityId}`)
         .then(r => r.json())
         .then(data => updateGuardMarkers(data.guards || []))
         .catch(err => {
@@ -490,6 +516,18 @@
     }
 
     function loadCommunity(communityId) {
+      // Update selected community ID variable
+      selectedCommunityId = communityId;
+
+      // Update community button styling to show which one is selected
+      document.querySelectorAll('#community-list button').forEach(btn => {
+        btn.classList.remove('!bg-emerald-50', 'dark:!bg-emerald-900/20', '!border-emerald-300');
+      });
+      const selectedBtn = document.querySelector(`#community-list button[data-id="${communityId}"]`);
+      if (selectedBtn) {
+        selectedBtn.classList.add('!bg-emerald-50', 'dark:!bg-emerald-900/20', '!border-emerald-300');
+      }
+
       const reportedOnly = document.getElementById('toggle-reported').checked;
       if (reportedOnly) {
         fetch(`/super-admin/reported-alerts?community_id=${communityId}`).then(r=>r.json()).then(data => {
@@ -513,6 +551,67 @@
       } else {
         stopGuardTracking();
       }
+
+      // Load guards for this community
+      loadGuards();
+
+      // Update map header and post alert buttons with selected community name
+      updateUIForCommunity(communityId);
+    }
+
+    function updateUIForCommunity(communityId) {
+      // Fetch community info to get the name
+      fetch(`/super-admin/community-info?community_id=${communityId}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success && data.community) {
+            const communityName = data.community.name;
+
+            // Update map header title
+            const mapHeader = document.querySelector('section.lg\\:col-span-6 h3');
+            if (mapHeader) {
+              mapHeader.textContent = communityName;
+            }
+
+            // Update "Post Alert" button hrefs
+            const postAlertBtns = document.querySelectorAll('a[href*="/super-admin/post-alert"]');
+            postAlertBtns.forEach(btn => {
+              btn.href = `/super-admin/post-alert?community_id=${communityId}`;
+              // Enable/disable based on community selection
+              btn.classList.remove('pointer-events-none', 'opacity-50');
+            });
+
+            // Update floating post alert button
+            const floatingBtn = document.querySelector('button[title="Post Verified Alert"]');
+            if (floatingBtn) {
+              floatingBtn.onclick = function() {
+                window.location.href = `/super-admin/post-alert?community_id=${communityId}`;
+              };
+            }
+          } else {
+            // Fallback if community info fetch fails
+            const mapHeader = document.querySelector('section.lg\\:col-span-6 h3');
+            if (mapHeader) {
+              mapHeader.textContent = 'Community Selected';
+            }
+
+            // Disable post alert buttons if no valid community
+            const postAlertBtns = document.querySelectorAll('a[href*="/super-admin/post-alert"], button[title="Post Verified Alert"]');
+            postAlertBtns.forEach(btn => {
+              if (btn.tagName === 'A') {
+                btn.classList.add('pointer-events-none', 'opacity-50');
+              }
+            });
+          }
+        })
+        .catch(err => {
+          console.error('Failed to fetch community info:', err);
+          // Fallback behavior
+          const mapHeader = document.querySelector('section.lg\\:col-span-6 h3');
+          if (mapHeader) {
+            mapHeader.textContent = 'Community Selected';
+          }
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {

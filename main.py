@@ -12,16 +12,19 @@ import os
 import secrets
 import string
 from datetime import datetime, timedelta
+from werkzeug.security import generate_password_hash
 from models import User, InviteCode, Alert, AlertReport
 from sqlalchemy import not_
 
 # Import our modular components
 from auth import authenticate_user, create_user
-from community import (create_community, get_community_by_invite_slug,
-                       get_community_info, get_community_members,
-                       get_community_boundary_data, remove_member,
-                       update_community_name, update_community_boundary,
-                       create_business)
+from community import (create_community, create_community_for_business,
+                       get_community_by_invite_slug, get_community_info,
+                       get_community_members, get_community_boundary_data,
+                       remove_member, update_community_name,
+                       update_community_boundary, create_business,
+                       attach_community_to_business, get_unattached_communities,
+                       get_community_member_count, get_community_admin_info)
 from utils import hash_code_plaintext, is_invite_valid
 from alerts import get_community_alerts, create_alert, report_alert, create_verified_alert
 from community import get_business_communities, get_community_business_info
@@ -162,6 +165,7 @@ def guard_signup_submit():
         name=name,
         role='Guard',
         business_id=invite.business_id,
+        community_id=invite.community_id,
         subscription_tier='Premium'  # Guards get premium access
     )
 
@@ -471,6 +475,66 @@ def super_admin_delete_alert(alert_id: int):
         return jsonify({'success': False, 'error': 'Delete failed'}), 500
 
 
+@app.route('/super-admin/community-info')
+@login_required
+def super_admin_community_info():
+    """Get community information for UI updates"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    community_id = request.args.get('community_id', type=int)
+    if not community_id:
+        return jsonify({'error': 'community_id required'}), 400
+
+    community = Community.query.get(community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    return jsonify({
+        'success': True,
+        'community': {
+            'id': community.id,
+            'name': community.name
+        }
+    })
+
+
+@app.route('/super-admin/validate-community-alerts')
+@login_required
+def super_admin_validate_community_alerts():
+    """Validate that all alerts belong to the correct community (debugging endpoint)"""
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    # Get all communities for this business
+    communities = get_business_communities(current_user.business_id)
+    validation_results = {}
+
+    for community in communities:
+        # Check if alerts exist for this community that belong to other communities
+        alerts_in_wrong_community = Alert.query.filter(
+            Alert.community_id == community.id,
+            ~Alert.community_id.in_([c.id for c in communities])
+        ).count()
+
+        # Check if there are alerts in other communities that should be in this one
+        # (This is harder to detect automatically, but we can flag it)
+        total_alerts = Alert.query.filter_by(community_id=community.id).count()
+
+        validation_results[community.name] = {
+            'community_id': community.id,
+            'total_alerts': total_alerts,
+            'alerts_in_wrong_community': alerts_in_wrong_community,
+            'business_id': community.business_id
+        }
+
+    return jsonify({
+        'success': True,
+        'validation_results': validation_results,
+        'business_id': current_user.business_id
+    })
+
+
 # Guard invitation and management routes
 @app.route('/super-admin/invite-guard', methods=['POST'])
 @login_required
@@ -479,12 +543,26 @@ def super_admin_invite_guard():
     if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
         return jsonify({'error': 'Forbidden'}), 403
 
+    # Get community_id from request
+    data = request.get_json() if request.is_json else request.form
+    community_id = data.get('community_id')
+
+    if not community_id:
+        return jsonify({'error': 'community_id is required'}), 400
+
+    # Validate that the community belongs to the current user's business
+    from models import Community
+    community = Community.query.get(community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Invalid community or access denied'}), 403
+
     invite_token = secrets.token_urlsafe(32)
     expires_at = datetime.now() + timedelta(days=7)  # Invites expire in 7 days
 
     invite = GuardInvite(
         invite_token=invite_token,
         business_id=current_user.business_id,
+        community_id=community_id,
         created_by_user_id=current_user.id,
         expires_at=expires_at
     )
@@ -503,13 +581,24 @@ def super_admin_invite_guard():
 @app.route('/super-admin/guards')
 @login_required
 def super_admin_guards():
-    """Get all guards for the current business"""
+    """Get all guards for a specific community"""
     if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    community_id = request.args.get('community_id', type=int)
+    if not community_id:
+        return jsonify({'error': 'community_id required'}), 400
+
+    # Validate that the community belongs to the current user's business
+    from models import Community
+    community = Community.query.get(community_id)
+    if not community or community.business_id != current_user.business_id:
         return jsonify({'error': 'Forbidden'}), 403
 
     guards = User.query.filter_by(
         role='Guard',
-        business_id=current_user.business_id
+        business_id=current_user.business_id,
+        community_id=community_id
     ).all()
 
     guard_data = []
@@ -562,14 +651,25 @@ def super_admin_revoke_guard(guard_id: int):
 @app.route('/super-admin/guard-locations')
 @login_required
 def super_admin_guard_locations():
-    """Get all on-duty guard locations for the business"""
+    """Get all on-duty guard locations for a specific community"""
     if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
         return jsonify({'error': 'Forbidden'}), 403
 
-    # Get guards who are currently on duty
+    community_id = request.args.get('community_id', type=int)
+    if not community_id:
+        return jsonify({'error': 'community_id required'}), 400
+
+    # Validate that the community belongs to the current user's business
+    from models import Community
+    community = Community.query.get(community_id)
+    if not community or community.business_id != current_user.business_id:
+        return jsonify({'error': 'Forbidden'}), 403
+
+    # Get guards who are currently on duty for this community
     on_duty_guards = User.query.filter_by(
         role='Guard',
         business_id=current_user.business_id,
+        community_id=community_id,
         is_on_duty=True
     ).all()
 
@@ -716,15 +816,107 @@ def super_admin_post_verified():
     longitude = data.get('longitude', 0.0)
     duration_minutes = data.get('duration_minutes')
 
+    app.logger.info(f'Super admin {current_user.id} posting alert to community {community_id}')
+
     community = Community.query.get(community_id)
     if not community or community.business_id != current_user.business_id:
         return jsonify({'error': 'Forbidden'}), 403
 
     alert_id, error = create_verified_alert(community_id, current_user.id, category, description, latitude, longitude, duration_minutes=duration_minutes)
     if alert_id:
+        app.logger.info(f'Alert {alert_id} successfully created in community {community_id}')
         return jsonify({'success': True, 'alert_id': alert_id})
     else:
+        app.logger.error(f'Failed to create alert in community {community_id}: {error}')
         return jsonify({'success': False, 'message': error or 'Failed to create alert'}), 400
+
+
+@app.route('/super-admin/create-community', methods=['GET', 'POST'])
+@login_required
+def super_admin_create_community():
+    # Security: must be super admin and have a business
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        abort(403)
+
+    if not current_user.business_id:
+        flash('You must belong to a business to create communities', 'error')
+        return redirect(url_for('super_admin_dashboard'))
+
+    if request.method == 'POST':
+        community_name = request.form.get('community_name', '').strip()
+        boundary_data = request.form.get('boundary_data', '')
+        admin_user_id = request.form.get('admin_user_id', '').strip()
+
+        # Convert empty string to None for admin_user_id
+        if not admin_user_id:
+            admin_user_id = None
+
+        # Create community with business_id
+        community_id, error = create_community_for_business(
+            community_name,
+            boundary_data,
+            current_user.business_id,
+            admin_user_id
+        )
+
+        if community_id:
+            flash('Community created successfully!', 'success')
+            return redirect(url_for('super_admin_dashboard'))
+        else:
+            flash(error or 'Failed to create community', 'error')
+
+    return render_template('super_admin_create_community.html')
+
+
+@app.route('/super-admin/attach-community', methods=['GET', 'POST'])
+@login_required
+def super_admin_attach_community():
+    # Security: must be super admin and have a business
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        abort(403)
+
+    if not current_user.business_id:
+        flash('You must belong to a business to attach communities', 'error')
+        return redirect(url_for('super_admin_dashboard'))
+
+    if request.method == 'POST':
+        community_id = request.form.get('community_id', type=int)
+
+        if not community_id:
+            flash('Community ID is required', 'error')
+            return redirect(url_for('super_admin_attach_community'))
+
+        success, message = attach_community_to_business(community_id, current_user.business_id)
+
+        if success:
+            flash(message, 'success')
+        else:
+            flash(message, 'error')
+
+        return redirect(url_for('super_admin_dashboard'))
+
+    # GET request - show unattached communities
+    unattached_communities = get_unattached_communities()
+    return render_template('super_admin_attach_community.html', communities=unattached_communities)
+
+
+@app.route('/super-admin/unattached-communities')
+@login_required
+def super_admin_unattached_communities():
+    # Security: must be super admin
+    if not (hasattr(current_user, 'is_super_admin') and current_user.is_super_admin()):
+        return jsonify({'error': 'Forbidden'}), 403
+
+    communities = get_unattached_communities()
+    return jsonify([
+        {
+            'id': c.id,
+            'name': c.name,
+            'admin_name': get_community_admin_info(c.id).name if get_community_admin_info(c.id) else 'No admin',
+            'member_count': get_community_member_count(c.id),
+            'created_at': c.created_at.strftime('%Y-%m-%d') if c.created_at else 'Unknown'
+        } for c in communities
+    ])
 
 
 @app.route('/define-community', methods=['GET', 'POST'])
@@ -1292,6 +1484,101 @@ def cleanup_expired_alerts():
             'success': False,
             'error': str(e)
         }), 500
+
+@app.route('/api/alerts/filter')
+@login_required
+def filter_alerts():
+    """Filter alerts based on provided criteria"""
+    try:
+        # Get filter parameters
+        category = request.args.get('category', '').strip()
+        status = request.args.get('status', '').strip()
+        verification = request.args.get('verification', '').strip()
+        date_range = request.args.get('date_range', '').strip()
+        search = request.args.get('search', '').strip()
+
+        if not current_user.community_id:
+            return jsonify({'error': 'No community found'}), 400
+
+        # Build query
+        query = Alert.query.join(User, Alert.user_id == User.id).filter(Alert.community_id == current_user.community_id)
+
+        # Apply filters
+        if category:
+            query = query.filter(Alert.category == category)
+
+        if status == 'active':
+            query = query.filter(Alert.is_resolved == False)
+        elif status == 'resolved':
+            query = query.filter(Alert.is_resolved == True)
+
+        if verification == 'verified':
+            query = query.filter(Alert.is_verified == True)
+        elif verification == 'unverified':
+            query = query.filter(Alert.is_verified == False)
+
+        if date_range == 'today':
+            from datetime import datetime, date
+            today = date.today()
+            query = query.filter(db.func.date(Alert.timestamp) == today)
+        elif date_range == 'week':
+            from datetime import datetime, timedelta
+            week_ago = datetime.now() - timedelta(days=7)
+            query = query.filter(Alert.timestamp >= week_ago)
+        elif date_range == 'month':
+            from datetime import datetime, timedelta
+            month_ago = datetime.now() - timedelta(days=30)
+            query = query.filter(Alert.timestamp >= month_ago)
+
+        if search:
+            like_pattern = f"%{search}%"
+            query = query.filter(Alert.description.ilike(like_pattern))
+
+        # Filter out expired alerts
+        from datetime import datetime
+        from sqlalchemy import or_
+        now = datetime.now()
+        query = query.filter(
+            or_(
+                Alert.expires_at.is_(None),  # No expiration set
+                Alert.expires_at > now       # Not yet expired
+            )
+        )
+
+        # Order by timestamp descending
+        alerts = query.order_by(Alert.timestamp.desc()).all()
+
+        # Convert to expected format
+        alert_data = []
+        for alert in alerts:
+            user = User.query.get(alert.user_id)
+            alert_dict = {
+                'id': alert.id,
+                'community_id': alert.community_id,
+                'user_id': alert.user_id,
+                'category': alert.category,
+                'description': alert.description,
+                'latitude': alert.latitude,
+                'longitude': alert.longitude,
+                'timestamp': alert.timestamp,
+                'is_resolved': alert.is_resolved,
+                'is_verified': getattr(alert, 'is_verified', False),
+                'expires_at': alert.expires_at,
+                'duration_minutes': alert.duration_minutes,
+                'author_name': user.name if user else 'Unknown'
+            }
+            alert_data.append(alert_dict)
+
+        return jsonify({
+            'success': True,
+            'alerts': alert_data,
+            'count': len(alert_data)
+        })
+
+    except Exception as e:
+        app.logger.error(f'Error filtering alerts: {e}')
+        return jsonify({'error': 'Failed to filter alerts'}), 500
+
 
 @app.route('/alerts/<int:alert_id>', methods=['DELETE'])
 @login_required

@@ -4,9 +4,10 @@ from datetime import timedelta
 import time
 from logging.config import dictConfig
 
-from flask import Flask, request, redirect, url_for, flash, send_from_directory, jsonify
+from flask import Flask, request, redirect, url_for, flash, send_from_directory, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
 from flask_login import LoginManager, login_required
 from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
@@ -187,6 +188,21 @@ def init_database():
                     db.create_all()  # This will create any missing tables
             except Exception as e:
                 app.logger.error(f"Error ensuring PushSubscription table exists: {e}")
+
+            # Check for community_id column in guard_invite table
+            if 'guard_invite' in inspector.get_table_names():
+                try:
+                    guard_invite_columns = [c['name'] for c in inspector.get_columns('guard_invite')]
+                    if 'community_id' not in guard_invite_columns:
+                        try:
+                            db.session.execute(text('ALTER TABLE guard_invite ADD COLUMN community_id INTEGER'))
+                            db.session.commit()
+                            app.logger.info("Added missing column 'community_id' to guard_invite table")
+                        except Exception as mig_e:
+                            db.session.rollback()
+                            app.logger.error(f"Failed to add 'community_id' column to guard_invite table: {mig_e}")
+                except Exception as e:
+                    app.logger.error(f"Error checking guard_invite table structure: {e}")
             
             app.logger.info("Database tables initialized successfully")
         except Exception as e:
@@ -278,7 +294,6 @@ def get_vapid_public_key():
 
 
 @app.route('/api/push/subscribe', methods=['POST'])
-@login_required
 def subscribe_push():
     """Subscribe user to push notifications"""
     try:
@@ -286,7 +301,17 @@ def subscribe_push():
         if not subscription_data:
             return jsonify({'error': 'No subscription data provided'}), 400
 
-        subscription_data['user_id'] = current_user.id
+        # Get user_id from the subscription data (sent by client)
+        user_id = subscription_data.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User ID is required'}), 400
+
+        # Verify the user exists (but don't require them to be logged in for this request)
+        from models import User
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'Invalid user ID'}), 400
+
         result = push_notifications.subscribe_user(subscription_data)
 
         if 'error' in result:
@@ -299,7 +324,6 @@ def subscribe_push():
 
 
 @app.route('/api/push/unsubscribe', methods=['POST'])
-@login_required
 def unsubscribe_push():
     """Unsubscribe user from push notifications"""
     try:
@@ -307,7 +331,17 @@ def unsubscribe_push():
         if not subscription_data:
             return jsonify({'error': 'No subscription data provided'}), 400
 
-        subscription_data['user_id'] = current_user.id
+        # Get user_id from the subscription data (sent by client)
+        user_id = subscription_data.get('user_id')
+        if not user_id:
+            return jsonify({'error': 'User ID is required'}), 400
+
+        # Verify the user exists (but don't require them to be logged in for this request)
+        from models import User
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({'error': 'Invalid user ID'}), 400
+
         result = push_notifications.unsubscribe_user(subscription_data)
 
         if 'error' in result:

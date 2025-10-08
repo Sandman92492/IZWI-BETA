@@ -106,6 +106,7 @@ class GuardInvite(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     invite_token = db.Column(db.String(255), unique=True, nullable=False)
     business_id = db.Column(db.Integer, db.ForeignKey('business.id'), nullable=False)
+    community_id = db.Column(db.Integer, db.ForeignKey('community.id'), nullable=False)
     created_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     used = db.Column(db.Boolean, default=False)
     used_by_user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)

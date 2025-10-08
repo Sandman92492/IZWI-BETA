@@ -21,6 +21,7 @@
       </div>
 
       <form class="mt-8 space-y-6" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
         <input type="hidden" name="token" value="{{ token }}">
 
         <div>

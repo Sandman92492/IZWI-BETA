@@ -191,6 +191,111 @@ def send_notification_to_user(user_id, title, body, icon=None, badge=None, data=
         current_app.logger.error(f'Error in send_notification_to_user: {e}')
         return {'error': 'Failed to send notification'}, 500
 
+def send_notification_to_community_users(community_id, title, body, icon=None, badge=None, data=None):
+    """Send a push notification to users in a specific community"""
+    try:
+        from models import User
+
+        # Get all users in the community
+        community_users = User.query.filter_by(community_id=community_id).all()
+
+        if not community_users:
+            current_app.logger.info(f'No users found in community {community_id}')
+            return {'success': True, 'sent': 0, 'failed': 0, 'total': 0}
+
+        # Get all subscriptions for users in this community
+        user_ids = [user.id for user in community_users]
+        subscriptions = PushSubscription.query.filter(
+            PushSubscription.user_id.in_(user_ids)
+        ).all()
+
+        if not subscriptions:
+            current_app.logger.info(f'No push subscriptions found for users in community {community_id}')
+            return {'success': True, 'sent': 0, 'failed': 0, 'total': 0}
+
+        # Setup VAPID keys
+        private_key, public_key = generate_vapid_keys()
+        if not private_key or not public_key:
+            return {'error': 'VAPID keys not configured'}, 500
+
+        vapid = Vapid()
+        vapid.private_key = serialization.load_pem_private_key(
+            private_key.encode('utf-8'),
+            password=None
+        )
+        vapid.public_key = public_key.encode('utf-8')
+
+        notification_data = {
+            'title': title,
+            'body': body,
+            'icon': icon or '/static/icons/icon-192.png',
+            'badge': badge or '/static/icons/icon-192.png',
+            'tag': 'izwi-alert',
+            'requireInteraction': True
+        }
+
+        if data:
+            notification_data['data'] = data
+
+        success_count = 0
+        failed_count = 0
+        invalid_subscriptions = []
+
+        for subscription in subscriptions:
+            try:
+                # Prepare subscription info for webpush
+                subscription_info = {
+                    'endpoint': subscription.endpoint,
+                    'keys': {
+                        'p256dh': subscription.p256dh,
+                        'auth': subscription.auth
+                    }
+                }
+
+                # Send the notification
+                webpush(
+                    subscription_info,
+                    json.dumps(notification_data),
+                    vapid_private_key=private_key,
+                    vapid_claims={
+                        'sub': f'mailto:{VAPID_CLAIM_EMAIL}'
+                    }
+                )
+                success_count += 1
+
+            except WebPushException as e:
+                current_app.logger.error(f'WebPush error for subscription {subscription.id}: {e}')
+                failed_count += 1
+                # If subscription is invalid, mark for deletion
+                if e.response.status_code in [400, 401, 403, 404, 410, 413]:
+                    invalid_subscriptions.append(subscription)
+
+            except Exception as e:
+                current_app.logger.error(f'Error sending notification to subscription {subscription.id}: {e}')
+                failed_count += 1
+
+        # Clean up invalid subscriptions
+        for subscription in invalid_subscriptions:
+            try:
+                db.session.delete(subscription)
+            except:
+                pass
+
+        db.session.commit()
+
+        current_app.logger.info(f'Sent notification to {success_count}/{len(subscriptions)} subscriptions for community {community_id}')
+        return {
+            'success': True,
+            'sent': success_count,
+            'failed': failed_count,
+            'total': len(subscriptions)
+        }
+
+    except Exception as e:
+        current_app.logger.error(f'Error in send_notification_to_community_users: {e}')
+        return {'error': 'Failed to send notification'}, 500
+
+
 def send_notification_to_all_users(title, body, icon=None, badge=None, data=None):
     """Send a push notification to all subscribed users"""
     try:
