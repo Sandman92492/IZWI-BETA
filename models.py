@@ -115,9 +115,10 @@ class GuardInvite(db.Model):
 
     def is_valid(self):
         """Check if invitation is still valid (not used, not expired)"""
+        from datetime import datetime
         if self.used:
             return False
-        if self.expires_at and self.expires_at < db.func.current_timestamp():
+        if self.expires_at and self.expires_at < datetime.now():
             return False
         return True
 

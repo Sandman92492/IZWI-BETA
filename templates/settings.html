@@ -81,6 +81,32 @@
                 </div>
             </div>
 
+            <!-- PWA Install Section -->
+            <div class="mb-6">
+                <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="material-symbols-outlined text-primary text-xl">install_mobile</span>
+                        <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Install App</h2>
+                    </div>
+                    <hr class="my-4 border-gray-200 dark:border-gray-700">
+                    <div class="space-y-4">
+                        <div>
+                            <span class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Install iZwi as an App</span>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 mb-3">Install iZwi on your device for quick access and offline functionality.</p>
+                            <button id="install-pwa-btn"
+                                    class="bg-primary text-white font-medium py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-2 hidden"
+                                    onclick="installPWA()">
+                                <span class="material-symbols-outlined text-base">download</span>
+                                Install iZwi App
+                            </button>
+                            <p id="install-pwa-status" class="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                Install button will appear when your browser supports PWA installation.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="mb-6">
                 <div class="bg-white dark:bg-gray-800/50 shadow-lg rounded-xl p-4">
                     {% if current_user.role == 'Admin' %}

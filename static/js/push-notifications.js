@@ -371,8 +371,116 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary);
 }
 
+// PWA Installation functionality
+class PWAManager {
+    constructor() {
+        this.deferredPrompt = null;
+        this.isInstallable = false;
+
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', () => this.init());
+        } else {
+            this.init();
+        }
+    }
+
+    async init() {
+        console.log('[PWA Manager] Initializing...');
+
+        // Check if PWA installation is supported
+        if (!('serviceWorker' in navigator)) {
+            console.log('[PWA Manager] Service Worker not supported');
+            this.updateInstallUI(false, 'Service Worker not supported');
+            return;
+        }
+
+        // Listen for beforeinstallprompt event
+        window.addEventListener('beforeinstallprompt', (event) => {
+            console.log('[PWA Manager] beforeinstallprompt event fired');
+            event.preventDefault();
+            this.deferredPrompt = event;
+            this.isInstallable = true;
+            this.updateInstallUI(true, 'Ready to install');
+        });
+
+        // Listen for app installed event
+        window.addEventListener('appinstalled', () => {
+            console.log('[PWA Manager] App installed successfully');
+            this.isInstallable = false;
+            this.deferredPrompt = null;
+            this.updateInstallUI(false, 'App installed successfully!');
+        });
+
+        // Check if already installed
+        if (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) {
+            console.log('[PWA Manager] App is already installed');
+            this.updateInstallUI(false, 'App is already installed');
+        }
+
+        console.log('[PWA Manager] Initialized');
+    }
+
+    async installPWA() {
+        if (!this.deferredPrompt) {
+            console.log('[PWA Manager] Install prompt not available');
+            this.updateInstallUI(false, 'Install prompt not available');
+            return;
+        }
+
+        try {
+            // Show the install prompt
+            this.deferredPrompt.prompt();
+
+            // Wait for user response
+            const { outcome } = await this.deferredPrompt.userChoice;
+
+            if (outcome === 'accepted') {
+                console.log('[PWA Manager] User accepted the install prompt');
+                this.updateInstallUI(false, 'Installing...');
+            } else {
+                console.log('[PWA Manager] User dismissed the install prompt');
+                this.updateInstallUI(true, 'Installation cancelled');
+            }
+
+            // Clear the deferred prompt
+            this.deferredPrompt = null;
+
+        } catch (error) {
+            console.error('[PWA Manager] Error during installation:', error);
+            this.updateInstallUI(false, 'Installation failed');
+        }
+    }
+
+    updateInstallUI(showButton, statusMessage) {
+        const installBtn = document.getElementById('install-pwa-btn');
+        const statusEl = document.getElementById('install-pwa-status');
+
+        if (installBtn) {
+            if (showButton && this.isInstallable) {
+                installBtn.classList.remove('hidden');
+            } else {
+                installBtn.classList.add('hidden');
+            }
+        }
+
+        if (statusEl) {
+            statusEl.textContent = statusMessage || 'Install button will appear when your browser supports PWA installation.';
+        }
+    }
+}
+
+// Initialize PWA manager
+const pwaManager = new PWAManager();
+
+// Global function for install button
+window.installPWA = function() {
+    pwaManager.installPWA();
+};
+
 // Initialize push notifications when script loads
 const pushNotifications = new PushNotifications();
 
 // Expose to global scope for debugging
 window.pushNotifications = pushNotifications;
+window.pwaManager = pwaManager;
