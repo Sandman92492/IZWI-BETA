@@ -5,14 +5,63 @@
 {% block extra_head %}
 <style>
     .leaflet-draw-toolbar { display: none !important; }
+
+    /* FORCE HIDE OLD LEAFLET.DRAW ELEMENTS */
+    .leaflet-draw-toolbar,
+    .leaflet-draw-section {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        pointer-events: none !important;
+    }
+
+    /* Custom Geoman styling */
+    .leaflet-pm-toolbar {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        z-index: 1000 !important;
+    }
+
+    .leaflet-pm-draw-button {
+        background-color: #2A9D8F !important;
+        color: white !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease !important;
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+
+    .leaflet-pm-draw-button:hover {
+        background-color: #238a7e !important;
+        transform: translateY(-1px);
+    }
+
+    .leaflet-pm-draw-button.active {
+        background-color: #1f7669 !important;
+        box-shadow: 0 2px 8px rgba(42, 157, 143, 0.3);
+    }
+
+    /* Ensure Geoman elements are always visible */
+    .leaflet-pm-draw-button,
+    .leaflet-pm-edit-button,
+    .leaflet-pm-remove-button {
+        display: inline-block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
 </style>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
 <link rel="stylesheet" href="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
 <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
-<script src="https://unpkg.com/leaflet-editable@latest/src/Leaflet.Editable.js"></script>
 {% endblock %}
 
 {% block content %}
@@ -328,19 +377,26 @@
                 </div>
                 <div class="mt-3">
                     <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Choose your drawing method:</p>
-                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
                         <button type="button" onclick="startCircleDraw()" class="px-3 py-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 flex items-center gap-2">
                             <span class="material-symbols-outlined">radio_button_unchecked</span>
                             <div class="text-left">
-                                <div class="font-medium">Draw Circle Area</div>
-                                <div class="text-xs text-green-500">Quick & Easy</div>
+                                <div class="font-medium">Circle</div>
+                                <div class="text-xs text-green-500">Easiest</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="startRectangleDraw()" class="px-3 py-2 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 flex items-center gap-2">
+                            <span class="material-symbols-outlined">square</span>
+                            <div class="text-left">
+                                <div class="font-medium">Rectangle</div>
+                                <div class="text-xs text-purple-500">Simple</div>
                             </div>
                         </button>
                         <button type="button" onclick="startBoundaryDraw()" class="px-3 py-2 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 flex items-center gap-2">
                             <span class="material-symbols-outlined">edit</span>
                             <div class="text-left">
-                                <div class="font-medium">Draw Custom Shape</div>
-                                <div class="text-xs text-blue-500">For irregular areas</div>
+                                <div class="font-medium">Polygon</div>
+                                <div class="text-xs text-blue-500">Custom</div>
                             </div>
                         </button>
                     </div>
@@ -423,31 +479,85 @@
             boundaryDrawnItems = new L.FeatureGroup();
             boundaryMapInstance.addLayer(boundaryDrawnItems);
 
-            // Keep Draw API available but rely on our custom buttons
-            boundaryDrawControl = new L.Control.Draw({
-                edit: { featureGroup: boundaryDrawnItems },
-                draw: {
-                    polygon: {
-                        allowIntersection: false,
-                        shapeOptions: { color: '#19b3a1', fillOpacity: 0.2 }
-                    },
-                    rectangle: false,
-                    circle: false,
-                    polyline: false,
-                    marker: false,
-                    circlemarker: false
+            // Initialize Leaflet-Geoman with mobile-optimized options
+            function initializeBoundaryGeoman() {
+                try {
+                    console.log('Checking Geoman availability for boundary map...');
+
+                    // Check if Geoman is loaded globally
+                    if (typeof window !== 'undefined' && window.L && window.L.PM) {
+                        console.log('Geoman library is loaded globally');
+
+                        // Check if map.pm exists (Geoman should auto-initialize on map creation)
+                        if (boundaryMapInstance && boundaryMapInstance.pm) {
+                            console.log('Geoman PM object available on boundary map');
+                            boundaryMapInstance.pm.addControls({
+                                position: 'topleft',
+                                drawCircle: true,
+                                drawCircleMarker: false,
+                                drawPolygon: true,
+                                drawRectangle: true,
+                                drawMarker: false,
+                                cutPolygon: false,
+                                editMode: true,
+                                dragMode: true,
+                                removalMode: true
+                            });
+                            console.log('Geoman controls added successfully to boundary map');
+                        } else {
+                            console.warn('Geoman PM object not available on boundary map, initializing manually');
+                            // Initialize Geoman on the map if not already done
+                            if (boundaryMapInstance && !boundaryMapInstance.pm) {
+                                // Geoman should auto-initialize, but let's ensure it
+                                if (window.L.PM && window.L.PM.Map) {
+                                    boundaryMapInstance.pm = new window.L.PM.Map(boundaryMapInstance);
+                                    boundaryMapInstance.pm.addControls({
+                                        position: 'topleft',
+                                        drawCircle: true,
+                                        drawCircleMarker: false,
+                                        drawPolygon: true,
+                                        drawRectangle: true,
+                                        drawMarker: false,
+                                        cutPolygon: false,
+                                        editMode: true,
+                                        dragMode: true,
+                                        removalMode: true
+                                    });
+                                    console.log('Geoman initialized manually and controls added to boundary map');
+                                } else {
+                                    throw new Error('Geoman Map constructor not available');
+                                }
+                            } else {
+                                throw new Error('Boundary map object not available for Geoman initialization');
+                            }
+                        }
+                    } else {
+                        console.error('Geoman library not loaded globally');
+                        console.error('Available L object:', typeof window !== 'undefined' && window.L ? window.L : 'undefined');
+                        console.error('Available L.PM object:', typeof window !== 'undefined' && window.L && window.L.PM ? window.L.PM : 'undefined');
+                        throw new Error('Geoman library not loaded');
+                    }
+                } catch (error) {
+                    console.error('Error initializing Geoman on boundary map:', error);
+
+                    // Show user-friendly error
+                    setTimeout(() => {
+                        showAlert('Drawing tools are currently unavailable. Please refresh the page or try again later.', 'warning');
+                    }, 1000);
                 }
-            });
-            boundaryMapInstance.addControl(boundaryDrawControl);
+            }
 
-            boundaryMapInstance.on(L.Draw.Event.CREATED, function (e) {
-                const layer = e.layer;
+            // Initialize Geoman after a delay to ensure everything is loaded
+            setTimeout(initializeBoundaryGeoman, 1000);
+
+            boundaryMapInstance.on('pm:create', function (e) {
                 boundaryDrawnItems.clearLayers();
-                boundaryDrawnItems.addLayer(layer);
+                boundaryDrawnItems.addLayer(e.layer);
+                console.log('Boundary layer created:', e.layer);
             });
 
-            boundaryMapInstance.on(L.Draw.Event.EDITED, function () {
-                // No-op; we will read layers on save
+            boundaryMapInstance.on('pm:edit', function (e) {
+                console.log('Boundary layer edited:', e.layer);
             });
 
             boundaryMapInstance.on('resize', function(){
@@ -526,52 +636,75 @@
         return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
     }
 
-    // Circle drawing function
+    // Circle drawing function - now using Geoman
     function startCircleDraw() {
         if (!boundaryMapInstance) return;
         try { if (editHandler) editHandler.disable(); } catch(_) {}
-        try { if (polygonDrawHandler) polygonDrawHandler.disable(); } catch(_) {}
 
-        // Enable Leaflet-Editable for circle drawing
-        boundaryMapInstance.editTools.startCircle(null, {
-            shapeOptions: {
+        // Enable circle drawing with Geoman
+        boundaryMapInstance.pm.enableDraw('Circle', {
+            hintlineStyle: {
                 color: '#10b981',
+                weight: isMobileDevice() ? 4 : 3,
+                opacity: 0.8
+            },
+            pathOptions: {
+                color: '#10b981',
+                fillColor: '#10b981',
                 fillOpacity: 0.2,
-                weight: 2
+                weight: isMobileDevice() ? 3 : 2
             }
         });
 
-        showDrawHint('Tap to set center point, then drag edge to adjust radius.');
+        showDrawHint('Tap to set center point, then drag to adjust radius. Much easier on mobile!');
         document.getElementById('drawingControls').classList.remove('hidden');
     }
 
-    // Enhanced polygon drawing with mobile optimizations
+    // Enhanced polygon drawing with Geoman mobile optimizations
     function startBoundaryDraw() {
         if (!boundaryMapInstance) return;
         try { if (editHandler) editHandler.disable(); } catch(_) {}
-        try { if (polygonDrawHandler) polygonDrawHandler.disable(); } catch(_) {}
 
-        // Enhanced polygon drawing with mobile-friendly options
-        polygonDrawHandler = new L.Draw.Polygon(boundaryMapInstance, {
-            allowIntersection: false,
-            shapeOptions: {
+        // Enable polygon drawing with Geoman - much better mobile support
+        boundaryMapInstance.pm.enableDraw('Polygon', {
+            finishOn: isMobileDevice() ? 'touch' : 'dblclick',
+            hintlineStyle: {
                 color: '#3b82f6',
+                weight: isMobileDevice() ? 4 : 3,
+                opacity: 0.8
+            },
+            pathOptions: {
+                color: '#3b82f6',
+                fillColor: '#3b82f6',
                 fillOpacity: 0.2,
-                weight: 2
-            },
-            drawError: {
-                color: '#ef4444',
-                message: '<strong>Error:</strong> Shape edges cannot cross!'
-            },
-            // Mobile-friendly: larger touch targets and better feedback
-            icon: new L.DivIcon({
-                iconSize: isMobileDevice() ? [40, 40] : [20, 20],
-                className: 'custom-polygon-marker'
-            })
+                weight: isMobileDevice() ? 3 : 2
+            }
         });
 
-        polygonDrawHandler.enable();
-        showDrawHint('Tap to add points (3+ needed). Large touch targets on mobile.');
+        showDrawHint('Tap to add points (3+ needed). Large touch targets, better mobile experience!');
+        document.getElementById('drawingControls').classList.remove('hidden');
+    }
+
+    // Rectangle drawing function - easier than polygon on mobile
+    function startRectangleDraw() {
+        if (!boundaryMapInstance) return;
+        try { if (editHandler) editHandler.disable(); } catch(_) {}
+
+        boundaryMapInstance.pm.enableDraw('Rectangle', {
+            hintlineStyle: {
+                color: '#8b5cf6',
+                weight: isMobileDevice() ? 4 : 3,
+                opacity: 0.8
+            },
+            pathOptions: {
+                color: '#8b5cf6',
+                fillColor: '#8b5cf6',
+                fillOpacity: 0.2,
+                weight: isMobileDevice() ? 3 : 2
+            }
+        });
+
+        showDrawHint('Tap two corners to create a rectangle. Perfect for regular-shaped areas!');
         document.getElementById('drawingControls').classList.remove('hidden');
     }
 
@@ -755,6 +888,50 @@
             })
             .catch(() => alert('Search failed. Please try again.'));
     }
+
+    // Geoman loading detection and fallback
+    (function() {
+        // Wait for Leaflet to load
+        function checkGeomanLoaded() {
+            if (typeof window !== 'undefined' && window.L && window.L.PM) {
+                console.log('✅ Geoman loaded successfully');
+                return true;
+            }
+            return false;
+        }
+
+        // Check every 100ms for up to 5 seconds
+        let attempts = 0;
+        const maxAttempts = 50;
+
+        function waitForGeoman() {
+            attempts++;
+            if (checkGeomanLoaded()) {
+                console.log('✅ Geoman is ready!');
+                return;
+            }
+
+            if (attempts >= maxAttempts) {
+                console.error('❌ Geoman failed to load after 5 seconds');
+                // Show user-friendly error
+                setTimeout(() => {
+                    if (typeof showAlert !== 'undefined') {
+                        showAlert('Drawing tools are temporarily unavailable. Please refresh the page.', 'warning');
+                    }
+                }, 1000);
+                return;
+            }
+
+            setTimeout(waitForGeoman, 100);
+        }
+
+        // Start checking when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', waitForGeoman);
+        } else {
+            waitForGeoman();
+        }
+    })();
 
     // Wire Enter key for search and button handlers
     document.addEventListener('DOMContentLoaded', function() {

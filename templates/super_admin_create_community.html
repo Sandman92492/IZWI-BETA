@@ -63,7 +63,6 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
     <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
-    <script src="https://unpkg.com/leaflet-editable@latest/src/Leaflet.Editable.js"></script>
     <style>
       body {
         font-family: 'Inter', sans-serif;
@@ -77,6 +76,39 @@
       .step-active {
         background-color: #2A9D8F !important;
         color: white !important;
+      }
+
+      /* Leaflet.Draw toolbar styling */
+      .leaflet-draw-toolbar {
+        background-color: rgba(255, 255, 255, 0.9) !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+        border: none !important;
+        padding: 8px !important;
+      }
+
+      .leaflet-draw-toolbar a {
+        background-color: #2A9D8F !important;
+        color: white !important;
+        border-radius: 6px !important;
+        transition: all 0.2s ease !important;
+        width: 44px !important;
+        height: 44px !important;
+        line-height: 44px !important;
+        margin: 2px !important;
+        border: none !important;
+        font-size: 16px !important;
+      }
+
+      .leaflet-draw-toolbar a:hover {
+        background-color: #238a7e !important;
+        transform: translateY(-1px);
+      }
+
+      .leaflet-draw-toolbar a.active {
+        background-color: #1f7669 !important;
+        box-shadow: 0 2px 8px rgba(42, 157, 143, 0.3);
       }
     </style>
   </head>
@@ -288,22 +320,30 @@
 
               <!-- Prominent CTA Buttons for Mobile -->
               <div class="mt-3 lg:hidden" id="mobile-cta">
-                <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Choose your drawing method:</p>
-                <div class="grid grid-cols-2 gap-2 mb-3">
+                <p class="text-sm text-gray-600 dark:text-gray-400 mb-3">Choose your drawing method:</p>
+                <div class="grid grid-cols-3 gap-2 mb-3">
                   <button type="button" onclick="startCircleDraw()"
-                          class="bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 py-3 px-3 rounded-lg flex items-center justify-center gap-2 text-sm font-medium">
-                    <span class="material-symbols-outlined">radio_button_unchecked</span>
+                          class="bg-green-50 text-green-600 hover:bg-green-100 border border-green-200 rounded-lg flex flex-col items-center justify-center gap-1 text-sm font-medium min-h-[60px]">
+                    <span class="material-symbols-outlined text-lg">radio_button_unchecked</span>
                     <div class="text-center">
-                      <div>Circle</div>
-                      <div class="text-xs text-green-500">Quick</div>
+                      <div class="font-medium">Circle</div>
+                      <div class="text-xs text-green-500">Easiest</div>
+                    </div>
+                  </button>
+                  <button type="button" onclick="startRectangleDraw()"
+                          class="bg-purple-50 text-purple-600 hover:bg-purple-100 border border-purple-200 rounded-lg flex flex-col items-center justify-center gap-1 text-sm font-medium min-h-[60px]">
+                    <span class="material-symbols-outlined text-lg">square</span>
+                    <div class="text-center">
+                      <div class="font-medium">Rectangle</div>
+                      <div class="text-xs text-purple-500">Simple</div>
                     </div>
                   </button>
                   <button type="button" onclick="startDrawingMode()"
-                          class="bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 py-3 px-3 rounded-lg flex items-center justify-center gap-2 text-sm font-medium">
-                    <span class="material-symbols-outlined">edit</span>
+                          class="bg-blue-50 text-blue-600 hover:bg-blue-100 border border-blue-200 rounded-lg flex flex-col items-center justify-center gap-1 text-sm font-medium min-h-[60px]">
+                    <span class="material-symbols-outlined text-lg">edit</span>
                     <div class="text-center">
-                      <div>Custom</div>
-                      <div class="text-xs text-blue-500">Shape</div>
+                      <div class="font-medium">Polygon</div>
+                      <div class="text-xs text-blue-500">Custom</div>
                     </div>
                   </button>
                 </div>
@@ -339,6 +379,50 @@ let currentStep = 1;
 let communityMap = null;
 let drawnItems = null;
 let hasBoundary = false;
+
+// Geoman loading detection and fallback
+(function() {
+    // Wait for Leaflet to load
+    function checkGeomanLoaded() {
+        if (typeof window !== 'undefined' && window.L && window.L.PM) {
+            console.log('✅ Geoman loaded successfully');
+            return true;
+        }
+        return false;
+    }
+
+    // Check every 100ms for up to 5 seconds
+    let attempts = 0;
+    const maxAttempts = 50;
+
+    function waitForGeoman() {
+        attempts++;
+        if (checkGeomanLoaded()) {
+            console.log('✅ Geoman is ready!');
+            return;
+        }
+
+        if (attempts >= maxAttempts) {
+            console.error('❌ Geoman failed to load after 5 seconds');
+            // Show user-friendly error
+            setTimeout(() => {
+                if (typeof showAlert !== 'undefined') {
+                    showAlert('Drawing tools are temporarily unavailable. Please refresh the page.', 'warning');
+                }
+            }, 1000);
+            return;
+        }
+
+        setTimeout(waitForGeoman, 100);
+    }
+
+    // Start checking when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', waitForGeoman);
+    } else {
+        waitForGeoman();
+    }
+})();
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -381,7 +465,7 @@ function initializeMap() {
     drawnItems = new L.FeatureGroup();
     communityMap.addLayer(drawnItems);
 
-    // Initialize the draw control
+    // Initialize Leaflet.Draw controls
     var drawControl = new L.Control.Draw({
         edit: {
             featureGroup: drawnItems
@@ -389,29 +473,39 @@ function initializeMap() {
         draw: {
             polygon: {
                 allowIntersection: false,
-                drawError: {
-                    color: '#e1e100',
-                    message: '<strong>Error:</strong> shape edges cannot cross!'
-                },
                 shapeOptions: {
-                    color: '#2A9D8F',
-                    fillOpacity: 0.2,
+                    color: '#3b82f6',
+                    fillColor: '#3b82f6',
+                    fillOpacity: 0.3,
+                    weight: 2
+                }
+            },
+            rectangle: {
+                shapeOptions: {
+                    color: '#8b5cf6',
+                    fillColor: '#8b5cf6',
+                    fillOpacity: 0.3,
+                    weight: 2
+                }
+            },
+            circle: {
+                shapeOptions: {
+                    color: '#10b981',
+                    fillColor: '#10b981',
+                    fillOpacity: 0.3,
                     weight: 2
                 }
             },
             polyline: false,
-            rectangle: false,
-            circle: false,
             marker: false,
             circlemarker: false
         }
     });
     communityMap.addControl(drawControl);
 
-    // Handle drawing events
+    // Handle Leaflet.Draw events
     communityMap.on(L.Draw.Event.CREATED, function (e) {
-        var type = e.layerType,
-            layer = e.layer;
+        const layer = e.layer;
 
         // Clear existing drawings (only allow one boundary)
         drawnItems.clearLayers();
@@ -419,18 +513,19 @@ function initializeMap() {
         // Add the new boundary
         drawnItems.addLayer(layer);
 
-        // Store boundary data
+        // Store boundary data globally and in form
         var boundaryData = layer.toGeoJSON();
         document.getElementById('boundary_data').value = JSON.stringify(boundaryData);
         hasBoundary = true;
         updateContinueButton();
 
-        // Update status
-        updateDrawingStatus('Perfect! Community boundary defined. You can edit it using the map tools or continue to create your community.');
+        // Update status with better mobile messaging
+        const shapeType = e.layerType || 'boundary';
+        updateDrawingStatus(`${shapeType.charAt(0).toUpperCase() + shapeType.slice(1)} boundary created! You can edit it or continue.`);
     });
 
     communityMap.on(L.Draw.Event.EDITED, function (e) {
-        var layers = e.layers;
+        const layers = e.layers;
         layers.eachLayer(function (layer) {
             var boundaryData = layer.toGeoJSON();
             document.getElementById('boundary_data').value = JSON.stringify(boundaryData);
@@ -443,7 +538,7 @@ function initializeMap() {
         document.getElementById('boundary_data').value = '';
         hasBoundary = false;
         updateContinueButton();
-        updateDrawingStatus('Ready to draw! Click the polygon tool on the map to start defining your community boundary.');
+        updateDrawingStatus('Ready to draw! Choose circle, rectangle, or polygon tool to define your community boundary.');
     });
 
     // Get user's current location for initial map center
@@ -571,48 +666,84 @@ function isMobileDevice() {
     return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
 }
 
+// Mobile-specific styling
+if (isMobileDevice()) {
+    // Add mobile-specific CSS
+    const style = document.createElement('style');
+    style.textContent = `
+        .leaflet-draw-toolbar {
+            background-color: rgba(255, 255, 255, 0.95) !important;
+            border-radius: 12px !important;
+            padding: 8px !important;
+        }
+
+        /* Larger touch targets for mobile */
+        .leaflet-draw-toolbar a {
+            width: 50px !important;
+            height: 50px !important;
+            line-height: 50px !important;
+            margin: 4px !important;
+            transform: scale(1.1) !important;
+            font-size: 18px !important;
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// Leaflet.Draw drawing functions
+
 // Circle drawing function
 function startCircleDraw() {
     if (!communityMap) return;
 
-    // Enable Leaflet-Editable for circle drawing
-    communityMap.editTools.startCircle(null, {
+    const circleDraw = new L.Draw.Circle(communityMap, {
         shapeOptions: {
             color: '#10b981',
-            fillOpacity: 0.2,
+            fillColor: '#10b981',
+            fillOpacity: 0.3,
             weight: 2
         }
     });
+    circleDraw.enable();
 
-    updateDrawingStatus('Tap to set center point, then drag edge to adjust radius.');
+    updateDrawingStatus('Click to set center point, then drag to adjust radius.');
     hideMobileCta();
 }
 
-// Enhanced polygon drawing with mobile optimizations
+// Rectangle drawing function
+function startRectangleDraw() {
+    if (!communityMap) return;
+
+    const rectDraw = new L.Draw.Rectangle(communityMap, {
+        shapeOptions: {
+            color: '#8b5cf6',
+            fillColor: '#8b5cf6',
+            fillOpacity: 0.3,
+            weight: 2
+        }
+    });
+    rectDraw.enable();
+
+    updateDrawingStatus('Click two corners to create a rectangle.');
+    hideMobileCta();
+}
+
+// Polygon drawing function
 function startDrawingMode() {
     if (!communityMap) return;
 
-    // Enhanced polygon drawing with mobile-friendly options
-    const polygonDraw = new L.Draw.Polygon(communityMap, {
+    const polyDraw = new L.Draw.Polygon(communityMap, {
         allowIntersection: false,
         shapeOptions: {
             color: '#3b82f6',
-            fillOpacity: 0.2,
+            fillColor: '#3b82f6',
+            fillOpacity: 0.3,
             weight: 2
-        },
-        drawError: {
-            color: '#ef4444',
-            message: '<strong>Error:</strong> Shape edges cannot cross!'
-        },
-        // Mobile-friendly: larger touch targets and better feedback
-        icon: new L.DivIcon({
-            iconSize: isMobileDevice() ? [40, 40] : [20, 20],
-            className: 'custom-polygon-marker'
-        })
+        }
     });
+    polyDraw.enable();
 
-    polygonDraw.enable();
-    updateDrawingStatus('Tap to add points (3+ needed). Large touch targets on mobile.');
+    updateDrawingStatus('Click to add points (3+ needed). Double-click to finish.');
     hideMobileCta();
 }
 
