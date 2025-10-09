@@ -297,9 +297,13 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     z-index: 1; /* Ensure map stays behind other UI elements */
   }
 
-  /* Ensure proper scrolling behavior with containment */
+  /* Enhanced containment for layout isolation */
+  .map-container {
+    contain: layout style; /* Isolate map container changes */
+  }
+
   #alerts-container-wrapper {
-    contain: layout; /* Prevent layout shifts from affecting parent */
+    contain: layout; /* Prevent alerts from affecting parent layout */
   }
 
   #alerts-container {
@@ -308,30 +312,32 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     overflow-anchor: none; /* Disable aggressive scroll anchoring to allow normal scrolling */
   }
 
-  /* Transform-based map shrinking - preserves scroll behavior */
+  /* Hybrid height + transform map shrinking - original visual effect + no jumping */
   @media (max-width: 767px) {
     .dashboard-map {
-      transition: transform 0.3s ease-in-out; /* Smooth transform animation */
-      transform-origin: center top; /* Shrink from top center */
-      will-change: transform; /* GPU optimization */
-      contain: layout style; /* Prevent layout shifts */
+      transition: height 0.3s ease-in-out, transform 0.3s ease-in-out; /* Combined transitions */
+      transform-origin: center top;
+      will-change: height, transform; /* GPU optimization for both */
+      contain: layout style; /* Critical: isolates layout changes */
     }
 
     .dashboard-map.map-shrunk {
-      transform: scale(0.8) translateY(-10vh) !important;
-      /* Scale to 80% + move up 10vh for visual shrinking effect */
+      height: 20vh !important; /* Original vertical squeeze */
+      transform: translateY(-5vh) !important; /* Subtle upward movement */
+      /* Combined height + transform for optimal visual effect */
     }
   }
 
-  /* Debug logging for CSS transitions */
+  /* Debug logging for CSS transitions - hybrid approach */
   @media (max-width: 767px) {
     .dashboard-map {
-      transition: transform 0.3s ease-in-out; /* Transform for debugging */
+      transition: height 0.3s ease-in-out, transform 0.3s ease-in-out; /* Combined for debugging */
     }
 
     .dashboard-map.map-shrunk {
-      transform: scale(0.8) translateY(-10vh) !important;
-      /* Scale to 80% + move up 10vh for visual shrinking effect */
+      height: 20vh !important; /* Original vertical squeeze */
+      transform: translateY(-5vh) !important; /* Subtle upward movement */
+      /* Combined height + transform for optimal visual effect */
     }
   }
 
