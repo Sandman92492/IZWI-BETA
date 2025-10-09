@@ -321,6 +321,30 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     }
   }
 
+  /* Debug logging for CSS transitions */
+  @media (max-width: 767px) {
+    .dashboard-map {
+      transition: height 0s ease-in-out; /* Instant for debugging */
+    }
+
+    .dashboard-map.map-shrunk {
+      height: 20vh !important;
+    }
+  }
+
+  /* Log when map shrinking class is applied */
+  .dashboard-map.map-shrunk::after {
+    content: "SHRUNK";
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: red;
+    color: white;
+    padding: 2px 4px;
+    font-size: 10px;
+    z-index: 1000;
+  }
+
   /* Mobile menu z-index management and animations */
   #mobile-menu {
     z-index: 40; /* Above map but below post button */

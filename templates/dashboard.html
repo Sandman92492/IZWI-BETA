@@ -194,20 +194,74 @@
 window.currentUserId = {{ current_user.id if current_user else 'null' }};
 </script>
 
-<!-- Transform-based map shrinking - no layout shifts -->
+<!-- Community and data logging for debugging -->
+<script>
+console.log('🏘️ Community Debug Info:', {
+  communityId: window.currentCommunityId,
+  alertsCount: document.querySelectorAll('.alert-card').length,
+  hasBoundaryData: !!document.getElementById('boundary-data'),
+  boundaryDataSize: document.getElementById('boundary-data')?.textContent?.length || 0,
+  alertsDataSize: document.getElementById('alerts-data')?.textContent?.length || 0,
+  windowWidth: window.innerWidth,
+  windowHeight: window.innerHeight
+});
+</script>
+
+<!-- Enhanced scroll handler with comprehensive logging -->
 <script>
 (function() {
   const alertsContainer = document.getElementById('alerts-container');
   const mapContainer = document.querySelector('.dashboard-map');
 
   if (alertsContainer && mapContainer && window.innerWidth < 768) {
-    alertsContainer.addEventListener('scroll', function() {
-      if (this.scrollTop > 50) {
+    console.log('🚀 Map shrinking initialized', {
+      alertsContainerHeight: alertsContainer.scrollHeight,
+      alertsContainerClientHeight: alertsContainer.clientHeight,
+      mapHeight: mapContainer.offsetHeight,
+      currentCommunity: window.currentCommunityId
+    });
+
+    let lastScrollTop = 0;
+    let shrinkingLogged = false;
+    let expandingLogged = false;
+
+    alertsContainer.addEventListener('scroll', function(e) {
+      const scrollTop = this.scrollTop;
+      const direction = scrollTop > lastScrollTop ? 'down' : 'up';
+      const threshold = scrollTop > 50;
+
+      console.log('📜 Scroll event:', {
+        scrollTop,
+        direction,
+        threshold,
+        hasMapShrunk: mapContainer.classList.contains('map-shrunk'),
+        containerHeight: this.scrollHeight,
+        viewportHeight: this.clientHeight,
+        communityId: window.currentCommunityId
+      });
+
+      // Shrinking logic
+      if (threshold && !mapContainer.classList.contains('map-shrunk')) {
+        console.log('🔽 Map shrinking activated');
         mapContainer.classList.add('map-shrunk');
-      } else if (this.scrollTop < 20) {
+        shrinkingLogged = true;
+      } else if (!threshold && mapContainer.classList.contains('map-shrunk')) {
+        console.log('🔼 Map expanding activated');
         mapContainer.classList.remove('map-shrunk');
+        expandingLogged = true;
       }
+
+      lastScrollTop = scrollTop;
     }, { passive: true });
+
+    // Log initial state
+    console.log('📊 Initial state:', {
+      hasMapShrunk: mapContainer.classList.contains('map-shrunk'),
+      scrollTop: alertsContainer.scrollTop,
+      communityId: window.currentCommunityId
+    });
+  } else {
+    console.warn('⚠️ Map shrinking not initialized - missing containers');
   }
 })();
 </script>

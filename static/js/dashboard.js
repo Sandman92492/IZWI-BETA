@@ -1,6 +1,27 @@
 // Dashboard Map and Alert Management
 console.log('Dashboard JavaScript loading...');
 
+// Enhanced error logging for debugging
+window.addEventListener('error', function(e) {
+  console.error('🚨 JavaScript Error:', {
+    message: e.message,
+    filename: e.filename,
+    lineno: e.lineno,
+    colno: e.colno,
+    error: e.error,
+    communityId: window.currentCommunityId
+  });
+});
+
+// Log unhandled promise rejections
+window.addEventListener('unhandledrejection', function(e) {
+  console.error('🚨 Unhandled Promise Rejection:', {
+    reason: e.reason,
+    promise: e.promise,
+    communityId: window.currentCommunityId
+  });
+});
+
 // Wait for DOM to be ready - single event listener for all initialization
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM ready, preparing map init...');
