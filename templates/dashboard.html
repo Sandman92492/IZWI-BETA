@@ -9,23 +9,6 @@
 <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
 <script src="{{ url_for('static', filename='js/tour.js') }}"></script>
 
-<!-- Eruda debugging console for PWA -->
-<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
-<script>
-  // Initialize Eruda console for PWA debugging
-  eruda.init({
-    tool: ['console', 'elements', 'network', 'resources', 'info']
-  });
-
-  // Make console logs more visible in PWA
-  console.log('🎯 Eruda console initialized for PWA debugging');
-  console.log('📱 PWA Debug Info:', {
-    userAgent: navigator.userAgent,
-    viewport: window.innerWidth + 'x' + window.innerHeight,
-    isPWA: window.matchMedia('(display-mode: standalone)').matches,
-    url: window.location.href
-  });
-</script>
 <style>
 .custom-alert-marker { background: transparent !important; border: none !important; animation: pulse-once 0.8s ease-out; }
 @keyframes pulse-once { 0%{ transform: scale(0.8); opacity:0.7;} 50%{ transform: scale(1.1); opacity:1;} 100%{ transform: scale(1); opacity:1;} }
@@ -37,32 +20,6 @@
 .alert-card .category-chip { background: color-mix(in srgb, var(--accent) 16%, #ffffff); color: color-mix(in srgb, var(--accent) 60%, #111827); }
 .dark .alert-card .category-chip { background: rgba(255,255,255,0.06); color: #e5e7eb; }
 
-/* Add this to the existing style block in dashboard.html */
-.debug-indicator {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  background: rgba(255, 0, 0, 0.8);
-  color: white;
-  padding: 5px 10px;
-  font-size: 12px;
-  z-index: 9999;
-  border-radius: 5px;
-  font-family: monospace;
-}
-
-.debug-scroll {
-  position: fixed;
-  top: 50px;
-  left: 10px;
-  background: rgba(0, 255, 0, 0.8);
-  color: white;
-  padding: 5px 10px;
-  font-size: 12px;
-  z-index: 9999;
-  border-radius: 5px;
-  font-family: monospace;
-}
 </style>
 {% endblock %}
 
@@ -127,7 +84,7 @@
   </div>
   <div class="lg:col-span-7 order-1">
     <!-- Mobile map - fixed size to prevent layout shifts -->
-    <div class="relative h-[40vh] lg:h-[600px] rounded-lg overflow-hidden shadow-sm bg-gray-100 dark:bg-gray-800 map-container dashboard-map">
+    <div id="map-container" class="relative h-[40vh] lg:h-[600px] rounded-lg overflow-hidden shadow-sm bg-gray-100 dark:bg-gray-800 map-container dashboard-map">
       <div id="map" class="w-full h-full"></div>
     </div>
   </div>
@@ -239,91 +196,56 @@
 window.currentUserId = {{ current_user.id if current_user else 'null' }};
 </script>
 
-<!-- Community and data logging for debugging -->
-<script>
-console.log('🏘️ Community Debug Info:', {
-  communityId: window.currentCommunityId,
-  alertsCount: document.querySelectorAll('.alert-card').length,
-  hasBoundaryData: !!document.getElementById('boundary-data'),
-  boundaryDataSize: document.getElementById('boundary-data')?.textContent?.length || 0,
-  alertsDataSize: document.getElementById('alerts-data')?.textContent?.length || 0,
-  windowWidth: window.innerWidth,
-  windowHeight: window.innerHeight
-});
-</script>
 
-<!-- Enhanced scroll handler with comprehensive logging -->
+<!-- Scroll position preservation for map shrinking -->
 <script>
 (function() {
   const alertsContainer = document.getElementById('alerts-container');
-  const mapContainer = document.querySelector('.dashboard-map');
+  const mapContainerEl = document.getElementById('map-container');
+  const alertsWrapperEl = document.getElementById('alerts-container-wrapper');
 
-  if (alertsContainer && mapContainer && window.innerWidth < 768) {
-    console.log('🚀 Map shrinking initialized', {
-      alertsContainerHeight: alertsContainer.scrollHeight,
-      alertsContainerClientHeight: alertsContainer.clientHeight,
-      mapHeight: mapContainer.offsetHeight,
-      currentCommunity: window.currentCommunityId
-    });
-
-
-    let scrollTimeout;
-    let lastDirection = 'up';
-    let consecutiveDownCount = 0;
-    let consecutiveUpCount = 0;
+  if (alertsContainer && mapContainerEl && alertsWrapperEl && window.innerWidth < 768) {
+    let isExpanded = false;
+    let isCollapsed = false;
 
     alertsContainer.addEventListener('scroll', function(e) {
       const scrollTop = this.scrollTop;
-      const currentDirection = scrollTop > (this.lastScrollTop || 0) ? 'down' : 'up';
+      const scrollingDown = scrollTop > (this.lastScrollTop || 0);
       this.lastScrollTop = scrollTop;
 
-      // Count consecutive scrolls in same direction
-      if (currentDirection === lastDirection) {
-        if (currentDirection === 'down') consecutiveDownCount++;
-        else consecutiveUpCount++;
-      } else {
-        consecutiveDownCount = currentDirection === 'down' ? 1 : 0;
-        consecutiveUpCount = currentDirection === 'up' ? 1 : 0;
-        lastDirection = currentDirection;
-      }
+      // Expand: scroll down past 10px threshold
+      if (scrollingDown && scrollTop > 10 && !isExpanded) {
+        isExpanded = true;
+        isCollapsed = false;
 
-      // Simplified direction-based logic (no position dependency)
-      clearTimeout(scrollTimeout);
-      scrollTimeout = setTimeout(() => {
-        const isShrunk = mapContainer.classList.contains('map-shrunk');
+        // Store scroll position BEFORE layout change
+        const savedScrollTop = this.scrollTop;
 
-        // Shrink: Must scroll down consecutively (no position check)
-        if (currentDirection === 'down' && consecutiveDownCount >= 3 && !isShrunk) {
-          console.log('🔽 Map shrinking (down direction)');
-          mapContainer.classList.add('map-shrunk');
-        }
-        // Expand: Must scroll up consecutively (no position check)
-        else if (currentDirection === 'up' && consecutiveUpCount >= 2 && isShrunk) {
-          console.log('🔼 Map expanding (up direction)');
-          mapContainer.classList.remove('map-shrunk');
-        }
-      }, 100); // 100ms debounce
+        // Change heights
+        mapContainerEl.style.height = '20vh';
+        alertsWrapperEl.style.height = '80vh';
 
-      // Real-time logging (less frequent)
-      if (consecutiveDownCount % 5 === 0 || consecutiveUpCount % 5 === 0) {
-        console.log('📜 Scroll state:', {
-          scrollTop,
-          direction: currentDirection,
-          consecutiveDown: consecutiveDownCount,
-          consecutiveUp: consecutiveUpCount,
-          hasMapShrunk: mapContainer.classList.contains('map-shrunk')
+        // Restore scroll position IMMEDIATELY after height change
+        requestAnimationFrame(() => {
+          this.scrollTop = savedScrollTop;
         });
+
+        console.log('🔽 Map collapsed to 20vh, alerts expanded to 80vh');
+      }
+      // Collapse: scroll up to top (scrollTop < 5)
+      else if (!scrollingDown && scrollTop < 5 && isExpanded) {
+        isExpanded = false;
+        isCollapsed = true;
+
+        // Change heights back
+        mapContainerEl.style.height = '40vh';
+        alertsWrapperEl.style.height = '60vh';
+
+        console.log('🔼 Map restored to 40vh, alerts restored to 60vh');
       }
     }, { passive: true });
 
-    // Log initial state
-    console.log('📊 Initial state:', {
-      hasMapShrunk: mapContainer.classList.contains('map-shrunk'),
-      scrollTop: alertsContainer.scrollTop,
-      communityId: window.currentCommunityId
-    });
-  } else {
-    console.warn('⚠️ Map shrinking not initialized - missing containers');
+    console.log('✅ Map shrinking initialized with scroll preservation');
   }
 })();
 </script>

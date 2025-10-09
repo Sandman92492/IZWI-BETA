@@ -312,44 +312,13 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     overflow-anchor: none; /* Disable aggressive scroll anchoring to allow normal scrolling */
   }
 
-  /* Pure transform map shrinking - no layout changes, preserves scroll behavior */
+  /* Mobile map and alerts height transitions */
   @media (max-width: 767px) {
-    .dashboard-map {
-      transition: transform 0.3s ease-in-out; /* Smooth transform animation */
-      transform-origin: center top; /* Shrink from top center */
-      will-change: transform; /* GPU optimization for transforms */
-      contain: layout style; /* Isolate layout changes */
+    .dashboard-map,
+    .alerts-panel {
+      transition: height 0.2s ease-out;
+      will-change: height;
     }
-
-    .dashboard-map.map-shrunk {
-      transform: scale(0.85) translateY(-8vh) !important;
-      /* Scale down to 85% + move up 8vh for visual shrinking effect */
-    }
-  }
-
-  /* Debug logging for CSS transitions - pure transform approach */
-  @media (max-width: 767px) {
-    .dashboard-map {
-      transition: transform 0.3s ease-in-out; /* Transform for debugging */
-    }
-
-    .dashboard-map.map-shrunk {
-      transform: scale(0.85) translateY(-8vh) !important;
-      /* Scale down to 85% + move up 8vh for visual shrinking effect */
-    }
-  }
-
-  /* Log when map shrinking class is applied */
-  .dashboard-map.map-shrunk::after {
-    content: "SHRUNK";
-    position: absolute;
-    top: 5px;
-    right: 5px;
-    background: red;
-    color: white;
-    padding: 2px 4px;
-    font-size: 10px;
-    z-index: 1000;
   }
 
   /* Mobile menu z-index management and animations */
