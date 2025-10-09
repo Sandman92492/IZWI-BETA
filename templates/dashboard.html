@@ -287,19 +287,19 @@ console.log('🏘️ Community Debug Info:', {
         lastDirection = currentDirection;
       }
 
-      // Debounced logic with direction confirmation
+      // Simplified direction-based logic (no position dependency)
       clearTimeout(scrollTimeout);
       scrollTimeout = setTimeout(() => {
         const isShrunk = mapContainer.classList.contains('map-shrunk');
 
-        // Shrink: Must scroll down consecutively past 50px
-        if (currentDirection === 'down' && consecutiveDownCount >= 3 && scrollTop > 50 && !isShrunk) {
-          console.log('🔽 Map shrinking activated (direction confirmed)');
+        // Shrink: Must scroll down consecutively (no position check)
+        if (currentDirection === 'down' && consecutiveDownCount >= 3 && !isShrunk) {
+          console.log('🔽 Map shrinking (down direction)');
           mapContainer.classList.add('map-shrunk');
         }
-        // Expand: Must scroll up consecutively and be below 40px
-        else if (currentDirection === 'up' && consecutiveUpCount >= 2 && scrollTop < 40 && isShrunk) {
-          console.log('🔼 Map expanding activated (direction confirmed)');
+        // Expand: Must scroll up consecutively (no position check)
+        else if (currentDirection === 'up' && consecutiveUpCount >= 2 && isShrunk) {
+          console.log('🔼 Map expanding (up direction)');
           mapContainer.classList.remove('map-shrunk');
         }
       }, 100); // 100ms debounce

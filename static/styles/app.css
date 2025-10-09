@@ -312,32 +312,30 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     overflow-anchor: none; /* Disable aggressive scroll anchoring to allow normal scrolling */
   }
 
-  /* Hybrid height + transform map shrinking - original visual effect + no jumping */
+  /* Pure transform map shrinking - no layout changes, preserves scroll behavior */
   @media (max-width: 767px) {
     .dashboard-map {
-      transition: height 0.3s ease-in-out, transform 0.3s ease-in-out; /* Combined transitions */
-      transform-origin: center top;
-      will-change: height, transform; /* GPU optimization for both */
-      contain: layout style; /* Critical: isolates layout changes */
+      transition: transform 0.3s ease-in-out; /* Smooth transform animation */
+      transform-origin: center top; /* Shrink from top center */
+      will-change: transform; /* GPU optimization for transforms */
+      contain: layout style; /* Isolate layout changes */
     }
 
     .dashboard-map.map-shrunk {
-      height: 20vh !important; /* Original vertical squeeze */
-      transform: translateY(-5vh) !important; /* Subtle upward movement */
-      /* Combined height + transform for optimal visual effect */
+      transform: scale(0.85) translateY(-8vh) !important;
+      /* Scale down to 85% + move up 8vh for visual shrinking effect */
     }
   }
 
-  /* Debug logging for CSS transitions - hybrid approach */
+  /* Debug logging for CSS transitions - pure transform approach */
   @media (max-width: 767px) {
     .dashboard-map {
-      transition: height 0.3s ease-in-out, transform 0.3s ease-in-out; /* Combined for debugging */
+      transition: transform 0.3s ease-in-out; /* Transform for debugging */
     }
 
     .dashboard-map.map-shrunk {
-      height: 20vh !important; /* Original vertical squeeze */
-      transform: translateY(-5vh) !important; /* Subtle upward movement */
-      /* Combined height + transform for optimal visual effect */
+      transform: scale(0.85) translateY(-8vh) !important;
+      /* Scale down to 85% + move up 8vh for visual shrinking effect */
     }
   }
 
