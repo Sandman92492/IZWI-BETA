@@ -305,7 +305,7 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   #alerts-container {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
-    overflow-anchor: auto; /* Enable scroll anchoring to prevent jumping */
+    overflow-anchor: none; /* Disable aggressive scroll anchoring to allow normal scrolling */
   }
 
   /* Height-based map shrinking with containment to prevent jumping */
