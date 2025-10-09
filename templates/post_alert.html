@@ -134,8 +134,19 @@
         <input type="hidden" name="latitude" id="latitude" required>
         <input type="hidden" name="longitude" id="longitude" required>
       </div>
+
+      <!-- Address (Optional) -->
+      <div class="mb-8">
+        <div class="flex items-center gap-2 mb-4">
+          <span class="material-symbols-outlined text-primary">edit_location</span>
+          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Address (Optional)</h2>
+        </div>
+        <input type="text" name="address" id="address" class="w-full p-3 rounded-lg bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-primary focus:outline-none" placeholder="Enter a specific address or location description (optional)">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">Provide a human-readable address or location description to help others find this location.</p>
+      </div>
+
       <!-- Submit Button -->
-      <div class="pt-6">
+      <div class="pt-8">
         <button type="submit" id="post-alert-btn" class="w-full bg-primary text-white font-semibold py-3 sm:py-4 px-6 rounded-lg hover:bg-primary/90 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed">
           <span class="btn-text">Post Alert</span>
           <span class="btn-loading hidden">Posting Alert...</span>
@@ -297,12 +308,17 @@ function selectCategory(event, category) {
     selectedCategory = category;
 }
 
-// Add loading state functionality
+// Add loading state functionality and auto-location detection
 document.addEventListener('DOMContentLoaded', function() {
     const form = document.querySelector('form');
     const submitBtn = document.getElementById('post-alert-btn');
     const btnText = submitBtn.querySelector('.btn-text');
     const btnLoading = submitBtn.querySelector('.btn-loading');
+
+    // Auto-detect location on page load (after a short delay to ensure map is ready)
+    setTimeout(() => {
+        requestCurrentLocation();
+    }, 1000);
     
     form.addEventListener('submit', function(e) {
         // Check if category is selected

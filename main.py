@@ -1157,6 +1157,7 @@ def super_admin_post_verified():
     description = data.get('description')
     latitude = data.get('latitude', 0.0)
     longitude = data.get('longitude', 0.0)
+    address = data.get('address')
     duration_minutes = data.get('duration_minutes')
 
     app.logger.info(f'Super admin {current_user.id} posting alert to community {community_id}')
@@ -1165,7 +1166,7 @@ def super_admin_post_verified():
     if not community or community.business_id != current_user.business_id:
         return jsonify({'error': 'Forbidden'}), 403
 
-    alert_id, error = create_verified_alert(community_id, current_user.id, category, description, latitude, longitude, duration_minutes=duration_minutes)
+    alert_id, error = create_verified_alert(community_id, current_user.id, category, description, latitude, longitude, address=address, duration_minutes=duration_minutes)
     if alert_id:
         app.logger.info(f'Alert {alert_id} successfully created in community {community_id}')
         return jsonify({'success': True, 'alert_id': alert_id})
@@ -1301,14 +1302,19 @@ def define_community():
 @app.route('/post-alert', methods=['GET', 'POST'])
 @login_required
 def post_alert():
+    # Check if user has a community_id
+    if not current_user.community_id:
+        return redirect(url_for('define_community'))
+
     if request.method == 'POST':
         category = request.form.get('category')
         description = request.form.get('description')
         latitude = request.form.get('latitude', 0.0)
         longitude = request.form.get('longitude', 0.0)
+        address = request.form.get('address')
         duration_minutes = request.form.get('duration_minutes')
 
-        alert_id, error = create_alert(current_user.community_id, current_user.id, category, description, latitude, longitude, duration_minutes=duration_minutes)
+        alert_id, error = create_alert(current_user.community_id, current_user.id, category, description, latitude, longitude, address=address, duration_minutes=duration_minutes)
 
         if alert_id:
             flash('Alert posted successfully!')

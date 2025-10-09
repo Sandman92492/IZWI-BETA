@@ -101,9 +101,6 @@
         </div>
       </div>
 
-      <!-- Alert Filters -->
-      {% include 'alert_filters.html' %}
-
       <!-- Alerts List -->
       <div id="alerts-container" class="flex-1 overflow-y-auto">
         <div class="p-4 sm:p-6 space-y-3 sm:space-y-4 pb-20">
@@ -175,6 +172,9 @@
     </div>
   </div>
 </section>
+
+<!-- Alert Filters (moved back outside scrollable container but after dashboard.js) -->
+{% include 'alert_filters.html' %}
 
 
 </main>

@@ -48,7 +48,7 @@ def get_community_alerts(community_id, include_resolved=False):
     
     return alert_data
 
-def create_alert(community_id, user_id, category, description, latitude=0.0, longitude=0.0, is_verified=False, duration_minutes=None):
+def create_alert(community_id, user_id, category, description, latitude=0.0, longitude=0.0, address=None, is_verified=False, duration_minutes=None):
     """Create a new alert"""
     # Log alert creation attempt
     current_app.logger.info(f'Creating alert for community {community_id} by user {user_id}, category: {category}, verified: {is_verified}')
@@ -63,6 +63,7 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
     # Sanitize input
     category = sanitize_plain_text(category)
     description = sanitize_text_input(description)
+    address = sanitize_plain_text(address) if address else None
 
     # Validate and parse coordinates
     try:
@@ -94,6 +95,7 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
         description=description,
         latitude=latitude,
         longitude=longitude,
+        address=address,
         timestamp=datetime.now(),
         is_resolved=False,
         is_verified=bool(is_verified),
@@ -128,10 +130,10 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
 
     return alert.id, None
 
-def create_verified_alert(community_id, user_id, category, description, latitude=0.0, longitude=0.0, duration_minutes=None):
+def create_verified_alert(community_id, user_id, category, description, latitude=0.0, longitude=0.0, address=None, duration_minutes=None):
     """Create a verified alert shortcut"""
     current_app.logger.info(f'Creating verified alert for community {community_id} by user {user_id}')
-    return create_alert(community_id, user_id, category, description, latitude, longitude, is_verified=True, duration_minutes=duration_minutes)
+    return create_alert(community_id, user_id, category, description, latitude, longitude, address=address, is_verified=True, duration_minutes=duration_minutes)
 
 def report_alert(alert_id, reporter_user):
     """Report an alert for inappropriate content"""

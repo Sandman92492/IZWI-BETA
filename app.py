@@ -172,6 +172,16 @@ def init_database():
                     db.session.rollback()
                     app.logger.error(f"Failed to add 'resolved_at' column: {mig_e}")
 
+            # Check for address column
+            if 'address' not in columns:
+                try:
+                    db.session.execute(text('ALTER TABLE alert ADD COLUMN address VARCHAR(255)'))
+                    db.session.commit()
+                    app.logger.info("Added missing column 'address' to alert table")
+                except Exception as mig_e:
+                    db.session.rollback()
+                    app.logger.error(f"Failed to add 'address' column: {mig_e}")
+
             # Migrate existing data to new status field
             try:
                 # Update resolved alerts to have status='Resolved'

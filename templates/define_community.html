@@ -1069,9 +1069,10 @@ if (isMobileDevice()) {
             border-radius: 50% !important;
             box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
         }
-        .leaflet-draw-toolbar {
+        /* Keep draw toolbar visible on mobile for functionality */
+        /* .leaflet-draw-toolbar {
             display: none !important;
-        }
+        } */
     `;
     document.head.appendChild(style);
 }

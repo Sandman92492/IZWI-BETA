@@ -1,7 +1,7 @@
 // Dashboard Map and Alert Management
 console.log('Dashboard JavaScript loading...');
 
-// Wait for DOM to be ready
+// Wait for DOM to be ready - single event listener for all initialization
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM ready, preparing map init...');
 
@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return;
     }
 
-    // Parse alerts data once
+    // Parse alerts data once for both map and filters
     var alertsData = document.getElementById('alerts-data');
     var alerts = alertsData ? (function(){ try { return JSON.parse(alertsData.textContent); } catch(_) { return []; } })() : [];
     console.log('Raw alerts data from template:', alertsData ? alertsData.textContent : 'No alerts-data element found');
@@ -125,7 +125,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function containerHasSize(){
-        try { return (mapContainer.offsetWidth > 0 && mapContainer.offsetHeight > 0); } catch(_) { return false; }
+        try {
+            const currentMapElement = document.getElementById('map');
+            return currentMapElement && (currentMapElement.offsetWidth > 0 && currentMapElement.offsetHeight > 0);
+        } catch(_) { return false; }
     }
 
     function initWhenReady(){
@@ -332,12 +335,15 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ensure map is properly sized and visible
         function ensureMapSize() {
             try {
-                if (map && mapContainer) {
-                    const rect = mapContainer.getBoundingClientRect();
-                    console.log('Map container dimensions:', rect.width, 'x', rect.height);
-                    if (rect.width > 0 && rect.height > 0) {
-                        map.invalidateSize();
-                        console.log('Map invalidated and resized');
+                if (map) {
+                    const currentMapElement = document.getElementById('map');
+                    if (currentMapElement) {
+                        const rect = currentMapElement.getBoundingClientRect();
+                        console.log('Map container dimensions:', rect.width, 'x', rect.height);
+                        if (rect.width > 0 && rect.height > 0) {
+                            map.invalidateSize();
+                            console.log('Map invalidated and resized');
+                        }
                     }
                 }
             } catch(_) {
@@ -348,11 +354,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Ensure map fits properly in its container
         function fitMapToContainer() {
             try {
-                if (map && mapContainer) {
-                    const rect = mapContainer.getBoundingClientRect();
-                    if (rect.width > 0 && rect.height > 0) {
-                        map.invalidateSize();
-                        console.log('Map fitted to container:', rect.width, 'x', rect.height);
+                if (map) {
+                    const currentMapElement = document.getElementById('map');
+                    if (currentMapElement) {
+                        const rect = currentMapElement.getBoundingClientRect();
+                        if (rect.width > 0 && rect.height > 0) {
+                            map.invalidateSize();
+                            console.log('Map fitted to container:', rect.width, 'x', rect.height);
+                        }
                     }
                 }
             } catch(_) {
@@ -374,9 +383,81 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Kick off init once ready
-    initWhenReady();
-});
+        // Kick off init once ready
+        initWhenReady();
+
+        // Filter and global variable initialization (moved from second DOMContentLoaded)
+        // Store original alerts for fallback
+        window.originalAlerts = alerts;
+
+        // Current user ID is set in the template, but provide fallback
+        if (typeof window.currentUserId === 'undefined') {
+            window.currentUserId = null;
+        }
+
+        // Store current markers for filtering
+        window.alertMarkers = [];
+
+        // Make filter functions available globally for the filter component
+        if (typeof window.showFilterLoading === 'undefined') {
+            window.showFilterLoading = function() {
+                const loading = document.getElementById('filter-loading');
+                if (loading) loading.classList.remove('hidden');
+            };
+        }
+
+        if (typeof window.hideFilterLoading === 'undefined') {
+            window.hideFilterLoading = function() {
+                const loading = document.getElementById('filter-loading');
+                if (loading) loading.classList.add('hidden');
+            };
+        }
+
+        if (typeof window.updateFilterResults === 'undefined') {
+            window.updateFilterResults = function(count) {
+                const resultsElement = document.getElementById('results-count');
+                if (resultsElement) {
+                    if (count !== undefined) {
+                        resultsElement.textContent = `${count} alert${count !== 1 ? 's' : ''} found`;
+                        resultsElement.classList.remove('text-gray-600', 'dark:text-gray-400');
+                        resultsElement.classList.add('text-green-600', 'dark:text-green-400');
+                    } else {
+                        resultsElement.textContent = '';
+                    }
+                }
+
+                // Auto-close filter panel only if alerts were found
+                if (count > 0) {
+                    setTimeout(() => {
+                        const filterControls = document.getElementById('filter-controls');
+                        if (filterControls && !filterControls.classList.contains('hidden')) {
+                            toggleFilters();
+                        }
+                    }, 500); // Brief delay to ensure results are visible
+                }
+                // If no results (count === 0), keep the filter panel open so users can see the message and adjust filters
+            };
+        }
+
+        // Auto-hide flash messages after 5 seconds
+        const alertMessages = document.querySelectorAll('.alert-message');
+        const flashContainer = document.getElementById('flash-container');
+        alertMessages.forEach(function(message) {
+            setTimeout(function() {
+                message.style.transition = 'opacity 0.5s ease-out';
+                message.style.opacity = '0';
+                setTimeout(function() {
+                    message.remove();
+                    if (flashContainer && !flashContainer.querySelector('.alert-message')) {
+                        flashContainer.remove();
+                    }
+                    if (window.dashboardMap) {
+                        window.dashboardMap.invalidateSize();
+                    }
+                }, 500);
+            }, 5000);
+        });
+    });
 
 // Request user location with permission prompt
 function requestUserLocation(map) {
@@ -627,7 +708,12 @@ function reportAlert(alertId) {
 function filterAlerts(filterState) {
     console.log('Filtering alerts with state:', filterState);
 
-    // Show loading state
+    // Show loading state in filter component if available
+    if (window.showFilterLoading) {
+        window.showFilterLoading();
+    }
+
+    // Show loading state in alerts container
     const alertsContainer = document.getElementById('alerts-container');
     if (!alertsContainer) return;
 
@@ -659,10 +745,26 @@ function filterAlerts(filterState) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
+            // Hide loading state
+            if (window.hideFilterLoading) {
+                window.hideFilterLoading();
+            }
+
+            // Update results count if function available
+            if (window.updateFilterResults && data.alerts) {
+                window.updateFilterResults(data.alerts.length);
+            }
+
             updateAlertsDisplay(data.alerts);
             updateMapMarkers(data.alerts);
         } else {
             console.error('Filter request failed:', data.error);
+
+            // Hide loading state
+            if (window.hideFilterLoading) {
+                window.hideFilterLoading();
+            }
+
             showLocationMessage('Failed to filter alerts', 'warning');
             // Fallback to original alerts if filter fails
             updateAlertsDisplay(window.originalAlerts || []);
@@ -671,6 +773,12 @@ function filterAlerts(filterState) {
     })
     .catch(error => {
         console.error('Error filtering alerts:', error);
+
+        // Hide loading state
+        if (window.hideFilterLoading) {
+            window.hideFilterLoading();
+        }
+
         showLocationMessage('Error filtering alerts', 'warning');
         // Fallback to original alerts if filter fails
         updateAlertsDisplay(window.originalAlerts || []);
@@ -872,101 +980,7 @@ function formatTimeLeft(timestamp) {
     }
 }
 
-// Mobile scroll behavior for dashboard
-function initMobileScrollBehavior() {
-    // Only apply on mobile/tablet (not lg and up)
-    if (window.innerWidth >= 1024) return; // lg breakpoint
+// Mobile scroll behavior for dashboard - removed conflicting implementation
+// The map shrinking animation is handled by the simpler CSS-based version in dashboard.html
+// This function is no longer needed and was causing conflicts
 
-    const mapContainer = document.querySelector('.map-container');
-    const alertsContainer = document.getElementById('alerts-container-wrapper');
-    const alertsScrollContainer = document.getElementById('alerts-container-wrapper'); // Now targeting the wrapper for full panel scrolling
-    const alertsColumn = document.querySelector('.lg\\:col-span-5');
-
-    if (!mapContainer || !alertsContainer || !alertsScrollContainer || !alertsColumn) return;
-
-    // Initial state - map at 40vh
-    mapContainer.style.height = '40vh';
-
-    // Function to handle scroll in alerts container
-    function handleAlertsScroll() {
-        const scrollTop = alertsScrollContainer.scrollTop;
-        const mapContainer = document.querySelector('.map-container');
-
-        if (scrollTop > 10) {
-            // Scrolling down - shrink map to 20vh
-            mapContainer.style.height = '20vh';
-        } else {
-            // At top - expand map to 40vh
-            mapContainer.style.height = '40vh';
-        }
-    }
-
-    // Add scroll listener to the wrapper container (enables scrolling on headers and filters too)
-    alertsScrollContainer.addEventListener('scroll', handleAlertsScroll);
-
-    // Handle window resize
-    window.addEventListener('resize', function() {
-        if (window.innerWidth >= 1024) {
-            // Desktop view - remove scroll listener and reset styles
-            alertsScrollContainer.removeEventListener('scroll', handleAlertsScroll);
-            mapContainer.style.height = '';
-        } else {
-            // Mobile view - re-add scroll listener
-            alertsScrollContainer.addEventListener('scroll', handleAlertsScroll);
-        }
-    });
-
-    // Prevent layout shifts by ensuring proper positioning constraints
-    function ensureStableLayout() {
-        // Ensure alerts column maintains proper flex constraints
-        if (alertsColumn) {
-            alertsColumn.style.willChange = 'auto';
-        }
-
-        // Ensure scroll container maintains stable positioning (but don't interfere with wrapper height)
-        alertsScrollContainer.style.transform = 'translateZ(0)'; // Hardware acceleration for smooth scrolling
-    }
-
-    // Apply layout stability immediately and after transitions
-    ensureStableLayout();
-    setTimeout(ensureStableLayout, 100);
-    setTimeout(ensureStableLayout, 300);
-}
-
-
-// Store original alerts for fallback and initialize filtering
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize mobile scroll behavior
-    initMobileScrollBehavior();
-
-    // Store original alerts for fallback
-    const alertsData = document.getElementById('alerts-data');
-    window.originalAlerts = alertsData ? (function(){ try { return JSON.parse(alertsData.textContent); } catch(_) { return []; } })() : [];
-
-    // Current user ID is set in the template, but provide fallback
-    if (typeof window.currentUserId === 'undefined') {
-        window.currentUserId = null;
-    }
-
-    // Store current markers for filtering
-    window.alertMarkers = [];
-
-    // Auto-hide flash messages after 5 seconds
-    const alertMessages = document.querySelectorAll('.alert-message');
-    const flashContainer = document.getElementById('flash-container');
-    alertMessages.forEach(function(message) {
-        setTimeout(function() {
-            message.style.transition = 'opacity 0.5s ease-out';
-            message.style.opacity = '0';
-            setTimeout(function() {
-                message.remove();
-                if (flashContainer && !flashContainer.querySelector('.alert-message')) {
-                    flashContainer.remove();
-                }
-                if (window.dashboardMap) {
-                    window.dashboardMap.invalidateSize();
-                }
-            }, 500);
-        }, 5000);
-    });
-});

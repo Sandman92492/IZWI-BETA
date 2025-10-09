@@ -96,6 +96,7 @@ class Alert(db.Model):
     description = db.Column(db.Text, nullable=False)
     latitude = db.Column(db.Float, default=0)
     longitude = db.Column(db.Float, default=0)
+    address = db.Column(db.String(255), nullable=True)
     timestamp = db.Column(db.DateTime, nullable=False)
     is_resolved = db.Column(db.Boolean, default=False)
     is_premium_feature = db.Column(db.Boolean, default=False)
