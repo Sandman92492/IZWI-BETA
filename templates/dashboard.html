@@ -8,6 +8,24 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-gesture-handling/dist/leaflet-gesture-handling.min.js"></script>
 <script src="{{ url_for('static', filename='js/tour.js') }}"></script>
+
+<!-- Eruda debugging console for PWA -->
+<script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+<script>
+  // Initialize Eruda console for PWA debugging
+  eruda.init({
+    tool: ['console', 'elements', 'network', 'resources', 'info']
+  });
+
+  // Make console logs more visible in PWA
+  console.log('🎯 Eruda console initialized for PWA debugging');
+  console.log('📱 PWA Debug Info:', {
+    userAgent: navigator.userAgent,
+    viewport: window.innerWidth + 'x' + window.innerHeight,
+    isPWA: window.matchMedia('(display-mode: standalone)').matches,
+    url: window.location.href
+  });
+</script>
 <style>
 .custom-alert-marker { background: transparent !important; border: none !important; animation: pulse-once 0.8s ease-out; }
 @keyframes pulse-once { 0%{ transform: scale(0.8); opacity:0.7;} 50%{ transform: scale(1.1); opacity:1;} 100%{ transform: scale(1); opacity:1;} }
