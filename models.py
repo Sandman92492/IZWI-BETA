@@ -13,6 +13,9 @@ class User(UserMixin, db.Model):
     business_id = db.Column(db.Integer, db.ForeignKey('business.id'))
     subscription_tier = db.Column(db.String(20), default='Free')
     is_on_duty = db.Column(db.Boolean, default=False)
+
+    # Relationships
+    community_memberships = db.relationship('UserCommunityMembership', backref='user', lazy=True)
     
     def is_business_user(self):
         """Check if user is a business-level user"""
@@ -44,26 +47,20 @@ class User(UserMixin, db.Model):
 
     def get_communities(self):
         """Get all communities user is a member of"""
-        return [m.community for m in self.community_memberships.filter_by(is_active=True)]
+        return [m.community for m in self.community_memberships if m.is_active]
 
     def get_role_in_community(self, community_id):
         """Get user's role in a specific community"""
-        membership = self.community_memberships.filter_by(
-            community_id=community_id,
-            is_active=True
-        ).first()
+        membership = next((m for m in self.community_memberships if m.community_id == community_id and m.is_active), None)
         return membership.role if membership else None
 
     def is_member_of(self, community_id):
         """Check if user is a member of a specific community"""
-        return self.community_memberships.filter_by(
-            community_id=community_id,
-            is_active=True
-        ).first() is not None
+        return any(m.community_id == community_id and m.is_active for m in self.community_memberships)
 
     def get_active_memberships(self):
         """Get active memberships"""
-        return self.community_memberships.filter_by(is_active=True).all()
+        return [m for m in self.community_memberships if m.is_active]
 
 
 class UserCommunityMembership(db.Model):

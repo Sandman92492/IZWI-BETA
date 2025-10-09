@@ -11,7 +11,7 @@
         <a href="{{ url_for('index') }}" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary underline">← Back to Home</a>
       </div>
     </div>
-    <form method="POST" class="space-y-5" autocomplete="on">
+    <form method="POST" class="space-y-5" autocomplete="on" name="login-form">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div>
         <label class="sr-only" for="email">Email</label>
@@ -29,7 +29,7 @@
       </div>
       <div class="flex items-center">
         <input id="remember-me" name="remember" type="checkbox" class="h-4 w-4 text-primary focus:ring-primary border-gray-300 rounded">
-        <label for="remember-me" class="ml-2 block text-sm text-gray-500 dark:text-gray-400">Remember me for 30 days</label>
+        <label for="remember-me" class="ml-2 block text-sm text-gray-500 dark:text-gray-400">Remember me for 7 days</label>
       </div>
       <div class="pt-2">
         <button type="submit" id="login-btn" class="btn btn-primary w-full">
@@ -85,40 +85,6 @@ function togglePasswordVisibility(inputId) {
   }
 }
 
-// Prevent password field from being auto-filled with email
-document.addEventListener('DOMContentLoaded', function() {
-  const passwordInput = document.getElementById('password');
-  const emailInput = document.getElementById('email');
-
-  if (passwordInput && emailInput) {
-    // Monitor for autofill issues
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'value') {
-          const value = passwordInput.value;
-          // If password field contains @ symbol, it might be getting email value
-          if (value && value.includes('@') && value.includes('.')) {
-            console.warn('Password field appears to have email value, clearing it');
-            passwordInput.value = '';
-          }
-        }
-      });
-    });
-
-    observer.observe(passwordInput, {
-      attributes: true,
-      attributeFilter: ['value']
-    });
-
-    // Also check on input events
-    passwordInput.addEventListener('input', function() {
-      const value = this.value;
-      if (value && value.includes('@') && value.includes('.')) {
-        console.warn('Password field has email-like value');
-        this.value = '';
-      }
-    });
-  }
-});
+// Password manager support enabled - JavaScript removed to prevent interference with autofill
 </script>
 {% endblock %}

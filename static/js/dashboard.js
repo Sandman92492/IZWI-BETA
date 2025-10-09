@@ -5,6 +5,12 @@ console.log('Dashboard JavaScript loading...');
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM ready, preparing map init...');
 
+    // Initialize tour system if available
+    if (window.DashboardTour && DashboardTour.shouldShowTour()) {
+        console.log('Starting dashboard tour...');
+        window.dashboardTour = new DashboardTour();
+    }
+
     var mapContainer = document.getElementById('map');
     if (!mapContainer) {
         console.error('Map container not found!');
@@ -873,7 +879,7 @@ function initMobileScrollBehavior() {
 
     const mapContainer = document.querySelector('.map-container');
     const alertsContainer = document.getElementById('alerts-container-wrapper');
-    const alertsScrollContainer = document.getElementById('alerts-container'); // The actual scrollable element
+    const alertsScrollContainer = document.getElementById('alerts-container-wrapper'); // Now targeting the wrapper for full panel scrolling
     const alertsColumn = document.querySelector('.lg\\:col-span-5');
 
     if (!mapContainer || !alertsContainer || !alertsScrollContainer || !alertsColumn) return;
@@ -895,7 +901,7 @@ function initMobileScrollBehavior() {
         }
     }
 
-    // Add scroll listener to the actual scrolling element (inner container)
+    // Add scroll listener to the wrapper container (enables scrolling on headers and filters too)
     alertsScrollContainer.addEventListener('scroll', handleAlertsScroll);
 
     // Handle window resize
@@ -926,6 +932,7 @@ function initMobileScrollBehavior() {
     setTimeout(ensureStableLayout, 100);
     setTimeout(ensureStableLayout, 300);
 }
+
 
 // Store original alerts for fallback and initialize filtering
 document.addEventListener('DOMContentLoaded', function() {

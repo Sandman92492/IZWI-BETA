@@ -66,11 +66,7 @@ def login():
         if user:
             # Handle "Remember me" functionality
             remember = request.form.get('remember') == 'on'
-            remember_duration = timedelta(days=7) if os.environ.get(
-                'FLASK_ENV') == 'production' else timedelta(days=3)
-            login_user(user,
-                       remember=remember,
-                       duration=remember_duration if remember else None)
+            login_user(user, remember=remember)
 
             session['ask_location'] = True
 
@@ -106,21 +102,36 @@ def login():
 @app.route('/select-community')
 @login_required
 def select_community():
-    # SuperAdmins bypass this
+    # Super admins see all communities in their business
     if current_user.is_super_admin():
-        return redirect(url_for('super_admin_dashboard'))
+        from models import Community
+        communities = Community.query.filter_by(business_id=current_user.business_id).all()
+        # Super admins have 'SuperAdmin' role for all their business communities
+        communities_with_roles = [(c, 'SuperAdmin') for c in communities]
+    else:
+        # Regular users see only their memberships
+        memberships = current_user.get_active_memberships()
+        communities_with_roles = [(m.community, m.role) for m in memberships]
 
-    # Get user's communities
-    memberships = current_user.get_active_memberships()
-    communities_with_roles = [(m.community, m.role) for m in memberships]
+    # If user only has one community, auto-select it and redirect to dashboard
+    if len(communities_with_roles) == 1:
+        session['current_community_id'] = communities_with_roles[0][0].id
+        return redirect(url_for('dashboard'))
 
     return render_template('select_community.html', communities=communities_with_roles)
 
 
-@app.route('/switch-community/<int:community_id>')
+@app.route('/switch-community/<int:community_id>', methods=['GET', 'POST'])
 @login_required
 def switch_community(community_id):
-    if not current_user.is_member_of(community_id):
+    # Super admins can access any community in their business
+    if current_user.is_super_admin():
+        from models import Community
+        community = Community.query.get(community_id)
+        if not community or community.business_id != current_user.business_id:
+            flash('Access denied', 'error')
+            return redirect(url_for('select_community'))
+    elif not current_user.is_member_of(community_id):
         flash('Access denied', 'error')
         return redirect(url_for('select_community'))
 
@@ -283,14 +294,19 @@ def signup_submit():
 
         # Redirect based on whether they joined via invite
         if community_id:
-            # Store user info for welcome screen
+            # Store user info for welcome screen and onboarding
             session['new_user_welcome'] = True
             session['user_name'] = (name or email.split('@')[0]).title()
-            return redirect(url_for('dashboard'))  # Go to dashboard since they have a community
+            session['community_name'] = get_community_by_invite_slug(session.get('invite_slug'))[1] if session.get('invite_slug') else 'your community'
+            # Mark onboarding as not completed so they see the welcome carousel
+            session['onboarding_completed'] = False
+            return redirect(url_for('welcome'))  # Go to welcome screen for onboarding
         else:
             flash(
                 'Welcome! Your account has been created. Let\'s set up your community.',
                 'success')
+            # Mark onboarding as not completed for community creators too
+            session['onboarding_completed'] = False
             return redirect(url_for('define_community'))
     else:
         if error:
@@ -312,16 +328,28 @@ def logout():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    # SuperAdmins bypass this
-    if current_user.is_super_admin():
-        return redirect(url_for('super_admin_dashboard'))
+    # Mark onboarding as completed when user reaches dashboard
+    if not session.get('onboarding_completed', False):
+        session['onboarding_completed'] = True
 
     # Get current community from session
     current_community_id = session.get('current_community_id')
 
-    # Validate user is member of the community
-    if not current_community_id or not current_user.is_member_of(current_community_id):
+    # If no community selected, redirect to select community
+    if not current_community_id:
         return redirect(url_for('select_community'))
+
+    # Validate user has access to the community
+    if current_user.is_super_admin():
+        # Super admin: check business ownership
+        from models import Community
+        community = Community.query.get(current_community_id)
+        if not community or community.business_id != current_user.business_id:
+            return redirect(url_for('select_community'))
+    else:
+        # Regular user: check membership
+        if not current_user.is_member_of(current_community_id):
+            return redirect(url_for('select_community'))
 
     # Get community alerts
     alerts = get_community_alerts(current_community_id)
@@ -1254,10 +1282,12 @@ def define_community():
             current_user.community_id = community_id
             current_user.role = 'Admin'
 
-            # Store user info for welcome screen
+            # Store user info for welcome screen and onboarding
             session['new_community_welcome'] = True
             session['user_name'] = user.name or user.email.split('@')[0]
             session['community_name'] = community_name
+            # Mark onboarding as not completed so they see the welcome carousel
+            session['onboarding_completed'] = False
 
             flash('Community created successfully! Welcome to your new community.', 'success')
             return redirect(url_for('welcome'))
@@ -1287,7 +1317,12 @@ def post_alert():
             if error:
                 flash(error)
 
-    return render_template('post_alert.html')
+    # Get community data for the header
+    community = get_community_info(current_user.community_id)
+    members = get_community_members(current_user.community_id)
+    member_count = len(members) if members else 0
+
+    return render_template('post_alert.html', community=community, member_count=member_count)
 
 
 @app.route('/settings')
@@ -1624,7 +1659,11 @@ def terms_of_service():
 @app.route('/welcome')
 @login_required
 def welcome():
-    user_name = session.pop('user_name', '')
+    # Check if user has completed onboarding
+    if session.get('onboarding_completed', False):
+        return redirect(url_for('dashboard'))
+
+    user_name = session.get('user_name', current_user.name or current_user.email.split('@')[0])
     return render_template('welcome.html', user_name=user_name)
 
 
@@ -1689,6 +1728,10 @@ def alert_history():
         })
 
     categories = ['Emergency','Fire','Traffic','Weather','Community','Other']
+    # Get community data for header
+    members = get_community_members(current_user.community_id)
+    member_count = len(members) if members else 0
+
     return render_template('alert_history.html',
                            alerts=alerts,
                            page=page,
@@ -1698,7 +1741,9 @@ def alert_history():
                            q=q,
                            selected_category=category,
                            include_resolved=include_resolved,
-                           categories=categories)
+                           categories=categories,
+                           community=community,
+                           member_count=member_count)
 
 
 @app.route('/upgrade/plus', methods=['POST'])

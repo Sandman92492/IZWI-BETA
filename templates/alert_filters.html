@@ -162,12 +162,10 @@ function clearFilters() {
   }
 }
 
-// Initialize filters as collapsed on mobile
+// Initialize filters as collapsed by default on all screen sizes
 document.addEventListener('DOMContentLoaded', function() {
-  if (window.innerWidth < 640) {
-    document.getElementById('filter-controls').classList.add('hidden');
-    document.getElementById('filter-toggle-icon').textContent = 'expand_more';
-    document.getElementById('filter-toggle-text').textContent = 'Show Filters';
-  }
+  document.getElementById('filter-controls').classList.add('hidden');
+  document.getElementById('filter-toggle-icon').textContent = 'expand_more';
+  document.getElementById('filter-toggle-text').textContent = 'Show Filters';
 });
 </script>

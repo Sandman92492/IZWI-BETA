@@ -20,10 +20,14 @@
         <h1 class="text-xl font-semibold">Super Admin</h1>
       </div>
       <div class="flex items-center gap-4">
-        <a href="/settings" class="inline-flex items-center gap-2 text-white/90 hover:text-white">
-          <span class="material-symbols-outlined">settings</span>
-          <span>Settings</span>
-        </a>
+        <!-- Mobile Hamburger Menu -->
+        <button onclick="toggleMobileMenu()" class="lg:hidden p-2 rounded-full hover:bg-white/10 transition-all duration-200 group" id="mobile-menu-button">
+          <div class="w-6 h-6 flex flex-col justify-center items-center">
+            <span class="bg-white h-0.5 w-6 rounded-full transform transition-all duration-300 origin-center group-hover:bg-white/90" id="hamburger-line-1"></span>
+            <span class="bg-white h-0.5 w-6 rounded-full transform transition-all duration-300 origin-center mt-1 group-hover:bg-white/90" id="hamburger-line-2"></span>
+            <span class="bg-white h-0.5 w-6 rounded-full transform transition-all duration-300 origin-center mt-1 group-hover:bg-white/90" id="hamburger-line-3"></span>
+          </div>
+        </button>
         <a href="/logout" class="hidden lg:inline-flex items-center gap-2 text-white/90 hover:text-white">
           <span class="material-symbols-outlined">logout</span>
           <span>Logout</span>

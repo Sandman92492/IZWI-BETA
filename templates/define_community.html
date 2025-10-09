@@ -113,20 +113,25 @@
       </div>
     </div>
 
-    <!-- Progress Steps -->
+    <!-- Enhanced Progress Steps -->
     <div class="flex items-center justify-center space-x-4">
       <div class="flex items-center">
         <div class="w-10 h-10 bg-primary text-white rounded-full flex items-center justify-center text-sm font-semibold step-indicator step-active">1</div>
-        <span class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Name</span>
+        <span class="ml-2 text-sm font-medium text-gray-900 dark:text-white">Purpose</span>
       </div>
       <div class="w-8 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
       <div class="flex items-center">
         <div class="w-10 h-10 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold step-indicator">2</div>
-        <span class="ml-2 text-sm font-medium text-gray-500">Location</span>
+        <span class="ml-2 text-sm font-medium text-gray-500">Name</span>
       </div>
       <div class="w-8 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
       <div class="flex items-center">
         <div class="w-10 h-10 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold step-indicator">3</div>
+        <span class="ml-2 text-sm font-medium text-gray-500">Location</span>
+      </div>
+      <div class="w-8 h-0.5 bg-gray-200 dark:bg-gray-700"></div>
+      <div class="flex items-center">
+        <div class="w-10 h-10 bg-gray-200 text-gray-500 rounded-full flex items-center justify-center text-sm font-semibold step-indicator">4</div>
         <span class="ml-2 text-sm font-medium text-gray-500">Create</span>
       </div>
     </div>
@@ -196,8 +201,92 @@
 
   <!-- Main Content -->
   <div class="flex-1 flex flex-col order-2 lg:order-2">
-    <!-- Step 1: Community Name -->
+    <!-- Step 1: Welcome & Purpose -->
     <div id="step-1" class="flex-1 p-6">
+      <div class="max-w-3xl mx-auto">
+        <div class="text-center mb-8">
+          <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="text-4xl">🏘️</span>
+          </div>
+          <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-4">Create Your Community</h1>
+          <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">Build a local alert network to connect with neighbors and stay informed about what's happening in your area.</p>
+        </div>
+
+        <!-- Community Examples -->
+        <div class="grid md:grid-cols-2 gap-6 mb-8">
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center mb-3">
+              <div class="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center mr-3">
+                <span class="text-blue-600 dark:text-blue-400">🏙️</span>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white">Neighborhood Community</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Residential area</p>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+              Connect with neighbors in your apartment building, street, or local area to share local news and safety alerts.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded-full">Local Events</span>
+              <span class="px-2 py-1 bg-blue-100 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 text-xs rounded-full">Safety Alerts</span>
+            </div>
+          </div>
+
+          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+            <div class="flex items-center mb-3">
+              <div class="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center mr-3">
+                <span class="text-green-600 dark:text-green-400">🏢</span>
+              </div>
+              <div>
+                <h3 class="font-semibold text-gray-900 dark:text-white">Business District</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Commercial area</p>
+              </div>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-300 mb-3">
+              Coordinate with local businesses, manage security alerts, and keep the business community informed.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <span class="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 text-xs rounded-full">Business Alerts</span>
+              <span class="px-2 py-1 bg-green-100 dark:bg-green-900/20 text-green-800 dark:text-green-200 text-xs rounded-full">Security</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- What You'll Get -->
+        <div class="bg-primary/5 rounded-xl p-6 mb-8">
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-4 text-center">What you'll get with your community:</h3>
+          <div class="grid sm:grid-cols-2 gap-4 text-sm">
+            <div class="flex items-center">
+              <span class="text-primary mr-3">✅</span>
+              <span class="text-gray-700 dark:text-gray-300">Real-time alert notifications</span>
+            </div>
+            <div class="flex items-center">
+              <span class="text-primary mr-3">✅</span>
+              <span class="text-gray-700 dark:text-gray-300">Interactive community map</span>
+            </div>
+            <div class="flex items-center">
+              <span class="text-primary mr-3">✅</span>
+              <span class="text-gray-700 dark:text-gray-300">Member management tools</span>
+            </div>
+            <div class="flex items-center">
+              <span class="text-primary mr-3">✅</span>
+              <span class="text-gray-700 dark:text-gray-300">Community invite system</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Navigation -->
+        <div class="text-center">
+          <button type="button" onclick="nextStep()" class="px-8 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium text-lg">
+            Let's Get Started →
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Community Name -->
+    <div id="step-2" class="flex-1 hidden p-6">
       <div class="max-w-2xl mx-auto">
         <div class="text-center mb-8">
           <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">What's your community called?</h1>
@@ -211,27 +300,56 @@
             <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2" for="community-name">
               Community Name *
             </label>
-            <input class="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent" id="community-name" name="community_name" placeholder="e.g., Downtown Community, Riverdale Neighborhood" type="text" required/>
+            <input class="w-full h-12 px-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 focus:ring-2 focus:ring-primary focus:border-transparent transition-colors" id="community-name" name="community_name" placeholder="e.g., Downtown Community, Riverdale Neighborhood" type="text" required/>
+            <div class="mt-2 space-y-1">
+              <div class="flex items-center text-xs">
+                <span id="name-length-check" class="flex items-center text-gray-400">○</span>
+                <span class="ml-1">3-50 characters</span>
+              </div>
+              <div class="flex items-center text-xs">
+                <span id="name-unique-check" class="flex items-center text-gray-400">○</span>
+                <span class="ml-1">Unique name</span>
+              </div>
+            </div>
             <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This name will be visible to all community members</p>
+          </div>
+
+          <!-- Name Suggestions -->
+          <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+            <h4 class="font-medium text-gray-900 dark:text-white mb-2 text-sm">💡 Name Ideas</h4>
+            <div class="grid grid-cols-2 gap-2 text-sm">
+              <button type="button" class="text-left text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors" onclick="setCommunityName('My Neighborhood')">
+                My Neighborhood
+              </button>
+              <button type="button" class="text-left text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors" onclick="setCommunityName('Local Community')">
+                Local Community
+              </button>
+              <button type="button" class="text-left text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors" onclick="setCommunityName('Street Watch')">
+                Street Watch
+              </button>
+              <button type="button" class="text-left text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 p-2 rounded hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors" onclick="setCommunityName('Community Alerts')">
+                Community Alerts
+              </button>
+            </div>
           </div>
 
           <input type="hidden" name="boundary_data" id="boundary_data">
 
           <!-- Navigation Buttons -->
           <div class="flex justify-between pt-4">
-            <button type="button" onclick="window.history.back()" class="px-6 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
-              Back
+            <button type="button" onclick="prevStep()" class="px-6 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+              ← Back
             </button>
             <button type="button" onclick="nextStep()" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium">
-              Continue to Location
+              Continue to Location →
             </button>
           </div>
         </form>
       </div>
     </div>
 
-    <!-- Step 2: Map Interface -->
-    <div id="step-2" class="flex-1 hidden">
+    <!-- Step 3: Map Interface -->
+    <div id="step-3" class="flex-1 hidden">
       <div class="h-full flex flex-col">
         <!-- Map Controls -->
         <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
@@ -323,11 +441,94 @@
                 Skip for now
               </button>
               <button type="button" onclick="nextStep()" id="continue-btn" class="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed" disabled>
-                Create Community
+                Continue to Review →
               </button>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Step 4: Review & Create -->
+    <div id="step-4" class="flex-1 hidden p-6">
+      <div class="max-w-2xl mx-auto">
+        <div class="text-center mb-8">
+          <div class="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span class="text-4xl">✨</span>
+          </div>
+          <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-2">Ready to Create Your Community?</h1>
+          <p class="text-gray-600 dark:text-gray-300">Review your settings and create your community</p>
+        </div>
+
+        <!-- Review Summary -->
+        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-6">
+          <h3 class="font-semibold text-gray-900 dark:text-white mb-4 text-center">Community Summary</h3>
+
+          <div class="space-y-4">
+            <div class="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
+              <span class="font-medium text-gray-700 dark:text-gray-300">Community Name:</span>
+              <span id="review-name" class="text-gray-900 dark:text-white font-semibold">-</span>
+            </div>
+
+            <div class="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
+              <span class="font-medium text-gray-700 dark:text-gray-300">Location:</span>
+              <span id="review-location" class="text-gray-900 dark:text-white">
+                <span id="review-area">-</span>
+                {% if hasBoundary %}
+                  <span class="text-sm text-green-600 dark:text-green-400 ml-2">✓ Boundary defined</span>
+                {% else %}
+                  <span class="text-sm text-gray-500 ml-2">No boundary (global)</span>
+                {% endif %}
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center py-3 border-b border-gray-100 dark:border-gray-700">
+              <span class="font-medium text-gray-700 dark:text-gray-300">Your Role:</span>
+              <span class="text-gray-900 dark:text-white font-semibold">Community Admin</span>
+            </div>
+
+            <div class="flex justify-between items-center py-3">
+              <span class="font-medium text-gray-700 dark:text-gray-300">Features:</span>
+              <div class="text-right">
+                <div class="text-green-600 dark:text-green-400 text-sm">✓ Real-time alerts</div>
+                <div class="text-green-600 dark:text-green-400 text-sm">✓ Interactive map</div>
+                <div class="text-green-600 dark:text-green-400 text-sm">✓ Member management</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Final Confirmation -->
+        <div class="bg-primary/5 rounded-xl p-4 mb-6">
+          <div class="flex items-start gap-3">
+            <div class="w-6 h-6 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+              <span class="text-primary text-sm">ℹ️</span>
+            </div>
+            <div>
+              <h4 class="font-medium text-gray-900 dark:text-white mb-1 text-sm">What happens next?</h4>
+              <p class="text-xs text-gray-600 dark:text-gray-300">
+                Your community will be created immediately. You'll become the admin and can start inviting neighbors right away.
+                You can always modify settings and boundaries later from your dashboard.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <form method="POST" class="space-y-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+          <input type="hidden" name="community_name" id="final-community-name">
+          <input type="hidden" name="boundary_data" id="final-boundary-data">
+
+          <!-- Navigation Buttons -->
+          <div class="flex justify-between pt-4">
+            <button type="button" onclick="prevStep()" class="px-6 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+              ← Back to Location
+            </button>
+            <button type="submit" onclick="finalizeCommunity()" class="px-8 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-lg">
+              Create My Community →
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -336,9 +537,12 @@
 <script>
 // Step management
 let currentStep = 1;
+let totalSteps = 4;
 let communityMap = null;
 let drawnItems = null;
 let hasBoundary = false;
+let communityName = '';
+let boundaryData = '';
 
 // Initialize when DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
@@ -419,8 +623,8 @@ function initializeMap() {
         // Add the new boundary
         drawnItems.addLayer(layer);
 
-        // Store boundary data
-        var boundaryData = layer.toGeoJSON();
+        // Store boundary data globally and in form
+        boundaryData = layer.toGeoJSON();
         document.getElementById('boundary_data').value = JSON.stringify(boundaryData);
         hasBoundary = true;
         updateContinueButton();
@@ -471,26 +675,35 @@ function initializeMap() {
 // Step navigation functions
 function nextStep() {
     if (currentStep === 1) {
-        // Validate community name
-        const communityName = document.getElementById('community-name').value.trim();
+        // Move to step 2 (Community Name)
+        document.getElementById('step-1').classList.add('hidden');
+        document.getElementById('step-2').classList.remove('hidden');
+        currentStep = 2;
+        updateStepIndicator();
+    } else if (currentStep === 2) {
+        // Validate community name and move to step 3 (Location)
+        communityName = document.getElementById('community-name').value.trim();
         if (!communityName) {
             showAlert('Please enter a community name', 'error');
             return;
         }
 
-        // Move to step 2
-        document.getElementById('step-1').classList.add('hidden');
-        document.getElementById('step-2').classList.remove('hidden');
-        currentStep = 2;
+        document.getElementById('step-2').classList.add('hidden');
+        document.getElementById('step-3').classList.remove('hidden');
+        currentStep = 3;
         updateStepIndicator();
 
         // Focus map after transition
         setTimeout(() => {
             communityMap.invalidateSize();
         }, 100);
-    } else if (currentStep === 2) {
-        // Create community
-        createCommunity();
+    } else if (currentStep === 3) {
+        // Move to step 4 (Review)
+        document.getElementById('step-3').classList.add('hidden');
+        document.getElementById('step-4').classList.remove('hidden');
+        currentStep = 4;
+        updateStepIndicator();
+        updateReviewStep();
     }
 }
 
@@ -499,6 +712,16 @@ function prevStep() {
         document.getElementById('step-2').classList.add('hidden');
         document.getElementById('step-1').classList.remove('hidden');
         currentStep = 1;
+        updateStepIndicator();
+    } else if (currentStep === 3) {
+        document.getElementById('step-3').classList.add('hidden');
+        document.getElementById('step-2').classList.remove('hidden');
+        currentStep = 2;
+        updateStepIndicator();
+    } else if (currentStep === 4) {
+        document.getElementById('step-4').classList.add('hidden');
+        document.getElementById('step-3').classList.remove('hidden');
+        currentStep = 3;
         updateStepIndicator();
     }
 }
@@ -528,6 +751,79 @@ function updateStepIndicator() {
             label.classList.remove('text-gray-900', 'dark:text-white');
         }
     });
+}
+
+// New functions for community name validation and suggestions
+function setCommunityName(name) {
+    document.getElementById('community-name').value = name;
+    validateCommunityName();
+}
+
+function validateCommunityName() {
+    const nameInput = document.getElementById('community-name');
+    const lengthCheck = document.getElementById('name-length-check');
+    const uniqueCheck = document.getElementById('name-unique-check');
+
+    const name = nameInput.value.trim();
+
+    // Length validation (3-50 characters)
+    if (name.length >= 3 && name.length <= 50) {
+        lengthCheck.innerHTML = '✓';
+        lengthCheck.className = 'flex items-center text-green-500';
+    } else if (name.length > 0) {
+        lengthCheck.innerHTML = '○';
+        lengthCheck.className = 'flex items-center text-gray-400';
+    } else {
+        lengthCheck.innerHTML = '○';
+        lengthCheck.className = 'flex items-center text-gray-400';
+    }
+
+    // Basic uniqueness check (client-side only for now)
+    if (name.length >= 3) {
+        uniqueCheck.innerHTML = '✓';
+        uniqueCheck.className = 'flex items-center text-green-500';
+    } else {
+        uniqueCheck.innerHTML = '○';
+        uniqueCheck.className = 'flex items-center text-gray-400';
+    }
+}
+
+// Review step functions
+function updateReviewStep() {
+    // Update review information
+    document.getElementById('review-name').textContent = communityName;
+
+    const areaElement = document.getElementById('review-area');
+    if (hasBoundary && drawnItems && drawnItems.getLayers().length > 0) {
+        const layer = drawnItems.getLayers()[0];
+        if (layer.getBounds) {
+            const bounds = layer.getBounds();
+            const center = bounds.getCenter();
+            areaElement.textContent = `Lat: ${center.lat.toFixed(4)}, Lng: ${center.lng.toFixed(4)}`;
+        } else {
+            areaElement.textContent = 'Custom area defined';
+        }
+    } else {
+        areaElement.textContent = 'Global (no boundary)';
+    }
+}
+
+function finalizeCommunity() {
+    // Set final form values
+    document.getElementById('final-community-name').value = communityName;
+    document.getElementById('final-boundary-data').value = boundaryData || '';
+
+    // Show loading state
+    const submitBtn = document.querySelector('#step-4 button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.classList.add('opacity-75', 'cursor-not-allowed');
+    submitBtn.textContent = 'Creating Community...';
+
+    // Submit form after a brief delay for visual feedback
+    setTimeout(() => {
+        submitBtn.closest('form').submit();
+    }, 500);
 }
 
 function updateContinueButton() {
@@ -752,21 +1048,13 @@ function setupEventListeners() {
         });
     }
 
-    // Community name validation
+    // Community name validation (updated for step 2)
     const communityNameInput = document.getElementById('community-name');
     if (communityNameInput) {
-        communityNameInput.addEventListener('input', function() {
-            const name = this.value.trim();
-            if (name.length > 0 && name.length <= 100) {
-                this.classList.remove('border-red-500');
-                this.classList.add('border-green-500');
-            } else if (name.length > 100) {
-                this.classList.remove('border-green-500');
-                this.classList.add('border-red-500');
-            } else {
-                this.classList.remove('border-red-500', 'border-green-500');
-            }
-        });
+        communityNameInput.addEventListener('input', validateCommunityName);
+
+        // Also validate on focus out
+        communityNameInput.addEventListener('blur', validateCommunityName);
     }
 }
 

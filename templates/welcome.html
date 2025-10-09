@@ -14,7 +14,7 @@
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#19b3a1",
+                        "primary": "#2A9D8F",
                         "background-light": "#f6f8f8",
                         "background-dark": "#11211f",
                         "text-primary": "#264653",
@@ -29,6 +29,12 @@
                         "xl": "1rem",
                         "full": "9999px"
                     },
+                    animation: {
+                        'slide-in': 'slideIn 0.5s ease-out',
+                        'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'scale-in': 'scaleIn 0.3s ease-out',
+                        'bounce-in': 'bounceIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+                    }
                 },
             },
         }
@@ -39,47 +45,95 @@
             min-height: 100vh;
         }
         
-        .welcome-animation {
-            animation: welcomeIn 0.8s ease-out;
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
         }
-        
-        @keyframes welcomeIn {
-            0% {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-        
-        .pulse-button {
-            animation: pulse 2s infinite;
+
+        @keyframes scaleIn {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
-        
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.8;
+
+        @keyframes bounceIn {
+            0% { transform: scale(0.3); opacity: 0; }
+            50% { transform: scale(1.05); }
+            70% { transform: scale(0.9); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .carousel-slide {
+            animation: slideIn 0.5s ease-out;
+        }
+
+        .carousel-slide.hidden {
+            animation: none;
+        }
+
+        .progress-dot {
+            transition: all 0.3s ease;
+        }
+
+        .progress-dot.active {
+            background-color: #2A9D8F;
+            transform: scale(1.2);
+        }
+
+        .feature-icon {
+            animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        /* Touch feedback for mobile */
+        .touch-feedback:active {
+            transform: scale(0.98);
+        }
+
+        /* Smooth scrolling for desktop */
+        .carousel-container {
+            scroll-behavior: smooth;
+        }
+
+        @media (hover: hover) {
+            .hover-lift:hover {
+                transform: translateY(-2px);
             }
         }
     </style>
 </head>
 <body class="bg-gradient-to-br from-primary/10 to-primary/20 min-h-screen flex items-center justify-center p-4">
-    <div class="welcome-animation max-w-lg w-full mx-auto">
-        <div class="bg-white rounded-2xl shadow-xl p-8 text-center">
-            <!-- Welcome Illustration -->
-            <div class="mb-6">
-                <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <span class="text-4xl">👋</span>
+    <div class="max-w-md w-full mx-auto">
+        <!-- Onboarding Carousel -->
+        <div class="bg-white rounded-2xl shadow-xl overflow-hidden">
+            <!-- Progress Header -->
+            <div class="px-6 py-4 bg-primary/5 border-b border-gray-100">
+                <div class="flex justify-center space-x-2 mb-2">
+                    <div class="progress-dot w-2 h-2 rounded-full bg-gray-300 active" data-slide="1"></div>
+                    <div class="progress-dot w-2 h-2 rounded-full bg-gray-300" data-slide="2"></div>
+                    <div class="progress-dot w-2 h-2 rounded-full bg-gray-300" data-slide="3"></div>
+                    <div class="progress-dot w-2 h-2 rounded-full bg-gray-300" data-slide="4"></div>
+                </div>
+                <div class="flex justify-between text-xs text-gray-500">
+                    <button id="skip-btn" class="hover:text-primary transition-colors">Skip</button>
+                    <span id="slide-counter">1 of 4</span>
                 </div>
             </div>
             
-            <!-- Welcome Message -->
-            <h1 class="text-3xl font-bold text-text-primary mb-3">
+            <!-- Carousel Container -->
+            <div class="carousel-container relative" id="carousel">
+                <!-- Slide 1: Welcome -->
+                <div class="carousel-slide p-6 text-center" data-slide="1">
+                    <div class="mb-6">
+                        <div class="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4 feature-icon">
+                            <span class="text-4xl">👋</span>
+                        </div>
+                    </div>
+
+                    <h1 class="text-2xl font-bold text-gray-900 mb-3">
                 {% if session.get('new_community_welcome') %}
                     Welcome to {{ session.get('community_name', 'your community') }}!
                 {% else %}
@@ -87,102 +141,418 @@
                 {% endif %}
             </h1>
 
-            <p class="text-text-secondary mb-6 leading-relaxed">
+                    <p class="text-gray-600 mb-6 leading-relaxed">
                 {% if session.get('new_community_welcome') %}
                     🎉 Your community has been created successfully! You're now the admin of <strong>{{ session.get('community_name') }}</strong>.
-                    Get ready to connect with your neighbors and stay informed about local happenings.
                 {% else %}
                     🎉 Your account has been successfully created! You're now part of your community alert network.
-                    Get ready to stay connected and informed about what's happening around you.
                 {% endif %}
             </p>
             
-            <!-- Community Benefits -->
-            <div class="bg-primary/5 rounded-xl p-4 mb-6 text-left">
-                <h3 class="font-semibold text-text-primary mb-3 text-center">
+                    <div class="bg-primary/5 rounded-xl p-4 text-left">
+                        <h3 class="font-semibold text-gray-900 mb-3 text-center">
                     {% if session.get('new_community_welcome') %}
                         As a community admin, you can:
                     {% else %}
                         What you can do now:
                     {% endif %}
                 </h3>
-                <ul class="space-y-2 text-sm text-text-secondary">
+                        <div class="grid grid-cols-1 gap-2 text-sm">
                     {% if session.get('new_community_welcome') %}
-                        <li class="flex items-center">
+                                <div class="flex items-center">
                             <span class="text-primary mr-2">👑</span>
-                            Manage your community settings and members
-                        </li>
-                        <li class="flex items-center">
+                                    <span class="text-gray-700">Manage community settings</span>
+                                </div>
+                                <div class="flex items-center">
                             <span class="text-primary mr-2">📍</span>
-                            View and manage community alerts on your map
-                        </li>
-                        <li class="flex items-center">
-                            <span class="text-primary mr-2">🚨</span>
-                            Post alerts and approve community content
-                        </li>
-                        <li class="flex items-center">
+                                    <span class="text-gray-700">View alerts on your map</span>
+                                </div>
+                                <div class="flex items-center">
                             <span class="text-primary mr-2">🔗</span>
-                            Share your community invite link with neighbors
-                        </li>
-                        <li class="flex items-center">
-                            <span class="text-primary mr-2">📊</span>
-                            Monitor community activity and engagement
-                        </li>
+                                    <span class="text-gray-700">Invite neighbors to join</span>
+                                </div>
                     {% else %}
-                        <li class="flex items-center">
+                                <div class="flex items-center">
                             <span class="text-primary mr-2">📍</span>
-                            View community alerts on your personalized map
-                        </li>
-                        <li class="flex items-center">
+                                    <span class="text-gray-700">View community alerts</span>
+                                </div>
+                                <div class="flex items-center">
                             <span class="text-primary mr-2">🚨</span>
-                            Post alerts to keep your neighbors informed
-                        </li>
-                        <li class="flex items-center">
-                            <span class="text-primary mr-2">🏘️</span>
-                            Connect with other community members
-                        </li>
-                        <li class="flex items-center">
+                                    <span class="text-gray-700">Post alerts for neighbors</span>
+                                </div>
+                                <div class="flex items-center">
                             <span class="text-primary mr-2">🔔</span>
-                            Stay updated on local happenings
-                        </li>
+                                    <span class="text-gray-700">Stay informed locally</span>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 2: Key Features -->
+                <div class="carousel-slide hidden p-6 text-center" data-slide="2">
+                    <div class="mb-6">
+                        <div class="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 feature-icon">
+                            <span class="text-4xl">🗺️</span>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-bold text-gray-900 mb-3">Explore Key Features</h2>
+
+                    <div class="space-y-4 text-left">
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-primary text-sm">📍</span>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900 text-sm">Interactive Map</h3>
+                                <p class="text-xs text-gray-600">View alerts and locations in real-time</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-primary text-sm">🚨</span>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900 text-sm">Instant Alerts</h3>
+                                <p class="text-xs text-gray-600">Post and receive community notifications</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div class="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <span class="text-primary text-sm">👥</span>
+                            </div>
+                            <div>
+                                <h3 class="font-medium text-gray-900 text-sm">Community Network</h3>
+                                <p class="text-xs text-gray-600">Connect with neighbors and stay informed</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 3: Quick Actions -->
+                <div class="carousel-slide hidden p-6 text-center" data-slide="3">
+                    <div class="mb-6">
+                        <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 feature-icon">
+                            <span class="text-4xl">⚡</span>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-bold text-gray-900 mb-3">Get Started Quickly</h2>
+
+                    <div class="space-y-3 text-left">
+                        <div class="p-3 bg-primary/5 rounded-lg border-l-4 border-primary">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-primary">1️⃣</span>
+                                <span class="font-medium text-gray-900 text-sm">View Your Dashboard</span>
+                            </div>
+                            <p class="text-xs text-gray-600 ml-6">See all community activity and alerts</p>
+                        </div>
+
+                        <div class="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-blue-600">2️⃣</span>
+                                <span class="font-medium text-gray-900 text-sm">Post Your First Alert</span>
+                            </div>
+                            <p class="text-xs text-gray-600 ml-6">Share important information with neighbors</p>
+                        </div>
+
+                        <div class="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="text-green-600">3️⃣</span>
+                                <span class="font-medium text-gray-900 text-sm">Invite Neighbors</span>
+                            </div>
+                            <p class="text-xs text-gray-600 ml-6">{% if session.get('new_community_welcome') %}Share your community link{% else %}Help grow your community{% endif %}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slide 4: Role-Specific Guidance -->
+                <div class="carousel-slide hidden p-6 text-center" data-slide="4">
+                    <div class="mb-6">
+                        <div class="w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4 feature-icon">
+                            <span class="text-4xl">
+                                {% if session.get('new_community_welcome') %}👑{% else %}🏘️{% endif %}
+                            </span>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-bold text-gray-900 mb-3">
+                        {% if session.get('new_community_welcome') %}
+                            You're the Community Admin!
+                        {% else %}
+                            Ready to Get Started?
+                        {% endif %}
+                    </h2>
+
+                    {% if session.get('new_community_welcome') %}
+                    <div class="bg-yellow-50 rounded-xl p-4 text-left mb-4">
+                        <h3 class="font-semibold text-gray-900 mb-2 text-sm">✨ As Community Admin</h3>
+                        <ul class="text-xs text-gray-700 space-y-1">
+                            <li>• Manage community members and settings</li>
+                            <li>• Moderate and approve community content</li>
+                            <li>• Access advanced community features</li>
+                            <li>• Set community boundaries and preferences</li>
+                        </ul>
+                    </div>
                     {% endif %}
+
+                    <div class="bg-primary/5 rounded-xl p-4 text-left">
+                        <h3 class="font-semibold text-gray-900 mb-2 text-sm">🎯 Next Steps</h3>
+                        <ul class="text-xs text-gray-700 space-y-1">
+                            <li>• Explore your personalized dashboard</li>
+                            <li>• Customize your community settings</li>
+                            <li>• Start connecting with neighbors</li>
                 </ul>
+                    </div>
+                </div>
             </div>
             
-            <!-- Action Button -->
-            <a href="{{ url_for('dashboard') }}"
-               class="pulse-button inline-block w-full bg-primary text-white font-bold py-4 px-6 rounded-xl hover:bg-primary/90 transition-all duration-300 transform hover:scale-105">
+            <!-- Navigation Footer -->
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                <div class="flex justify-between items-center">
+                    <button id="prev-btn" class="hidden text-gray-500 hover:text-primary transition-colors" disabled>
+                        <span class="material-symbols-outlined text-lg">chevron_left</span>
+                    </button>
+
+                    <div class="flex-1 text-center">
+                        <!-- This will be populated by JS -->
+                    </div>
+
+                    <button id="next-btn" class="text-white bg-primary px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors font-medium text-sm touch-feedback">
                 {% if session.get('new_community_welcome') %}
-                    Go to Community Dashboard
+                            Explore Dashboard
                 {% else %}
-                    Explore Your Community
+                            Get Started
                 {% endif %}
-            </a>
-            
-            <!-- Additional Info -->
-            <p class="text-xs text-text-secondary mt-4">
-                {% if session.get('new_community_welcome') %}
-                    Need help getting started? Your dashboard lets you manage members, view alerts, and customize your community settings.
-                {% else %}
-                    Need help getting started? Check out your dashboard to see community alerts and start engaging with your neighbors!
-                {% endif %}
-            </p>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Skip Tour Option -->
+        <div class="text-center mt-4">
+            <button id="skip-tour-btn" class="text-sm text-gray-500 hover:text-primary transition-colors underline">
+                Skip tour and go to dashboard
+            </button>
         </div>
     </div>
 
     <script>
-        // Auto-redirect after 30 seconds if user doesn't click
-        setTimeout(function() {
+        class OnboardingCarousel {
+            constructor() {
+                this.currentSlide = 1;
+                this.totalSlides = 4;
+                this.slides = document.querySelectorAll('.carousel-slide');
+                this.dots = document.querySelectorAll('.progress-dot');
+                this.prevBtn = document.getElementById('prev-btn');
+                this.nextBtn = document.getElementById('next-btn');
+                this.skipBtn = document.getElementById('skip-btn');
+                this.skipTourBtn = document.getElementById('skip-tour-btn');
+                this.slideCounter = document.getElementById('slide-counter');
+
+                this.init();
+            }
+
+            init() {
+                this.updateSlide();
+                this.bindEvents();
+
+                // Auto-advance after 5 seconds on first slide, 7 seconds on others
+                this.startAutoAdvance();
+            }
+
+            updateSlide() {
+                // Update slides visibility
+                this.slides.forEach((slide, index) => {
+                    if (index + 1 === this.currentSlide) {
+                        slide.classList.remove('hidden');
+                        slide.classList.add('carousel-slide');
+                    } else {
+                        slide.classList.add('hidden');
+                        slide.classList.remove('carousel-slide');
+                    }
+                });
+
+                // Update progress dots
+                this.dots.forEach((dot, index) => {
+                    if (index + 1 === this.currentSlide) {
+                        dot.classList.add('active');
+                    } else {
+                        dot.classList.remove('active');
+                    }
+                });
+
+                // Update counter
+                this.slideCounter.textContent = `${this.currentSlide} of ${this.totalSlides}`;
+
+                // Update navigation buttons
+                this.prevBtn.classList.toggle('hidden', this.currentSlide === 1);
+                this.prevBtn.disabled = this.currentSlide === 1;
+
+                if (this.currentSlide === this.totalSlides) {
+                    this.nextBtn.textContent = 'Get Started';
+                    this.nextBtn.classList.add('bg-green-600', 'hover:bg-green-700');
+                    this.nextBtn.classList.remove('bg-primary', 'hover:bg-primary/90');
+                } else {
+                    this.nextBtn.textContent = 'Next';
+                    this.nextBtn.classList.remove('bg-green-600', 'hover:bg-green-700');
+                    this.nextBtn.classList.add('bg-primary', 'hover:bg-primary/90');
+                }
+            }
+
+            nextSlide() {
+                if (this.currentSlide < this.totalSlides) {
+                    this.currentSlide++;
+                    this.updateSlide();
+                    this.restartAutoAdvance();
+                } else {
+                    this.completeOnboarding();
+                }
+            }
+
+            prevSlide() {
+                if (this.currentSlide > 1) {
+                    this.currentSlide--;
+                    this.updateSlide();
+                    this.restartAutoAdvance();
+                }
+            }
+
+            goToSlide(slideNumber) {
+                this.currentSlide = slideNumber;
+                this.updateSlide();
+                this.restartAutoAdvance();
+            }
+
+            completeOnboarding() {
+                // Mark onboarding as completed
+                localStorage.setItem('izwi_onboarding_completed', 'true');
+
+                // Show loading state
+                this.nextBtn.textContent = 'Loading...';
+                this.nextBtn.disabled = true;
+                this.nextBtn.classList.add('opacity-75', 'cursor-not-allowed');
+
+                // Redirect to dashboard
+                window.location.href = "{{ url_for('dashboard') }}";
+            }
+
+            skipOnboarding() {
+                // Mark as completed and redirect
+                localStorage.setItem('izwi_onboarding_completed', 'true');
             window.location.href = "{{ url_for('dashboard') }}";
-        }, 30000);
-        
-        // Add some interactive feedback
+            }
+
+            startAutoAdvance() {
+                // Clear existing timer
+                if (this.autoAdvanceTimer) {
+                    clearTimeout(this.autoAdvanceTimer);
+                }
+
+                // Set new timer (longer for first slide)
+                const delay = this.currentSlide === 1 ? 5000 : 7000;
+                this.autoAdvanceTimer = setTimeout(() => {
+                    if (this.currentSlide < this.totalSlides) {
+                        this.nextSlide();
+                    }
+                }, delay);
+            }
+
+            restartAutoAdvance() {
+                this.startAutoAdvance();
+            }
+
+            bindEvents() {
+                // Navigation buttons
+                this.nextBtn.addEventListener('click', () => this.nextSlide());
+                this.prevBtn.addEventListener('click', () => this.prevSlide());
+
+                // Skip buttons
+                this.skipBtn.addEventListener('click', () => this.skipOnboarding());
+                this.skipTourBtn.addEventListener('click', () => this.skipOnboarding());
+
+                // Progress dots
+                this.dots.forEach((dot, index) => {
+                    dot.addEventListener('click', () => this.goToSlide(index + 1));
+                });
+
+                // Touch/swipe support for mobile
+                let startX = 0;
+                let endX = 0;
+
+                const carousel = document.getElementById('carousel');
+
+                carousel.addEventListener('touchstart', (e) => {
+                    startX = e.touches[0].clientX;
+                });
+
+                carousel.addEventListener('touchend', (e) => {
+                    endX = e.changedTouches[0].clientX;
+                    this.handleSwipe();
+                });
+
+                // Keyboard navigation
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowRight':
+                        case ' ':
+                            e.preventDefault();
+                            this.nextSlide();
+                            break;
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.prevSlide();
+                            break;
+                        case 'Escape':
+                            e.preventDefault();
+                            this.skipOnboarding();
+                            break;
+                    }
+                });
+
+                // Pause auto-advance on hover (desktop)
+                if (window.matchMedia('(hover: hover)').matches) {
+                    carousel.addEventListener('mouseenter', () => {
+                        if (this.autoAdvanceTimer) {
+                            clearTimeout(this.autoAdvanceTimer);
+                        }
+                    });
+
+                    carousel.addEventListener('mouseleave', () => {
+                        this.restartAutoAdvance();
+                    });
+                }
+            }
+
+            handleSwipe() {
+                const threshold = 50; // minimum swipe distance
+                const diff = startX - endX;
+
+                if (Math.abs(diff) > threshold) {
+                    if (diff > 0) {
+                        // Swipe left - next slide
+                        this.nextSlide();
+                    } else {
+                        // Swipe right - previous slide
+                        this.prevSlide();
+                    }
+                }
+            }
+        }
+
+        // Initialize carousel when DOM is ready
         document.addEventListener('DOMContentLoaded', function() {
-            const button = document.querySelector('.pulse-button');
-            button.addEventListener('click', function() {
-                this.textContent = 'Taking you to your dashboard...';
-                this.classList.remove('pulse-button');
-                this.classList.add('opacity-75', 'cursor-not-allowed');
+            const carousel = new OnboardingCarousel();
+
+            // Add feature icon animations
+            const featureIcons = document.querySelectorAll('.feature-icon');
+            featureIcons.forEach((icon, index) => {
+                setTimeout(() => {
+                    icon.style.animation = 'bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55)';
+                }, index * 200);
             });
         });
     </script>

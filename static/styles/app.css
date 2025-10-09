@@ -263,25 +263,27 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
 
 /* Mobile dashboard layout stability */
 @media (max-width: 1023px) {
-  /* Force viewport height constraint on dashboard page */
+  /* Force viewport height constraint on dashboard page - keep for layout stability */
   body:has(.dashboard-main) {
     min-height: 100vh !important;
     max-height: 100vh !important;
     height: 100vh !important;
-    overflow: hidden !important;
+    overflow: hidden !important; /* Restore to prevent body scroll - only alerts container should scroll */
   }
 
-  /* Prevent page-level scrolling on mobile dashboard */
+  /* Prevent main scroll on dashboard - only alerts container should scroll */
   .dashboard-main {
-    height: 100vh !important;
-    max-height: 100vh !important;
-    overflow: hidden !important;
+    min-height: 100vh;
+    flex: 1;
+    overflow: hidden; /* Prevent main scroll */
   }
 
-  main {
+  /* Prevent section scroll on mobile dashboard */
+  .dashboard-main section {
     overflow: hidden;
-    height: 100%;
   }
+
+  /* main overflow removed to allow alerts container scrolling */
 
   /* Prevent alerts column from shifting vertically */
   .lg\\:col-span-5 {
@@ -299,6 +301,63 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   #alerts-container {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+  }
+
+  /* Map shrinking animation on mobile alerts scroll */
+  @media (max-width: 767px) {
+    .dashboard-map {
+      transition: height 0.3s ease-in-out;
+    }
+
+    .dashboard-map.map-shrunk {
+      height: 20vh !important;
+    }
+  }
+
+  /* Mobile menu animations */
+  #mobile-menu {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+
+  #mobile-menu .bg-white,
+  #mobile-menu .bg-gray-800 {
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Hamburger animation refinements */
+  #hamburger-line-1.rotate-45 {
+    transform: rotate(45deg) translate(6px, 6px);
+  }
+
+  #hamburger-line-2.opacity-0 {
+    opacity: 0;
+    transform: scale(0);
+  }
+
+  #hamburger-line-3.-rotate-45 {
+    transform: rotate(-45deg) translate(6px, -6px);
+  }
+
+  /* Menu item hover effects */
+  #mobile-menu a {
+    position: relative;
+    overflow: hidden;
+  }
+
+  #mobile-menu a::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(42, 157, 143, 0.1), transparent);
+    transition: left 0.4s ease;
+  }
+
+  #mobile-menu a:hover::before {
+    left: 100%;
   }
 }
 
