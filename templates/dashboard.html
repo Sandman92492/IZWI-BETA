@@ -147,12 +147,12 @@
                     <span class="material-symbols-outlined text-sm">edit</span>
                     <span class="font-medium">Edit</span>
                   </a>
-                  <button onclick="deleteAlert({{ alert['id'] }})" class="text-xs sm:text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Delete this alert">
+                  <button onclick="deleteAlert({{ alert['id'] }})" class="text-xs sm:text-sm text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-300 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5">
                     <span class="material-symbols-outlined text-sm">delete</span>
                     <span class="font-medium">Delete</span>
                   </button>
                   {% else %}
-                  <button onclick="reportAlert({{ alert['id'] }})" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5" title="Report inappropriate content">
+                  <button onclick="reportAlert({{ alert['id'] }})" class="text-xs sm:text-sm text-gray-500 dark:text-gray-400 hover:text-red-500 px-2 sm:px-3 py-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-800/20 transition-all duration-200 flex items-center gap-1 sm:gap-1.5">
                     <span class="material-symbols-outlined text-sm">flag</span>
                     <span class="font-medium">Report</span>
                   </button>
@@ -197,9 +197,78 @@ window.currentUserId = {{ current_user.id if current_user else 'null' }};
 </script>
 
 
-<!-- Scroll position preservation for map shrinking -->
+<!-- Developer Debug Button -->
+<div id="debug-button" style="position: fixed; bottom: 100px; right: 20px; z-index: 9999; background: #ff4444; color: white; padding: 8px 12px; border-radius: 50%; cursor: pointer; font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.3); display: none;" onclick="toggleDebugConsole()">
+  🐛
+</div>
+
+<div id="debug-console" style="display: none; position: fixed; bottom: 150px; right: 20px; left: 20px; height: 300px; background: rgba(0,0,0,0.9); color: #00ff00; font-family: monospace; font-size: 10px; overflow-y: auto; padding: 10px; border-radius: 8px; z-index: 9998;">
+  <div style="margin-bottom: 10px; color: #ffff00; font-weight: bold;">📱 Mobile Map Shrinking Debug Console</div>
+  <div id="debug-logs"></div>
+</div>
+
 <script>
+// Developer debug system for mobile map shrinking
 (function() {
+  window.debugLogs = [];
+  window.debugEnabled = false;
+
+  function addLog(message, type = 'info') {
+    const timestamp = new Date().toLocaleTimeString();
+    const logEntry = `[${timestamp}] ${message}`;
+
+    window.debugLogs.unshift(logEntry);
+    if (window.debugLogs.length > 100) {
+      window.debugLogs.pop();
+    }
+
+    if (window.debugEnabled) {
+      const logsContainer = document.getElementById('debug-logs');
+      if (logsContainer) {
+        logsContainer.innerHTML = window.debugLogs.map(log =>
+          `<div style="margin-bottom: 2px; ${type === 'error' ? 'color: #ff4444;' : type === 'warning' ? 'color: #ffaa00;' : 'color: #00ff00;'}">${log}</div>`
+        ).join('');
+        logsContainer.scrollTop = 0;
+      }
+    }
+
+    // Also log to browser console for desktop debugging
+    if (type === 'error') {
+      console.error('🐛', message);
+    } else if (type === 'warning') {
+      console.warn('🐛', message);
+    } else {
+      console.log('🐛', message);
+    }
+  }
+
+  window.toggleDebugConsole = function() {
+    window.debugEnabled = !window.debugEnabled;
+    const consoleEl = document.getElementById('debug-console');
+    const buttonEl = document.getElementById('debug-button');
+
+    if (window.debugEnabled) {
+      consoleEl.style.display = 'block';
+      buttonEl.style.background = '#44ff44';
+      addLog('Debug console enabled', 'info');
+    } else {
+      consoleEl.style.display = 'none';
+      buttonEl.style.background = '#ff4444';
+      addLog('Debug console disabled', 'info');
+    }
+  };
+
+  // Show debug button only on mobile or when explicitly requested
+  if (window.innerWidth < 768 || localStorage.getItem('debugMode') === 'true') {
+    document.getElementById('debug-button').style.display = 'block';
+    if (localStorage.getItem('debugMode') === 'true') {
+      window.debugEnabled = true;
+      document.getElementById('debug-console').style.display = 'block';
+      document.getElementById('debug-button').style.background = '#44ff44';
+    }
+  }
+
+  // Enhanced scroll position preservation for map shrinking with debug logging
   const alertsContainer = document.getElementById('alerts-container');
   const mapContainerEl = document.getElementById('map-container');
   const alertsWrapperEl = document.getElementById('alerts-container-wrapper');
@@ -208,10 +277,14 @@ window.currentUserId = {{ current_user.id if current_user else 'null' }};
     let isExpanded = false;
     let isCollapsed = false;
 
+    addLog(`Map shrinking initialized for mobile (${window.innerWidth}x${window.innerHeight})`, 'info');
+
     alertsContainer.addEventListener('scroll', function(e) {
       const scrollTop = this.scrollTop;
       const scrollingDown = scrollTop > (this.lastScrollTop || 0);
       this.lastScrollTop = scrollTop;
+
+      addLog(`Scroll: ${scrollTop}px, direction: ${scrollingDown ? 'down' : 'up'}, expanded: ${isExpanded}`, 'info');
 
       // Expand: scroll down past 10px threshold
       if (scrollingDown && scrollTop > 10 && !isExpanded) {
@@ -220,6 +293,7 @@ window.currentUserId = {{ current_user.id if current_user else 'null' }};
 
         // Store scroll position BEFORE layout change
         const savedScrollTop = this.scrollTop;
+        addLog(`Storing scroll position: ${savedScrollTop}px before height change`, 'warning');
 
         // Change heights
         mapContainerEl.style.height = '20vh';
@@ -227,25 +301,46 @@ window.currentUserId = {{ current_user.id if current_user else 'null' }};
 
         // Restore scroll position IMMEDIATELY after height change
         requestAnimationFrame(() => {
+          const actualScrollTop = this.scrollTop;
+          if (Math.abs(actualScrollTop - savedScrollTop) > 5) {
+            addLog(`Scroll position changed during layout! Expected: ${savedScrollTop}px, Actual: ${actualScrollTop}px`, 'error');
+          }
           this.scrollTop = savedScrollTop;
+          addLog(`Restored scroll position to: ${savedScrollTop}px`, 'warning');
         });
 
-        console.log('🔽 Map collapsed to 20vh, alerts expanded to 80vh');
+        addLog('🔽 Map collapsed to 20vh, alerts expanded to 80vh', 'warning');
       }
       // Collapse: scroll up to top (scrollTop < 5)
       else if (!scrollingDown && scrollTop < 5 && isExpanded) {
         isExpanded = false;
         isCollapsed = true;
 
+        addLog('🔼 Map restoring to 40vh, alerts restoring to 60vh', 'warning');
+
         // Change heights back
         mapContainerEl.style.height = '40vh';
         alertsWrapperEl.style.height = '60vh';
-
-        console.log('🔼 Map restored to 40vh, alerts restored to 60vh');
       }
     }, { passive: true });
 
-    console.log('✅ Map shrinking initialized with scroll preservation');
+    addLog('✅ Map shrinking initialized with scroll preservation and debug logging', 'info');
+  } else {
+    addLog('Map shrinking not initialized - missing containers or not mobile', 'warning');
+  }
+
+  // Enable debug mode with triple tap on post alert button
+  let tapCount = 0;
+  const postButton = document.querySelector('.post-alert-btn');
+  if (postButton) {
+    postButton.addEventListener('click', function() {
+      tapCount++;
+      if (tapCount === 3) {
+        localStorage.setItem('debugMode', 'true');
+        window.location.reload();
+      }
+      setTimeout(() => { tapCount = 0; }, 1000);
+    });
   }
 })();
 </script>
