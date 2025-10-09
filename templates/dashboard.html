@@ -235,6 +235,15 @@ console.log('🏘️ Community Debug Info:', {
 </script>
 
 <script>
+// Global state management for consistent behavior across all communities
+window.mapShrinkState = {
+  isExpanded: false,
+  isCollapsed: false,
+  shrinkingInProgress: false,
+  lastShrinkTime: 0,
+  initializationComplete: false
+};
+
 // Enhanced debugging and error handling for map shrinking
 (function() {
   console.log('🔍 Starting map shrinking initialization...');
@@ -285,10 +294,18 @@ console.log('🏘️ Community Debug Info:', {
       alertsWrapper: {
         offsetHeight: document.getElementById('alerts-container-wrapper')?.offsetHeight
       }
+    },
+    timing: {
+      domReady: performance.now(),
+      scriptLoadTime: Date.now(),
+      initializationDelay: 0
     }
   });
 
   function initializeMapShrinking(alertsContainer, mapContainerEl, alertsWrapperEl) {
+    // Sync with global state
+    window.mapShrinkState.initializationComplete = true;
+
     console.log('🚀 Initializing map shrinking with containers:', {
       alertsHeight: alertsContainer.scrollHeight,
       alertsClientHeight: alertsContainer.clientHeight,
@@ -306,11 +323,8 @@ console.log('🏘️ Community Debug Info:', {
       return;
     }
 
-    // Enhanced state management to prevent rapid toggling
-    let isExpanded = false;
-    let isCollapsed = false;
-    let mapShrinkingInProgress = false;
-    let lastShrinkTime = 0;
+    // Use global state for consistency across all communities
+    const state = window.mapShrinkState;
     const SHRINK_COOLDOWN = 500; // ms cooldown between shrinks
 
     // Enhanced scroll handler with better error handling and state management
@@ -328,16 +342,16 @@ console.log('🏘️ Community Debug Info:', {
         const scrollingDown = scrollDifference > 0;
         this.lastScrollTop = scrollTop;
 
-        console.log(`📜 Scroll: ${scrollTop}px, direction: ${scrollingDown ? 'down' : 'up'}, expanded: ${isExpanded}, shrinking: ${mapShrinkingInProgress}`);
+        console.log(`📜 Scroll: ${scrollTop}px, direction: ${scrollingDown ? 'down' : 'up'}, expanded: ${state.isExpanded}, shrinking: ${state.shrinkingInProgress}`);
 
         // Expand: scroll down past 10px threshold with cooldown and state checks
-        if (scrollingDown && scrollTop > 10 && !isExpanded && !mapShrinkingInProgress) {
+        if (scrollingDown && scrollTop > 10 && !state.isExpanded && !state.shrinkingInProgress) {
           const now = Date.now();
-          if (now - lastShrinkTime > SHRINK_COOLDOWN) {
-            isExpanded = true;
-            isCollapsed = false;
-            mapShrinkingInProgress = true;
-            lastShrinkTime = now;
+          if (now - state.lastShrinkTime > SHRINK_COOLDOWN) {
+            state.isExpanded = true;
+            state.isCollapsed = false;
+            state.shrinkingInProgress = true;
+            state.lastShrinkTime = now;
 
             // Store scroll position BEFORE layout change
             const savedScrollTop = this.scrollTop;
@@ -367,7 +381,7 @@ console.log('🏘️ Community Debug Info:', {
 
               // Clear shrinking flag after animation completes
               setTimeout(() => {
-                mapShrinkingInProgress = false;
+                state.shrinkingInProgress = false;
                 console.log('🔓 Shrinking operation completed');
               }, 300);
             });
@@ -376,10 +390,10 @@ console.log('🏘️ Community Debug Info:', {
           }
         }
         // Collapse: scroll up to top (scrollTop < 5) with state validation
-        else if (!scrollingDown && scrollTop < 5 && isExpanded && !mapShrinkingInProgress) {
-          isExpanded = false;
-          isCollapsed = true;
-          mapShrinkingInProgress = true;
+        else if (!scrollingDown && scrollTop < 5 && state.isExpanded && !state.shrinkingInProgress) {
+          state.isExpanded = false;
+          state.isCollapsed = true;
+          state.shrinkingInProgress = true;
 
           console.log('🔼 Map restoring to original size');
 
@@ -389,13 +403,13 @@ console.log('🏘️ Community Debug Info:', {
 
           // Clear shrinking flag after animation
           setTimeout(() => {
-            mapShrinkingInProgress = false;
+            state.shrinkingInProgress = false;
             console.log('🔓 Restoration operation completed');
           }, 300);
         }
       } catch (error) {
         console.error('❌ Error in scroll handler:', error);
-        mapShrinkingInProgress = false; // Reset flag on error
+        state.shrinkingInProgress = false; // Reset flag on error
       }
     }
 
@@ -410,21 +424,40 @@ console.log('🏘️ Community Debug Info:', {
     console.log('✅ Map shrinking fully initialized');
   }
 
-  // Fallback initialization after 3 seconds if containers not found
-  setTimeout(() => {
-    if (!document.querySelector('.map-shrunk')) {
-      console.warn('⚠️ Map shrinking not initialized after 3s, attempting fallback...');
-      const alertsContainer = document.getElementById('alerts-container');
-      const mapContainerEl = document.getElementById('map-container');
-      const alertsWrapperEl = document.getElementById('alerts-container-wrapper');
+  // Unified initialization function for all communities
+  function ensureMapShrinkingInitialized() {
+    const alertsContainer = document.getElementById('alerts-container');
+    const mapContainerEl = document.getElementById('map-container');
+    const alertsWrapperEl = document.getElementById('alerts-container-wrapper');
 
-      if (alertsContainer && mapContainerEl && alertsWrapperEl) {
-        initializeMapShrinking(alertsContainer, mapContainerEl, alertsWrapperEl);
-      } else {
-        console.error('❌ Fallback also failed - containers not found');
-      }
+    if (alertsContainer && mapContainerEl && alertsWrapperEl && !window.mapShrinkState.initializationComplete) {
+      console.log('🚀 Ensuring map shrinking is initialized...');
+      initializeMapShrinking(alertsContainer, mapContainerEl, alertsWrapperEl);
     }
-  }, 3000);
+  }
+
+  // Multiple initialization attempts for reliability
+  setTimeout(ensureMapShrinkingInitialized, 100);  // Quick attempt
+  setTimeout(ensureMapShrinkingInitialized, 500);  // Medium delay
+  setTimeout(ensureMapShrinkingInitialized, 1000); // Longer delay
+  setTimeout(ensureMapShrinkingInitialized, 3000); // Final fallback
+
+  // Also listen for DOM changes that might indicate containers are ready
+  if (window.MutationObserver) {
+    const observer = new MutationObserver(() => {
+      ensureMapShrinkingInitialized();
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+
+    // Stop observing after 5 seconds
+    setTimeout(() => {
+      observer.disconnect();
+    }, 5000);
+  }
 })();
 </script>
 
