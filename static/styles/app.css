@@ -311,7 +311,7 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   /* Height-based map shrinking with containment to prevent jumping */
   @media (max-width: 767px) {
     .dashboard-map {
-      transition: height 0.3s ease-in-out;
+      transition: height 0s ease-in-out; /* Instant transition to prevent jumping */
       will-change: height; /* GPU hint for better performance */
       contain: layout style; /* Isolate layout changes to prevent jumping */
     }
