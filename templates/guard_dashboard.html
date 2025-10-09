@@ -40,6 +40,8 @@
           <div>
             <h1 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Guard Dashboard</h1>
             <p class="text-sm text-gray-500 dark:text-gray-400">Security Operations Center</p>
+            <!-- Hidden element to store current community context for JavaScript -->
+            <div id="current-community-data" data-community-id="{{ community.id }}" style="display: none;"></div>
           </div>
         </div>
         <div class="flex items-center gap-3">
@@ -421,6 +423,14 @@ function loadGuardAlerts() {
 function loadGuardAlertsWithFilters(filterState) {
   // Build query parameters for guards
   const params = new URLSearchParams();
+
+  // Add community ID for context validation
+  const communityDataElement = document.getElementById('current-community-data');
+  const currentCommunityId = communityDataElement ? communityDataElement.dataset.communityId : null;
+  if (currentCommunityId) {
+    params.append('community_id', currentCommunityId);
+  }
+
   if (filterState.category) params.append('category', filterState.category);
   if (filterState.status) params.append('status', filterState.status);
   if (filterState.verification) params.append('verification', filterState.verification);

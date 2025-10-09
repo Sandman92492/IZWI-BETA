@@ -136,6 +136,12 @@ def switch_community(community_id):
         return redirect(url_for('select_community'))
 
     session['current_community_id'] = community_id
+    # Also update current_user.community_id for consistency with filtering
+    current_user.community_id = community_id
+    db.session.commit()
+
+    app.logger.info(f"Community switched: session={community_id}, user={current_user.community_id}")
+
     return redirect(url_for('dashboard'))
 
 
@@ -221,8 +227,9 @@ def guard_signup_submit():
         db.session.commit()
         app.logger.info(f"Created guard membership for user {guard_user.id} in community {invite.community_id}")
 
-        # Set current community in session
+        # Set current community in session and user model
         session['current_community_id'] = invite.community_id
+        guard_user.community_id = invite.community_id
     except Exception as e:
         app.logger.error(f"Failed to create guard membership record: {e}")
 
@@ -350,6 +357,9 @@ def dashboard():
         # Regular user: check membership
         if not current_user.is_member_of(current_community_id):
             return redirect(url_for('select_community'))
+
+    # Log community context for debugging
+    app.logger.info(f"Dashboard: session_community={current_community_id}, user_community={current_user.community_id}")
 
     # Get community alerts
     alerts = get_community_alerts(current_community_id)
@@ -1116,7 +1126,17 @@ def guard_dashboard():
     if not current_user.is_guard():
         return redirect(url_for('dashboard'))
 
-    return render_template('guard_dashboard.html', is_on_duty=current_user.is_on_duty)
+    # Get guard's community information
+    community_id = session.get('current_community_id') or current_user.community_id
+    if not community_id:
+        flash('No community assigned', 'error')
+        return redirect(url_for('dashboard'))
+
+    community = get_community_info(community_id)
+
+    return render_template('guard_dashboard.html',
+                         is_on_duty=current_user.is_on_duty,
+                         community=community)
 
 
 @app.route('/super-admin/post-alert')
@@ -1892,11 +1912,21 @@ def filter_alerts():
         date_range = request.args.get('date_range', '').strip()
         search = request.args.get('search', '').strip()
 
-        if not current_user.community_id:
+        # Use session community_id as primary, current_user.community_id as fallback
+        current_community_id = session.get('current_community_id') or current_user.community_id
+
+        if not current_community_id:
             return jsonify({'error': 'No community found'}), 400
 
-        # Build query
-        query = Alert.query.join(User, Alert.user_id == User.id).filter(Alert.community_id == current_user.community_id)
+        # Validate community context if provided
+        requested_community_id = request.args.get('community_id')
+        if requested_community_id:
+            if str(current_community_id) != requested_community_id:
+                app.logger.warning(f"Community mismatch: session={session.get('current_community_id')}, user={current_user.community_id}, requested={requested_community_id}")
+                return jsonify({'error': 'Community mismatch'}), 400
+
+        # Build query using the determined community_id
+        query = Alert.query.join(User, Alert.user_id == User.id).filter(Alert.community_id == current_community_id)
 
         # Apply filters
         if category:

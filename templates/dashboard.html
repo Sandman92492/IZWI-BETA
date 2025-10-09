@@ -41,6 +41,8 @@
   </div>
   <div class="space-y-2 sm:space-y-3">
     <h1 class="font-display font-bold text-xl sm:text-2xl leading-tight">{{ community.name }}</h1>
+    <!-- Hidden element to store current community context for JavaScript -->
+    <div id="current-community-data" data-community-id="{{ community.id }}" style="display: none;"></div>
     <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-white/90">
       <div class="flex items-center gap-2">
         <span class="material-symbols-outlined text-base sm:text-lg">group</span>

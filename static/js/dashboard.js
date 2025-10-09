@@ -390,6 +390,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Store original alerts for fallback
         window.originalAlerts = alerts;
 
+        // Store current community ID for context validation
+        const communityDataElement = document.getElementById('current-community-data');
+        window.currentCommunityId = communityDataElement ? communityDataElement.dataset.communityId : null;
+
         // Current user ID is set in the template, but provide fallback
         if (typeof window.currentUserId === 'undefined') {
             window.currentUserId = null;
@@ -704,6 +708,18 @@ function reportAlert(alertId) {
     }
 }
 
+// Function to fetch current community alerts for fallback scenarios
+async function fetchCommunityAlerts(communityId) {
+    try {
+        const response = await fetch(`/api/alerts/filter?community_id=${communityId}`);
+        const data = await response.json();
+        return data.success ? data.alerts : [];
+    } catch (error) {
+        console.error('Error fetching community alerts:', error);
+        return [];
+    }
+}
+
 // Alert filtering functionality
 function filterAlerts(filterState) {
     console.log('Filtering alerts with state:', filterState);
@@ -729,6 +745,10 @@ function filterAlerts(filterState) {
 
     // Build query parameters
     const params = new URLSearchParams();
+    // Add community ID for context validation
+    if (window.currentCommunityId) {
+        params.append('community_id', window.currentCommunityId);
+    }
     if (filterState.category) params.append('category', filterState.category);
     if (filterState.status) params.append('status', filterState.status);
     if (filterState.verification) params.append('verification', filterState.verification);
@@ -780,9 +800,18 @@ function filterAlerts(filterState) {
         }
 
         showLocationMessage('Error filtering alerts', 'warning');
-        // Fallback to original alerts if filter fails
-        updateAlertsDisplay(window.originalAlerts || []);
-        updateMapMarkers(window.originalAlerts || []);
+
+        // Instead of using window.originalAlerts, fetch current community alerts
+        if (window.currentCommunityId) {
+            fetchCommunityAlerts(window.currentCommunityId).then(alerts => {
+                updateAlertsDisplay(alerts);
+                updateMapMarkers(alerts);
+            });
+        } else {
+            // Ultimate fallback to original alerts if no community context
+            updateAlertsDisplay(window.originalAlerts || []);
+            updateMapMarkers(window.originalAlerts || []);
+        }
     });
 }
 
