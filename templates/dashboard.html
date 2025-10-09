@@ -196,6 +196,25 @@
 window.currentUserId = {{ current_user.id if current_user else 'null' }};
 </script>
 
+<!-- Community-specific debugging for troubleshooting -->
+<script>
+console.log('🏘️ Community Debug Info:', {
+  communityId: window.currentCommunityId,
+  alertsCount: document.querySelectorAll('.alert-card').length,
+  hasBoundaryData: !!document.getElementById('boundary-data'),
+  boundaryDataSize: document.getElementById('boundary-data')?.textContent?.length || 0,
+  alertsDataSize: document.getElementById('alerts-data')?.textContent?.length || 0,
+  windowWidth: window.innerWidth,
+  windowHeight: window.innerHeight,
+  userAgent: navigator.userAgent,
+  isPWA: window.matchMedia('(display-mode: standalone)').matches,
+  containersFound: {
+    alertsContainer: !!document.getElementById('alerts-container'),
+    mapContainer: !!document.getElementById('map-container'),
+    alertsWrapper: !!document.getElementById('alerts-container-wrapper')
+  }
+});
+</script>
 
 <!-- Eruda debugging console for PWA -->
 <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
@@ -216,57 +235,134 @@ window.currentUserId = {{ current_user.id if current_user else 'null' }};
 </script>
 
 <script>
-// Enhanced scroll position preservation for map shrinking
+// Enhanced debugging and error handling for map shrinking
 (function() {
-  const alertsContainer = document.getElementById('alerts-container');
-  const mapContainerEl = document.getElementById('map-container');
-  const alertsWrapperEl = document.getElementById('alerts-container-wrapper');
+  console.log('🔍 Starting map shrinking initialization...');
 
-  if (alertsContainer && mapContainerEl && alertsWrapperEl && window.innerWidth < 768) {
+  // Robust container finding with retry logic
+  function findContainer(id, retries = 0) {
+    const element = document.getElementById(id);
+    if (element) {
+      console.log(`✅ Found ${id}:`, element);
+      return element;
+    }
+    if (retries < 10) {
+      setTimeout(() => findContainer(id, retries + 1), 100);
+      return null;
+    }
+    console.error(`❌ Could not find ${id} after 10 attempts`);
+    return null;
+  }
+
+  // Wait for all containers with retry logic
+  const checkInterval = setInterval(() => {
+    const alertsContainer = findContainer('alerts-container');
+    const mapContainerEl = findContainer('map-container');
+    const alertsWrapperEl = findContainer('alerts-container-wrapper');
+
+    if (alertsContainer && mapContainerEl && alertsWrapperEl) {
+      clearInterval(checkInterval);
+      initializeMapShrinking(alertsContainer, mapContainerEl, alertsWrapperEl);
+    }
+  }, 50);
+
+  function initializeMapShrinking(alertsContainer, mapContainerEl, alertsWrapperEl) {
+    console.log('🚀 Initializing map shrinking with containers:', {
+      alertsHeight: alertsContainer.scrollHeight,
+      alertsClientHeight: alertsContainer.clientHeight,
+      mapHeight: mapContainerEl.offsetHeight,
+      wrapperHeight: alertsWrapperEl.offsetHeight,
+      windowWidth: window.innerWidth,
+      windowHeight: window.innerHeight,
+      currentCommunity: window.currentCommunityId,
+      alertsCount: document.querySelectorAll('.alert-card').length
+    });
+
+    if (window.innerWidth >= 768) {
+      console.log('ℹ️ Skipping map shrinking - desktop detected');
+      return;
+    }
+
     let isExpanded = false;
     let isCollapsed = false;
+    let scrollTimeout;
 
-    console.log('🚀 Map shrinking initialized with scroll preservation');
+    // Enhanced scroll handler with better error handling
+    function handleScroll(e) {
+      try {
+        const scrollTop = this.scrollTop;
+        const scrollingDown = scrollTop > (this.lastScrollTop || 0);
+        this.lastScrollTop = scrollTop;
 
-    alertsContainer.addEventListener('scroll', function(e) {
-      const scrollTop = this.scrollTop;
-      const scrollingDown = scrollTop > (this.lastScrollTop || 0);
-      this.lastScrollTop = scrollTop;
+        console.log(`📜 Scroll: ${scrollTop}px, direction: ${scrollingDown ? 'down' : 'up'}, expanded: ${isExpanded}`);
 
-      // Expand: scroll down past 10px threshold
-      if (scrollingDown && scrollTop > 10 && !isExpanded) {
-        isExpanded = true;
-        isCollapsed = false;
+        // Expand: scroll down past 10px threshold
+        if (scrollingDown && scrollTop > 10 && !isExpanded) {
+          isExpanded = true;
+          isCollapsed = false;
 
-        // Store scroll position BEFORE layout change
-        const savedScrollTop = this.scrollTop;
+          // Store scroll position BEFORE layout change
+          const savedScrollTop = this.scrollTop;
+          console.log(`💾 Storing scroll position: ${savedScrollTop}px before height change`);
 
-        // Change heights
-        mapContainerEl.style.height = '20vh';
-        alertsWrapperEl.style.height = '80vh';
+          // Change heights
+          mapContainerEl.style.height = '20vh';
+          alertsWrapperEl.style.height = '80vh';
 
-        // Restore scroll position IMMEDIATELY after height change
-        requestAnimationFrame(() => {
-          this.scrollTop = savedScrollTop;
-        });
+          // Restore scroll position IMMEDIATELY after height change
+          requestAnimationFrame(() => {
+            const actualScrollTop = this.scrollTop;
+            if (Math.abs(actualScrollTop - savedScrollTop) > 5) {
+              console.warn(`⚠️ Scroll position discrepancy! Expected: ${savedScrollTop}px, Actual: ${actualScrollTop}px`);
+            }
+            this.scrollTop = savedScrollTop;
+            console.log(`✅ Restored scroll position to: ${savedScrollTop}px`);
+          });
 
-        console.log('🔽 Map collapsed to 20vh, alerts expanded to 80vh');
+          console.log('🔽 Map collapsed to 20vh, alerts expanded to 80vh');
+        }
+        // Collapse: scroll up to top (scrollTop < 5)
+        else if (!scrollingDown && scrollTop < 5 && isExpanded) {
+          isExpanded = false;
+          isCollapsed = true;
+
+          console.log('🔼 Map restoring to 40vh, alerts restoring to 60vh');
+
+          // Change heights back
+          mapContainerEl.style.height = '40vh';
+          alertsWrapperEl.style.height = '60vh';
+        }
+      } catch (error) {
+        console.error('❌ Error in scroll handler:', error);
       }
-      // Collapse: scroll up to top (scrollTop < 5)
-      else if (!scrollingDown && scrollTop < 5 && isExpanded) {
-        isExpanded = false;
-        isCollapsed = true;
+    }
 
-        // Change heights back
-        mapContainerEl.style.height = '40vh';
-        alertsWrapperEl.style.height = '60vh';
+    // Add scroll listener with error handling
+    try {
+      alertsContainer.addEventListener('scroll', handleScroll, { passive: true });
+      console.log('✅ Map shrinking scroll handler attached successfully');
+    } catch (error) {
+      console.error('❌ Failed to attach scroll handler:', error);
+    }
 
-        console.log('🔼 Map restored to 40vh, alerts restored to 60vh');
-      }
-    }, { passive: true });
-
-    console.log('✅ Map shrinking initialized');
+    console.log('✅ Map shrinking fully initialized');
   }
+
+  // Fallback initialization after 3 seconds if containers not found
+  setTimeout(() => {
+    if (!document.querySelector('.map-shrunk')) {
+      console.warn('⚠️ Map shrinking not initialized after 3s, attempting fallback...');
+      const alertsContainer = document.getElementById('alerts-container');
+      const mapContainerEl = document.getElementById('map-container');
+      const alertsWrapperEl = document.getElementById('alerts-container-wrapper');
+
+      if (alertsContainer && mapContainerEl && alertsWrapperEl) {
+        initializeMapShrinking(alertsContainer, mapContainerEl, alertsWrapperEl);
+      } else {
+        console.error('❌ Fallback also failed - containers not found');
+      }
+    }
+  }, 3000);
 })();
 </script>
 
