@@ -1,6 +1,6 @@
 import os
 from datetime import timedelta
-from flask import render_template, request, redirect, url_for, flash, session, jsonify, abort
+from flask import render_template, request, redirect, url_for, flash, session, jsonify, abort, g
 import json
 from flask_login import login_user, logout_user, login_required, current_user
 
@@ -8,7 +8,11 @@ from flask_login import login_user, logout_user, login_required, current_user
 from app import app
 from app import db
 from app import csrf
-import os
+from app import cache
+from app import make_dashboard_cache_key
+
+# Cache is now configured in app.py
+
 import secrets
 import string
 from datetime import datetime, timedelta
@@ -334,6 +338,7 @@ def logout():
 
 @app.route('/dashboard')
 @login_required
+@cache.cached(timeout=2, key_prefix=make_dashboard_cache_key)
 def dashboard():
     # Mark onboarding as completed when user reaches dashboard
     if not session.get('onboarding_completed', False):
@@ -358,12 +363,12 @@ def dashboard():
         if not current_user.is_member_of(current_community_id):
             return redirect(url_for('select_community'))
 
-    # Log community context for debugging
-    app.logger.info(f"Dashboard: session_community={current_community_id}, user_community={current_user.community_id}")
+    # Log community context for debugging (reduced verbosity)
+    app.logger.debug(f"Dashboard: session_community={current_community_id}, user_community={current_user.community_id}")
 
     # Get community alerts
     alerts = get_community_alerts(current_community_id)
-    app.logger.info(f"Dashboard: Found {len(alerts)} alerts for community {current_community_id}")
+    app.logger.debug(f"Dashboard: Found {len(alerts)} alerts for community {current_community_id}")
     community = get_community_info(current_community_id)
     # Normalize boundary JSON so the frontend always receives a clean JSON object/feature
     raw_boundary = get_community_boundary_data(current_community_id)

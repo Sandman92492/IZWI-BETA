@@ -9,7 +9,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import text
 from werkzeug.middleware.proxy_fix import ProxyFix
-from flask_login import LoginManager, login_required
+from flask_login import LoginManager, login_required, current_user
 from flask_wtf.csrf import CSRFProtect, CSRFError, generate_csrf
 
 
@@ -391,6 +391,28 @@ def unsubscribe_push():
         app.logger.error(f'Error unsubscribing from push notifications: {e}')
         return jsonify({'error': 'Failed to unsubscribe from push notifications'}), 500
 
+
+# Configure cache (use Redis for production)
+cache_config = {
+    'CACHE_TYPE': 'redis' if os.environ.get('REDIS_URL') else 'simple',  # Use Redis for production, simple for development
+    'CACHE_REDIS_HOST': os.environ.get('REDIS_HOST', 'localhost'),
+    'CACHE_REDIS_PORT': int(os.environ.get('REDIS_PORT', 6379)),
+    'CACHE_REDIS_DB': int(os.environ.get('REDIS_DB', 0)),
+    'CACHE_REDIS_URL': os.environ.get('REDIS_URL'),
+    'CACHE_DEFAULT_TIMEOUT': 300,  # 5 minutes default
+    'CACHE_KEY_PREFIX': 'izwi_cache'
+}
+
+# Initialize cache
+from flask_caching import Cache
+cache = Cache(app, config=cache_config)
+
+# Custom cache key function for dashboard
+def make_dashboard_cache_key():
+    """Generate cache key based on user context"""
+    from flask import session
+    current_community_id = session.get('current_community_id')
+    return f"dashboard:{current_user.id}:{current_community_id}:{getattr(current_user, 'business_id', 'none')}"
 
 # Health check endpoint for deployment monitoring
 @app.route('/health')

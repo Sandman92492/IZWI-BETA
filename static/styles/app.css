@@ -291,10 +291,9 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     will-change: auto;
   }
 
-  /* Prevent map container from causing layout shifts */
+  /* Map container layout stability */
   .map-container {
-    transform: translateZ(0);
-    will-change: auto;
+    position: relative;
   }
 
   /* Ensure proper scrolling behavior */
@@ -312,6 +311,11 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     .dashboard-map.map-shrunk {
       height: 20vh !important;
     }
+  }
+
+  /* Ensure alerts panel scroll stability */
+  #alerts-container {
+    overflow-anchor: auto;
   }
 
   /* Mobile menu animations */

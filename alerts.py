@@ -1,11 +1,23 @@
 from datetime import datetime, timedelta
 from flask import current_app
 from flask_login import current_user
-from app import db
+from app import db, cache
 from sqlalchemy import or_
 from models import Alert, User, AlertReport
 from utils import sanitize_plain_text, sanitize_text_input
 import push_notifications
+
+def invalidate_dashboard_cache(community_id, user_id=None):
+    """Invalidate dashboard cache for a community"""
+    try:
+        # Clear cache for all users in the community
+        # We need to clear all dashboard cache entries for this community
+        # Since we don't have direct access to cache keys, we'll clear the entire dashboard cache
+        # In a production environment, you might want to be more specific
+        cache.clear()
+        current_app.logger.info(f"Dashboard cache invalidated for community {community_id}")
+    except Exception as e:
+        current_app.logger.warning(f"Failed to invalidate dashboard cache for community {community_id}: {e}")
 
 def get_community_alerts(community_id, include_resolved=False):
     """Get all alerts for a community"""
@@ -106,6 +118,9 @@ def create_alert(community_id, user_id, category, description, latitude=0.0, lon
     db.session.add(alert)
     db.session.commit()
 
+    # Invalidate dashboard cache for this community
+    invalidate_dashboard_cache(community_id, user_id)
+
     # Send push notifications to users in this community only
     try:
         notification_title = f'New {category.title()} Alert'
@@ -166,6 +181,10 @@ def resolve_alert(alert_id, user):
         alert.status = 'Resolved'
         alert.resolved_at = datetime.now()
         db.session.commit()
+
+        # Invalidate dashboard cache for this community
+        invalidate_dashboard_cache(alert.community_id, user.id)
+
         return True, 'Alert marked as resolved'
     else:
         return False, 'Alert not found'
@@ -223,6 +242,9 @@ def update_alert(alert_id, user_id, category, description, latitude=0.0, longitu
     alert.duration_minutes = duration_minutes
 
     db.session.commit()
+
+    # Invalidate dashboard cache for this community
+    invalidate_dashboard_cache(alert.community_id, user_id)
 
     return True, 'Alert updated successfully'
 
