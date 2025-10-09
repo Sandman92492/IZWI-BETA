@@ -81,7 +81,7 @@
     </div>
   </div>
   <div class="lg:col-span-7 order-1">
-    <!-- Mobile map that shrinks when scrolling in alerts -->
+    <!-- Mobile map - fixed size to prevent layout shifts -->
     <div class="relative h-[40vh] lg:h-[600px] rounded-lg overflow-hidden shadow-sm bg-gray-100 dark:bg-gray-800 map-container dashboard-map">
       <div id="map" class="w-full h-full"></div>
     </div>
@@ -194,7 +194,7 @@
 window.currentUserId = {{ current_user.id if current_user else 'null' }};
 </script>
 
-<!-- Map shrinking on alerts scroll (mobile only) -->
+<!-- Transform-based map shrinking - no layout shifts -->
 <script>
 (function() {
   const alertsContainer = document.getElementById('alerts-container');

@@ -294,18 +294,26 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   /* Map container layout stability */
   .map-container {
     position: relative;
+    z-index: 1; /* Ensure map stays behind other UI elements */
   }
 
-  /* Ensure proper scrolling behavior */
+  /* Ensure proper scrolling behavior with containment */
+  #alerts-container-wrapper {
+    contain: layout; /* Prevent layout shifts from affecting parent */
+  }
+
   #alerts-container {
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
+    overflow-anchor: auto; /* Enable scroll anchoring to prevent jumping */
   }
 
-  /* Map shrinking animation on mobile alerts scroll */
+  /* Height-based map shrinking with containment to prevent jumping */
   @media (max-width: 767px) {
     .dashboard-map {
       transition: height 0.3s ease-in-out;
+      will-change: height; /* GPU hint for better performance */
+      contain: layout style; /* Isolate layout changes to prevent jumping */
     }
 
     .dashboard-map.map-shrunk {
@@ -313,13 +321,9 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
     }
   }
 
-  /* Ensure alerts panel scroll stability */
-  #alerts-container {
-    overflow-anchor: auto;
-  }
-
-  /* Mobile menu animations */
+  /* Mobile menu z-index management and animations */
   #mobile-menu {
+    z-index: 40; /* Above map but below post button */
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
   }
@@ -327,6 +331,11 @@ input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focu
   #mobile-menu .bg-white,
   #mobile-menu .bg-gray-800 {
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.15);
+  }
+
+  /* Post alert button z-index */
+  .post-alert-btn {
+    z-index: 50; /* Highest priority UI element */
   }
 
   /* Hamburger animation refinements */
