@@ -36,6 +36,33 @@
 .dark .alert-card:hover { background: rgba(255,255,255,0.06); }
 .alert-card .category-chip { background: color-mix(in srgb, var(--accent) 16%, #ffffff); color: color-mix(in srgb, var(--accent) 60%, #111827); }
 .dark .alert-card .category-chip { background: rgba(255,255,255,0.06); color: #e5e7eb; }
+
+/* Add this to the existing style block in dashboard.html */
+.debug-indicator {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 0, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  font-size: 12px;
+  z-index: 9999;
+  border-radius: 5px;
+  font-family: monospace;
+}
+
+.debug-scroll {
+  position: fixed;
+  top: 50px;
+  left: 10px;
+  background: rgba(0, 255, 0, 0.8);
+  color: white;
+  padding: 5px 10px;
+  font-size: 12px;
+  z-index: 9999;
+  border-radius: 5px;
+  font-family: monospace;
+}
 </style>
 {% endblock %}
 
