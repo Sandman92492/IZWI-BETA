@@ -266,6 +266,28 @@ console.log('🏘️ Community Debug Info:', {
     }
   }, 50);
 
+  // Enhanced community analysis for debugging
+  console.log('🏘️ Community Analysis:', {
+    communityId: window.currentCommunityId,
+    alertsCount: document.querySelectorAll('.alert-card').length,
+    scrollableHeight: document.getElementById('alerts-container')?.scrollHeight - document.getElementById('alerts-container')?.clientHeight,
+    hasEnoughContent: (document.getElementById('alerts-container')?.scrollHeight - document.getElementById('alerts-container')?.clientHeight) > 50,
+    initialScrollTop: document.getElementById('alerts-container')?.scrollTop,
+    containerDimensions: {
+      alertsContainer: {
+        scrollHeight: document.getElementById('alerts-container')?.scrollHeight,
+        clientHeight: document.getElementById('alerts-container')?.clientHeight,
+        offsetHeight: document.getElementById('alerts-container')?.offsetHeight
+      },
+      mapContainer: {
+        offsetHeight: document.getElementById('map-container')?.offsetHeight
+      },
+      alertsWrapper: {
+        offsetHeight: document.getElementById('alerts-container-wrapper')?.offsetHeight
+      }
+    }
+  });
+
   function initializeMapShrinking(alertsContainer, mapContainerEl, alertsWrapperEl) {
     console.log('🚀 Initializing map shrinking with containers:', {
       alertsHeight: alertsContainer.scrollHeight,
@@ -275,7 +297,8 @@ console.log('🏘️ Community Debug Info:', {
       windowWidth: window.innerWidth,
       windowHeight: window.innerHeight,
       currentCommunity: window.currentCommunityId,
-      alertsCount: document.querySelectorAll('.alert-card').length
+      alertsCount: document.querySelectorAll('.alert-card').length,
+      scrollableHeight: alertsContainer.scrollHeight - alertsContainer.clientHeight
     });
 
     if (window.innerWidth >= 768) {
@@ -283,57 +306,96 @@ console.log('🏘️ Community Debug Info:', {
       return;
     }
 
+    // Enhanced state management to prevent rapid toggling
     let isExpanded = false;
     let isCollapsed = false;
-    let scrollTimeout;
+    let mapShrinkingInProgress = false;
+    let lastShrinkTime = 0;
+    const SHRINK_COOLDOWN = 500; // ms cooldown between shrinks
 
-    // Enhanced scroll handler with better error handling
+    // Enhanced scroll handler with better error handling and state management
     function handleScroll(e) {
       try {
         const scrollTop = this.scrollTop;
-        const scrollingDown = scrollTop > (this.lastScrollTop || 0);
+        const scrollDifference = scrollTop - (this.lastScrollTop || 0);
+        const minScrollThreshold = 2; // Minimum scroll distance to register
+
+        // Only process significant scroll movements
+        if (Math.abs(scrollDifference) < minScrollThreshold) {
+          return;
+        }
+
+        const scrollingDown = scrollDifference > 0;
         this.lastScrollTop = scrollTop;
 
-        console.log(`📜 Scroll: ${scrollTop}px, direction: ${scrollingDown ? 'down' : 'up'}, expanded: ${isExpanded}`);
+        console.log(`📜 Scroll: ${scrollTop}px, direction: ${scrollingDown ? 'down' : 'up'}, expanded: ${isExpanded}, shrinking: ${mapShrinkingInProgress}`);
 
-        // Expand: scroll down past 10px threshold
-        if (scrollingDown && scrollTop > 10 && !isExpanded) {
-          isExpanded = true;
-          isCollapsed = false;
+        // Expand: scroll down past 10px threshold with cooldown and state checks
+        if (scrollingDown && scrollTop > 10 && !isExpanded && !mapShrinkingInProgress) {
+          const now = Date.now();
+          if (now - lastShrinkTime > SHRINK_COOLDOWN) {
+            isExpanded = true;
+            isCollapsed = false;
+            mapShrinkingInProgress = true;
+            lastShrinkTime = now;
 
-          // Store scroll position BEFORE layout change
-          const savedScrollTop = this.scrollTop;
-          console.log(`💾 Storing scroll position: ${savedScrollTop}px before height change`);
+            // Store scroll position BEFORE layout change
+            const savedScrollTop = this.scrollTop;
+            console.log(`💾 Storing scroll position: ${savedScrollTop}px before height change`);
 
-          // Change heights
-          mapContainerEl.style.height = '20vh';
-          alertsWrapperEl.style.height = '80vh';
+            // Change heights
+            mapContainerEl.style.height = '20vh';
+            alertsWrapperEl.style.height = '80vh';
 
-          // Restore scroll position IMMEDIATELY after height change
-          requestAnimationFrame(() => {
-            const actualScrollTop = this.scrollTop;
-            if (Math.abs(actualScrollTop - savedScrollTop) > 5) {
-              console.warn(`⚠️ Scroll position discrepancy! Expected: ${savedScrollTop}px, Actual: ${actualScrollTop}px`);
-            }
-            this.scrollTop = savedScrollTop;
-            console.log(`✅ Restored scroll position to: ${savedScrollTop}px`);
-          });
+            // Restore scroll position with validation and retry logic
+            requestAnimationFrame(() => {
+              const currentScrollTop = this.scrollTop;
+              const difference = Math.abs(currentScrollTop - savedScrollTop);
 
-          console.log('🔽 Map collapsed to 20vh, alerts expanded to 80vh');
+              console.log(`📏 Position check: saved=${savedScrollTop}px, current=${currentScrollTop}px, diff=${difference}px`);
+
+              if (difference > 2) {
+                console.warn(`⚠️ Position discrepancy detected: ${difference}px difference`);
+                if (difference > 10) {
+                  console.log(`🔄 Retrying position restoration...`);
+                  this.scrollTop = savedScrollTop;
+                }
+              }
+
+              this.scrollTop = savedScrollTop;
+              console.log(`✅ Final scroll position set to: ${savedScrollTop}px`);
+
+              // Clear shrinking flag after animation completes
+              setTimeout(() => {
+                mapShrinkingInProgress = false;
+                console.log('🔓 Shrinking operation completed');
+              }, 300);
+            });
+
+            console.log('🔽 Map shrinking initiated - expanded: true');
+          }
         }
-        // Collapse: scroll up to top (scrollTop < 5)
-        else if (!scrollingDown && scrollTop < 5 && isExpanded) {
+        // Collapse: scroll up to top (scrollTop < 5) with state validation
+        else if (!scrollingDown && scrollTop < 5 && isExpanded && !mapShrinkingInProgress) {
           isExpanded = false;
           isCollapsed = true;
+          mapShrinkingInProgress = true;
 
-          console.log('🔼 Map restoring to 40vh, alerts restoring to 60vh');
+          console.log('🔼 Map restoring to original size');
 
           // Change heights back
           mapContainerEl.style.height = '40vh';
           alertsWrapperEl.style.height = '60vh';
+
+          // Clear shrinking flag after animation
+          setTimeout(() => {
+            mapShrinkingInProgress = false;
+            console.log('🔓 Restoration operation completed');
+          }, 300);
         }
       } catch (error) {
         console.error('❌ Error in scroll handler:', error);
+        mapShrinkingInProgress = false; // Reset flag on error
       }
     }
 
