@@ -266,37 +266,54 @@ console.log('🏘️ Community Debug Info:', {
       currentCommunity: window.currentCommunityId
     });
 
-    let lastScrollTop = 0;
-    let shrinkingLogged = false;
-    let expandingLogged = false;
+
+    let scrollTimeout;
+    let lastDirection = 'up';
+    let consecutiveDownCount = 0;
+    let consecutiveUpCount = 0;
 
     alertsContainer.addEventListener('scroll', function(e) {
       const scrollTop = this.scrollTop;
-      const direction = scrollTop > lastScrollTop ? 'down' : 'up';
-      const threshold = scrollTop > 50;
+      const currentDirection = scrollTop > (this.lastScrollTop || 0) ? 'down' : 'up';
+      this.lastScrollTop = scrollTop;
 
-      console.log('📜 Scroll event:', {
-        scrollTop,
-        direction,
-        threshold,
-        hasMapShrunk: mapContainer.classList.contains('map-shrunk'),
-        containerHeight: this.scrollHeight,
-        viewportHeight: this.clientHeight,
-        communityId: window.currentCommunityId
-      });
-
-      // Shrinking logic
-      if (threshold && !mapContainer.classList.contains('map-shrunk')) {
-        console.log('🔽 Map shrinking activated');
-        mapContainer.classList.add('map-shrunk');
-        shrinkingLogged = true;
-      } else if (!threshold && mapContainer.classList.contains('map-shrunk')) {
-        console.log('🔼 Map expanding activated');
-        mapContainer.classList.remove('map-shrunk');
-        expandingLogged = true;
+      // Count consecutive scrolls in same direction
+      if (currentDirection === lastDirection) {
+        if (currentDirection === 'down') consecutiveDownCount++;
+        else consecutiveUpCount++;
+      } else {
+        consecutiveDownCount = currentDirection === 'down' ? 1 : 0;
+        consecutiveUpCount = currentDirection === 'up' ? 1 : 0;
+        lastDirection = currentDirection;
       }
 
-      lastScrollTop = scrollTop;
+      // Debounced logic with direction confirmation
+      clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(() => {
+        const isShrunk = mapContainer.classList.contains('map-shrunk');
+
+        // Shrink: Must scroll down consecutively past 50px
+        if (currentDirection === 'down' && consecutiveDownCount >= 3 && scrollTop > 50 && !isShrunk) {
+          console.log('🔽 Map shrinking activated (direction confirmed)');
+          mapContainer.classList.add('map-shrunk');
+        }
+        // Expand: Must scroll up consecutively and be below 40px
+        else if (currentDirection === 'up' && consecutiveUpCount >= 2 && scrollTop < 40 && isShrunk) {
+          console.log('🔼 Map expanding activated (direction confirmed)');
+          mapContainer.classList.remove('map-shrunk');
+        }
+      }, 100); // 100ms debounce
+
+      // Real-time logging (less frequent)
+      if (consecutiveDownCount % 5 === 0 || consecutiveUpCount % 5 === 0) {
+        console.log('📜 Scroll state:', {
+          scrollTop,
+          direction: currentDirection,
+          consecutiveDown: consecutiveDownCount,
+          consecutiveUp: consecutiveUpCount,
+          hasMapShrunk: mapContainer.classList.contains('map-shrunk')
+        });
+      }
     }, { passive: true });
 
     // Log initial state
